@@ -1170,7 +1170,7 @@ function shoot() {
       if (hitZombie) {
         const center = new THREE.Vector3(hitZombie.pos.x, 1.1, hitZombie.pos.z);
         damageZombie(hitZombie, w.damage);
-        showDamageNumber(center, w.damage, hitZombie.type);
+        showDamageNumber(center, Math.round(w.damage * player.dmgMulti), hitZombie.type);
       }
       // Show laser beam
       const endPoint = muzzleWorld.clone().addScaledVector(fwd, hitDist);
@@ -1203,7 +1203,7 @@ function shoot() {
       const angle = fwd.angleTo(toZ.normalize());
       if (angle <= CONE_HALF) {
         damageZombie(z, w.damage);
-        showDamageNumber(center, w.damage, z.type);
+        showDamageNumber(center, Math.round(w.damage * player.dmgMulti), z.type);
         // Apply/refresh burn
         z.burnDamage  = w.burnDamage;
         z.burnTimer   = w.burnDuration;
@@ -1234,7 +1234,7 @@ function shoot() {
       const angle  = pelletDir.angleTo(toZ.normalize());
       if (angle < 0.18 + 0.3/dist) {
         damageZombie(z, w.damage);
-        showDamageNumber(center, w.damage, z.type);
+        showDamageNumber(center, Math.round(w.damage * player.dmgMulti), z.type);
         break;
       }
     }
@@ -1466,7 +1466,7 @@ function tick() {
           z.burnTickTimer = 1;
           if (!z.dead) {
             damageZombie(z, z.burnDamage);
-            showDamageNumber(new THREE.Vector3(z.pos.x, 1.5, z.pos.z), z.burnDamage, z.type);
+            showDamageNumber(new THREE.Vector3(z.pos.x, 1.5, z.pos.z), Math.round(z.burnDamage * player.dmgMulti), z.type);
           }
         }
       }
