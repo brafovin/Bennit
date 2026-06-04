@@ -352,8 +352,15 @@ function shoot() {
   if (player.dead || player.shotCooldown > 0) return;
   player.shotCooldown = SHOTGUN_COOLDOWN;
   muzzleFlash.visible = true; flashTimer = 0.08;
-  const origin = camera.getWorldPosition(new THREE.Vector3());
-  const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
+
+  // Compute ray directly from yaw/pitch to avoid stale world-matrix reads
+  const origin = player.pos.clone();
+  const fwd = new THREE.Vector3(
+    -Math.sin(player.yaw) * Math.cos(player.pitch),
+     Math.sin(player.pitch),
+    -Math.cos(player.yaw) * Math.cos(player.pitch)
+  ).normalize();
+
   for (let p = 0; p < SHOTGUN_PELLETS; p++) {
     const spread = 0.08;
     const dir = fwd.clone().add(new THREE.Vector3(randRange(-spread,spread),randRange(-spread,spread),randRange(-spread,spread))).normalize();
