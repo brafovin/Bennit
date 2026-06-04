@@ -120,7 +120,7 @@ const ZOMBIE_RUN_SPEED   = 4.5;
 const ZOMBIE_SEE_DIST    = 28;
 const ZOMBIE_ATK_DIST    = 1.8;
 const ZOMBIE_ATK_DAMAGE  = 10;
-const ZOMBIE_ATK_COOLDOWN= 1.2; // seconds between hits
+const ZOMBIE_ATK_COOLDOWN= 1.2;
 const SHOTGUN_RANGE      = 7;
 const SHOTGUN_DAMAGE     = 67;
 const SHOTGUN_COOLDOWN   = 0.9;
@@ -232,13 +232,11 @@ const player = {
   damageCooldown: 0,
 };
 
-// First-person camera rig
 const camPivot = new THREE.Object3D();
 scene.add(camPivot);
 camPivot.add(camera);
 camera.position.set(0, 0, 0);
 
-// Shotgun model (simple geometry, first-person view)
 const gunGroup = new THREE.Group();
 const barrelGeo = new THREE.BoxGeometry(0.08, 0.08, 0.6);
 const barrelMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
@@ -251,7 +249,6 @@ stock.position.set(0.25, -0.2, -0.15);
 gunGroup.add(stock);
 camera.add(gunGroup);
 
-// Muzzle flash
 const flashGeo = new THREE.SphereGeometry(0.12, 8, 8);
 const flashMat = new THREE.MeshBasicMaterial({ color: 0xffee88 });
 const muzzleFlash = new THREE.Mesh(flashGeo, flashMat);
@@ -265,7 +262,6 @@ const zombies = [];
 
 function makeZombieModel() {
   const g = new THREE.Group();
-  // Body
   const body = new THREE.Mesh(
     new THREE.BoxGeometry(0.6, 0.8, 0.3),
     new THREE.MeshLambertMaterial({ color: 0x3d7a3d })
@@ -273,7 +269,6 @@ function makeZombieModel() {
   body.position.y = 1.1;
   body.castShadow = true;
   g.add(body);
-  // Head
   const head = new THREE.Mesh(
     new THREE.BoxGeometry(0.45, 0.45, 0.45),
     new THREE.MeshLambertMaterial({ color: 0x4da64d })
@@ -281,7 +276,6 @@ function makeZombieModel() {
   head.position.y = 1.75;
   head.castShadow = true;
   g.add(head);
-  // Eyes (red)
   [-0.1, 0.1].forEach(x => {
     const eye = new THREE.Mesh(
       new THREE.BoxGeometry(0.08, 0.08, 0.05),
@@ -290,8 +284,7 @@ function makeZombieModel() {
     eye.position.set(x, 1.78, 0.24);
     g.add(eye);
   });
-  // Arms
-  [-0.42, 0.42].forEach((x, i) => {
+  [-0.42, 0.42].forEach(x => {
     const arm = new THREE.Mesh(
       new THREE.BoxGeometry(0.18, 0.65, 0.2),
       new THREE.MeshLambertMaterial({ color: 0x3d7a3d })
@@ -299,7 +292,6 @@ function makeZombieModel() {
     arm.position.set(x, 1.05, 0);
     g.add(arm);
   });
-  // Legs
   [-0.18, 0.18].forEach(x => {
     const leg = new THREE.Mesh(
       new THREE.BoxGeometry(0.22, 0.6, 0.25),
@@ -334,7 +326,6 @@ function spawnZombie(pos) {
   scene.add(model);
   const spawnPos = pos || safeSpawnPos(15, player.pos);
   model.position.copy(spawnPos);
-
   const zombie = {
     hp: ZOMBIE_MAX_HP,
     model,
@@ -364,7 +355,6 @@ function updateZombieHPBar(z) {
   z.hpBar.tex.needsUpdate = true;
 }
 
-// Spawn initial zombies
 for (let i = 0; i < SPAWN_COUNT; i++) spawnZombie();
 
 // ─── Input ─────────────────────────────────────────────────────────────────────────────────
@@ -389,7 +379,6 @@ document.addEventListener('pointerlockchange', () => {
   mouseLocked = document.pointerLockElement === canvas;
 });
 
-// Shooting
 let shootQueued = false;
 document.addEventListener('mousedown', e => {
   if (e.button === 0 && mouseLocked) shootQueued = true;
@@ -397,6 +386,31 @@ document.addEventListener('mousedown', e => {
 
 // ─── Shooting logic ──────────────────────────────────────────────────────────────────────────
 const hitMarkers = [];
+const dmgNumbers = [];
+
+function showDamageNumber(pos, dmg) {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.font = 'bold 48px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 6;
+  ctx.strokeText(dmg, 64, 32);
+  ctx.fillStyle = '#ff4400';
+  ctx.fillText(dmg, 64, 32);
+
+  const tex = new THREE.CanvasTexture(c);
+  const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(0.9, 0.45, 1);
+  sprite.position.copy(pos);
+  sprite.position.x += randRange(-0.3, 0.3);
+  sprite.position.z += randRange(-0.3, 0.3);
+  scene.add(sprite);
+  dmgNumbers.push({ sprite, mat, timer: 0.75, maxTimer: 0.75 });
+}
 
 function shoot() {
   if (player.dead || player.shotCooldown > 0) return;
@@ -421,20 +435,11 @@ function shoot() {
       const hits = ray.intersectObject(z.model, true);
       if (hits.length > 0) {
         damageZombie(z, SHOTGUN_DAMAGE);
-        showHitMarker(hits[0].point);
+        showDamageNumber(hits[0].point, SHOTGUN_DAMAGE);
         break;
       }
     }
   }
-}
-
-function showHitMarker(pos) {
-  const geo = new THREE.SphereGeometry(0.06, 6, 6);
-  const mat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.copy(pos);
-  scene.add(mesh);
-  hitMarkers.push({ mesh, timer: 0.25 });
 }
 
 function damageZombie(z, dmg) {
@@ -476,8 +481,7 @@ function killPlayer() {
   if (player.dead) return;
   player.dead = true;
   player.respawnTimer = 3;
-  const ds = document.getElementById('death-screen');
-  ds.style.display = 'flex';
+  document.getElementById('death-screen').style.display = 'flex';
 }
 
 function respawnPlayer() {
@@ -535,8 +539,7 @@ function tick() {
   mouseDX = 0; mouseDY = 0;
 
   const sprinting = keys['ShiftLeft'] || keys['ShiftRight'];
-  const sprintEl = document.getElementById('sprint-indicator');
-  sprintEl.style.opacity = sprinting ? '1' : '0';
+  document.getElementById('sprint-indicator').style.opacity = sprinting ? '1' : '0';
 
   if (!player.dead) {
     const speed = PLAYER_SPEED * (sprinting ? PLAYER_SPRINT_MULT : 1);
@@ -563,7 +566,6 @@ function tick() {
     }
 
     player.pos.y = 1.7;
-
     if (player.shotCooldown > 0) player.shotCooldown -= dt;
     if (player.damageCooldown > 0) player.damageCooldown -= dt;
   } else {
@@ -634,15 +636,22 @@ function tick() {
 
     z.wobble += dt * (z.state === 'chase' ? 7 : 3.5);
     z.model.position.y = Math.abs(Math.sin(z.wobble)) * 0.08;
-
     z.hpBar.sprite.rotation.y = -z.model.rotation.y + player.yaw;
   }
 
-  for (let i = hitMarkers.length - 1; i >= 0; i--) {
-    hitMarkers[i].timer -= dt;
-    if (hitMarkers[i].timer <= 0) {
-      scene.remove(hitMarkers[i].mesh);
-      hitMarkers.splice(i, 1);
+  // ── Damage numbers ─────────────────────────────────────────────────────────────────────
+  for (let i = dmgNumbers.length - 1; i >= 0; i--) {
+    const d = dmgNumbers[i];
+    d.timer -= dt;
+    d.sprite.position.y += dt * 1.8;
+    const fadeStart = d.maxTimer * 0.4;
+    if (d.timer < fadeStart) {
+      d.mat.opacity = d.timer / fadeStart;
+    }
+    if (d.timer <= 0) {
+      scene.remove(d.sprite);
+      d.mat.dispose();
+      dmgNumbers.splice(i, 1);
     }
   }
 
