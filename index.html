@@ -244,7 +244,7 @@ const ZOMBIE_ATK_COOLDOWN = 1.2;
 const MAP_HALF            = 40;
 const BETWEEN_WAVE_DELAY  = 4;
 
-// ORIGINAL PRICES: pistol=0, rifle=250, shotgun=1000, sniper=1500, minigun=5000, railgun=15000, flamethrower=30000
+// ORIGINAL PRICES: pistol=0, rifle=250, shotgun=1000, sniper=1500, minigun=5000, railgun=15000, flamethrower=30000, lavacannon=10000
 const WEAPONS = {
   pistol:       { name: 'Pistol',       icon: '🔫', cost:    1, damage:   50, cooldown: 1.00, pellets: 1, range: 12, spread: 0.00, auto: false },
   rifle:        { name: 'Rifle',        icon: '🎯', cost:    1, damage:   25, cooldown: 0.20, pellets: 1, range: 20, spread: 0.04, auto: true  },
@@ -255,6 +255,8 @@ const WEAPONS = {
                   altDamage: 1500, altCooldown: 0.5 },
   flamethrower: { name: 'Flamethrower', icon: '🔥', cost:    1, damage:  150, cooldown: 0.015, pellets: 1, range:  9, spread: 0.00, auto: true,
                   burnDamage: 30, burnDuration: 4 },
+  lavacannon:   { name: 'Lava Cannon',  icon: '🌋', cost:    1, damage: 5000, cooldown: 0.50, pellets: 1, range: 80, spread: 0.00, auto: false,
+                  lavaDamage: 1000, lavaRadius: 6, lavaExplosionRadius: 8 },
 };
 
 const LOBBY_FLOOR    = 3;
@@ -573,6 +575,30 @@ function buildFlamethrower(){
   return g;
 }
 
+function buildLavaCannon(){
+  const g = new THREE.Group();
+  const lavaOrange = new THREE.MeshBasicMaterial({color:0xff4400});
+  const lavaGlow   = new THREE.MeshBasicMaterial({color:0xff8800});
+  const darkRock   = new THREE.MeshLambertMaterial({color:0x221100});
+  const obsidian   = new THREE.MeshLambertMaterial({color:0x110a00});
+  // wide barrel — cracked rock texture feel via dark box
+  g.add(cyl(.07,.09,.70, darkRock,  0,  0, -.35, Math.PI/2,0,0));
+  // lava glow rings
+  for(let i=0;i<4;i++) g.add(cyl(.10,.10,.04, lavaOrange, 0, 0, -.12-i*.16, Math.PI/2,0,0));
+  // muzzle opening glow
+  g.add(cyl(.09,.05,.10, lavaGlow,  0,  0, -.72, Math.PI/2,0,0));
+  // body / receiver
+  g.add(box(.16,.14,.32, darkRock,  0,  0,  .10));
+  // molten core (glowing box inside body)
+  g.add(box(.06,.06,.28, lavaGlow,  0,  0,  .10));
+  // grip
+  g.add(box(.08,.18,.10, obsidian,  0, -.13, .08));
+  // lava tank on back
+  g.add(cyl(.07,.07,.26, lavaOrange, 0, -.02, .28, Math.PI/2,0,0));
+  g.add(cyl(.08,.08,.06, lavaGlow,   0, -.02, .42, Math.PI/2,0,0));
+  return g;
+}
+
 const weaponModels = {
   pistol:       buildPistol(),
   rifle:        buildRifle(),
@@ -581,6 +607,7 @@ const weaponModels = {
   minigun:      buildMinigun(),
   railgun:      buildRailgun(),
   flamethrower: buildFlamethrower(),
+  lavacannon:   buildLavaCannon(),
 };
 
 // weapon-specific view positions [x, y, z]
@@ -592,6 +619,7 @@ const weaponPos = {
   minigun:  [.24, -.20, -.30],
   railgun:      [.20, -.20, -.44],
   flamethrower: [.22, -.20, -.28],
+  lavacannon:   [.22, -.20, -.32],
 };
 // muzzle tip offsets relative to weapon position
 const muzzleTip = {
@@ -602,6 +630,7 @@ const muzzleTip = {
   minigun:      [0, .07, -.68],
   railgun:      [0,  0,  -.92],
   flamethrower: [0,  0,  -.68],
+  lavacannon:   [0,  0,  -.75],
 };
 
 const gunGroup = new THREE.Group();
@@ -663,6 +692,27 @@ function spawnFlameParticle(origin, dir) {
   mesh.position.copy(origin);
   scene.add(mesh);
   flameParticles.push({ mesh, dir: d, life: 0.18 + Math.random() * 0.12, age: 0, speed: 6 + Math.random() * 4 });
+}
+
+// Lava cannon projectiles
+const lavaBalls = [];
+const lavaBallMat = new THREE.MeshBasicMaterial({color:0xff4400, transparent:true, opacity:0.95});
+function spawnLavaBall(origin, dir) {
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 10), lavaBallMat.clone());
+  mesh.position.copy(origin);
+  scene.add(mesh);
+  lavaBalls.push({ mesh, dir: dir.clone(), dist: 0, lastTrailPos: origin.clone() });
+}
+
+// Lava pools (floor hazards)
+const lavaPools = [];
+const lavaPoolMat = new THREE.MeshBasicMaterial({color:0xff5500, transparent:true, opacity:0.75, side: THREE.DoubleSide});
+function spawnLavaPool(pos) {
+  const mesh = new THREE.Mesh(new THREE.CircleGeometry(1.4, 14), lavaPoolMat.clone());
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set(pos.x, 0.05, pos.z);
+  scene.add(mesh);
+  lavaPools.push({ mesh, life: 3.0, tickTimer: 0 });
 }
 
 const zombies = [];
@@ -843,8 +893,9 @@ function renderShop() {
   for (const [id, w] of Object.entries(WEAPONS)) {
     const owned    = player.ownedWeapons.has(id);
     const equipped = player.weapon === id;
-    const locked   = (id === 'railgun' && player.rebirthCount < 1) ||
-                     (id === 'flamethrower' && player.rebirthCount < 2);
+    const locked   = (id === 'railgun'      && player.rebirthCount < 1) ||
+                     (id === 'flamethrower' && player.rebirthCount < 2) ||
+                     (id === 'lavacannon'   && player.rebirthCount < 3);
     const canAfford = !locked && player.cash >= w.cost;
 
     const card = document.createElement('div');
@@ -864,7 +915,7 @@ function renderShop() {
         <span>${w.auto ? '🔁 Auto-fire' : '🖱️ Semi-auto'}</span>
       </div>
       ${locked
-        ? `<div class="wcost" style="color:#aa44ff">🔒 Requires Rebirth ${id === 'flamethrower' ? 2 : 1}</div>`
+        ? `<div class="wcost" style="color:#aa44ff">🔒 Requires Rebirth ${id === 'lavacannon' ? 3 : id === 'flamethrower' ? 2 : 1}</div>`
         : `<div class="wcost" style="color:${w.cost===0 ? '#aaa' : canAfford||owned ? '#44ff88' : '#ff4444'}">${w.cost === 0 ? 'FREE' : '$' + w.cost}</div>`
       }
     `;
@@ -950,6 +1001,8 @@ function beginGame() {
   for (const lb of laserBalls) scene.remove(lb.mesh);
   laserBalls.length = 0;
   for (const fp of flameParticles) scene.remove(fp.mesh); flameParticles.length = 0;
+  for (const lb of lavaBalls) scene.remove(lb.mesh); lavaBalls.length = 0;
+  for (const lp of lavaPools) scene.remove(lp.mesh); lavaPools.length = 0;
   const spawn = safeSpawnPos(15, null);
   player.pos.set(spawn.x, 1.7, spawn.z);
   updatePlayerHPBar();
@@ -980,12 +1033,14 @@ function updateRebirthStatus() {
 }
 
 function rebirth() {
-  const needed = player.rebirthCount === 0 ? 10 : 20;
+  const needed = player.rebirthCount === 0 ? 10 : player.rebirthCount === 1 ? 20 : 30;
+  if (player.rebirthCount >= 3) return;
   if (player.highestWave < needed) return;
   player.rebirthCount++;
   player.highestWave = 0; // reset so plate can't fire again until next run
-  if (player.rebirthCount === 1) { player.cashMulti = 1.5; player.dmgMulti = 1.25; }
-  else                           { player.cashMulti = 2.0; player.dmgMulti = 1.50; }
+  if      (player.rebirthCount === 1) { player.cashMulti = 1.5;  player.dmgMulti = 1.25; }
+  else if (player.rebirthCount === 2) { player.cashMulti = 2.0;  player.dmgMulti = 1.50; }
+  else                                { player.cashMulti = 2.5;  player.dmgMulti = 1.75; }
   // Reset weapons but keep rebirth bonuses
   player.weapon = 'pistol';
   player.ownedWeapons = new Set(['pistol']);
@@ -1003,7 +1058,7 @@ function rebirth() {
 function updateRebirthHint() {
   const el = document.getElementById('rebirth-hint');
   if (gameState !== 'lobby') { el.style.display = 'none'; return; }
-  const needed = player.rebirthCount === 0 ? 10 : player.rebirthCount === 1 ? 20 : null;
+  const needed = player.rebirthCount === 0 ? 10 : player.rebirthCount === 1 ? 20 : player.rebirthCount === 2 ? 30 : null;
   if (needed === null) { el.textContent = '✨ MAX REBIRTH'; el.style.color = '#ffdd00'; el.style.display = ''; return; }
   el.style.display = '';
   if (player.highestWave >= needed) {
@@ -1029,6 +1084,8 @@ function returnToLobby() {
   for (const lb of laserBalls) scene.remove(lb.mesh);
   laserBalls.length = 0;
   for (const fp of flameParticles) scene.remove(fp.mesh); flameParticles.length = 0;
+  for (const lb of lavaBalls) scene.remove(lb.mesh); lavaBalls.length = 0;
+  for (const lp of lavaPools) scene.remove(lp.mesh); lavaPools.length = 0;
   player.yaw = Math.PI;
   player.pitch = 0;
   player.pos.copy(LOBBY_SPAWN);
@@ -1213,6 +1270,16 @@ function shoot() {
     return;
   }
 
+  // Lava Cannon — fires lava ball projectile
+  if (player.weapon === 'lavacannon') {
+    player.shotCooldown = w.cooldown;
+    const [px,py,pz] = weaponPos.lavacannon;
+    const [mx,my,mz] = muzzleTip.lavacannon;
+    const origin = new THREE.Vector3(px+mx, py+my, pz+mz).applyMatrix4(camera.matrixWorld);
+    spawnLavaBall(origin, fwd);
+    return;
+  }
+
   player.shotCooldown = w.cooldown;
   muzzleFlash.visible = true; flashTimer = .08;
 
@@ -1297,7 +1364,8 @@ function tick() {
 
   rebirthPulseT += dt * 2.0;
   const rpulse = 0.5 + 0.5 * Math.sin(rebirthPulseT);
-  const rebirthAvail = player.rebirthCount < 2 && player.highestWave >= (player.rebirthCount === 0 ? 10 : 20);
+  const neededWave   = player.rebirthCount === 0 ? 10 : player.rebirthCount === 1 ? 20 : 30;
+  const rebirthAvail = player.rebirthCount < 3 && player.highestWave >= neededWave;
   rebirthPlateMesh.material.color.setRGB(rpulse * 0.67, 0, rpulse);
   rebirthPlateMesh.material.opacity = rebirthAvail ? 1 : 0.35;
   rebirthPlateMesh.material.transparent = true;
@@ -1372,6 +1440,76 @@ function tick() {
     fp.mesh.material.opacity = (1 - t) * 0.85;
     fp.mesh.scale.setScalar(1 + t * 1.5);
     if (fp.age >= fp.life) { scene.remove(fp.mesh); flameParticles.splice(i, 1); }
+  }
+
+  // Lava ball tick
+  const w_lava = WEAPONS.lavacannon;
+  for (let i = lavaBalls.length - 1; i >= 0; i--) {
+    const lb = lavaBalls[i];
+    const speed = 18;
+    lb.mesh.position.addScaledVector(lb.dir, speed * dt);
+    lb.dist += speed * dt;
+    // Wobble downward slightly (gravity feel)
+    lb.dir.y -= 2.5 * dt;
+
+    // Spawn trail lava pool every 0.6 units
+    if (lb.mesh.position.distanceTo(lb.lastTrailPos) >= 0.6) {
+      spawnLavaPool(lb.mesh.position);
+      lb.lastTrailPos.copy(lb.mesh.position);
+    }
+
+    // Check hit
+    let hit = false;
+    for (const z of zombies) {
+      if (z.dead) continue;
+      const center = new THREE.Vector3(z.pos.x, 1.1, z.pos.z);
+      if (lb.mesh.position.distanceTo(center) < 1.0) { hit = true; break; }
+    }
+    // Also hit ground
+    if (!hit && lb.mesh.position.y <= 0.3) hit = true;
+
+    if (hit || lb.dist > 80) {
+      // Explosion damage
+      const impactPos = lb.mesh.position.clone();
+      for (const z of zombies) {
+        if (z.dead) continue;
+        const center = new THREE.Vector3(z.pos.x, 1.1, z.pos.z);
+        const d = impactPos.distanceTo(center);
+        if (d < w_lava.lavaExplosionRadius) {
+          const falloff = 1 - (d / w_lava.lavaExplosionRadius) * 0.6;
+          const dmg = Math.round(w_lava.damage * falloff);
+          damageZombie(z, dmg);
+          showDamageNumber(center, Math.round(dmg * player.dmgMulti), z.type);
+        }
+      }
+      // Big lava splat: spawn several pools at impact
+      for (let s = 0; s < 5; s++) {
+        const offset = new THREE.Vector3(randRange(-2.5,2.5), 0, randRange(-2.5,2.5));
+        spawnLavaPool(impactPos.clone().add(offset));
+      }
+      scene.remove(lb.mesh);
+      lavaBalls.splice(i, 1);
+    }
+  }
+
+  // Lava pool tick
+  for (let i = lavaPools.length - 1; i >= 0; i--) {
+    const lp = lavaPools[i];
+    lp.life -= dt;
+    lp.tickTimer -= dt;
+    lp.mesh.material.opacity = Math.max(0, (lp.life / 3.0) * 0.75);
+    if (lp.tickTimer <= 0) {
+      lp.tickTimer = 1;
+      for (const z of zombies) {
+        if (z.dead) continue;
+        const zp = new THREE.Vector3(z.pos.x, 0, z.pos.z);
+        if (lp.mesh.position.distanceTo(zp) < 1.4) {
+          damageZombie(z, w_lava.lavaDamage);
+          showDamageNumber(new THREE.Vector3(z.pos.x, 1.5, z.pos.z), Math.round(w_lava.lavaDamage * player.dmgMulti), z.type);
+        }
+      }
+    }
+    if (lp.life <= 0) { scene.remove(lp.mesh); lavaPools.splice(i, 1); }
   }
 
   // Laser ball movement & collision
