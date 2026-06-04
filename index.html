@@ -399,19 +399,118 @@ const camPivot = new THREE.Object3D();
 scene.add(camPivot);
 camPivot.add(camera);
 
+const mat = {
+  dark:   new THREE.MeshLambertMaterial({color:0x222222}),
+  grey:   new THREE.MeshLambertMaterial({color:0x555555}),
+  steel:  new THREE.MeshLambertMaterial({color:0x8899aa}),
+  wood:   new THREE.MeshLambertMaterial({color:0x7a4f2e}),
+  tan:    new THREE.MeshLambertMaterial({color:0xc8a97a}),
+  black:  new THREE.MeshLambertMaterial({color:0x111111}),
+  yellow: new THREE.MeshLambertMaterial({color:0xddaa00}),
+};
+function box(w,h,d,m,x,y,z){ const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); o.position.set(x,y,z); return o; }
+function cyl(rt,rb,h,m,x,y,z,rx,ry,rz){ const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,10),m); o.position.set(x,y,z); if(rx||ry||rz) o.rotation.set(rx||0,ry||0,rz||0); return o; }
+
+function buildPistol(){
+  const g=new THREE.Group();
+  g.add(box(.07,.07,.42,mat.dark,  0, 0,-.22));  // barrel
+  g.add(box(.09,.14,.20,mat.dark,  0,-.08, .02)); // slide body
+  g.add(box(.08,.18,.12,mat.wood,  0,-.18, .05)); // grip
+  g.add(box(.03,.04,.06,mat.grey,  0,-.05,-.24)); // front sight
+  return g;
+}
+function buildRifle(){
+  const g=new THREE.Group();
+  g.add(box(.06,.06,.75,mat.dark,  0, 0,-.38)); // barrel
+  g.add(box(.08,.10,.50,mat.dark,  0,-.04,-.20)); // receiver
+  g.add(box(.07,.07,.30,mat.wood,  0,-.10, .04)); // handguard
+  g.add(box(.06,.14,.18,mat.wood,  0,-.16, .18)); // stock
+  g.add(box(.04,.14,.04,mat.dark,  0,-.06,-.06)); // mag
+  g.add(box(.03,.03,.12,mat.grey,  0, .06,-.12)); // carry handle
+  return g;
+}
+function buildShotgun(){
+  const g=new THREE.Group();
+  g.add(box(.08,.08,.72,mat.dark,  0, 0,-.38)); // barrel
+  g.add(box(.11,.11,.66,mat.dark,  .0,-.005,-.31)); // tube magazine under barrel
+  g.add(box(.10,.10,.32,mat.wood,  0,-.06, .02)); // forend
+  g.add(box(.09,.16,.22,mat.wood,  0,-.16, .18)); // stock
+  g.add(box(.09,.10,.20,mat.dark,  0,-.04,-.08)); // action
+  g.remove(g.children[1]); // remove duplicate
+  // pump slide
+  g.add(box(.12,.08,.14,mat.tan,   0,-.02,-.10));
+  return g;
+}
+function buildSniper(){
+  const g=new THREE.Group();
+  g.add(box(.05,.05,.95,mat.dark,  0, 0,-.48)); // long barrel
+  g.add(box(.04,.04,.12,mat.grey,  0, 0,-.54)); // suppressor hint
+  g.add(box(.09,.10,.55,mat.black, 0,-.04,-.18)); // receiver
+  g.add(box(.08,.15,.25,mat.wood,  0,-.17, .12)); // stock
+  g.add(box(.04,.04,.04,mat.dark,  0,-.06,-.10)); // mag
+  // scope
+  g.add(cyl(.025,.025,.34,mat.dark, 0, .09,-.18, Math.PI/2,0,0));
+  g.add(box(.05,.03,.06,mat.grey,  0, .09,-.02)); // scope front mount
+  g.add(box(.05,.03,.06,mat.grey,  0, .09,-.32)); // scope rear mount
+  return g;
+}
+function buildMinigun(){
+  const g=new THREE.Group();
+  // 6 rotating barrels cluster — approximate with cylinders
+  const offsets=[[0,.07],[.068,.035],[.068,-.035],[0,-.07],[-.068,-.035],[-.068,.035]];
+  for(const [ox,oy] of offsets){
+    const b=cyl(.022,.022,.70,mat.steel, ox, oy,-.28, Math.PI/2,0,0);
+    g.add(b);
+  }
+  g.add(box(.18,.18,.30,mat.dark,  0,  0,  .04)); // housing
+  g.add(box(.12,.10,.22,mat.dark,  0, -.12, .12)); // grip block
+  g.add(cyl(.06,.08,.18,mat.grey,  0,  0,  .16, Math.PI/2,0,0)); // ammo drum
+  g.add(box(.04,.20,.06,mat.yellow,0, -.04, .00)); // ammo belt hint
+  return g;
+}
+
+const weaponModels = {
+  pistol:  buildPistol(),
+  rifle:   buildRifle(),
+  shotgun: buildShotgun(),
+  sniper:  buildSniper(),
+  minigun: buildMinigun(),
+};
+
+// weapon-specific view positions [x, y, z]
+const weaponPos = {
+  pistol:  [.22, -.20, -.28],
+  rifle:   [.20, -.22, -.38],
+  shotgun: [.20, -.22, -.34],
+  sniper:  [.18, -.22, -.46],
+  minigun: [.24, -.20, -.30],
+};
+// muzzle tip offsets relative to weapon position
+const muzzleTip = {
+  pistol:  [0,  0,  -.44],
+  rifle:   [0,  0,  -.76],
+  shotgun: [0,  0,  -.74],
+  sniper:  [0,  0,  -.95],
+  minigun: [0, .07, -.68],
+};
+
 const gunGroup = new THREE.Group();
-const barrel = new THREE.Mesh(new THREE.BoxGeometry(.08,.08,.6), new THREE.MeshLambertMaterial({color:0x333333}));
-barrel.position.set(.25,-.18,-.4);
-gunGroup.add(barrel);
-const stock = new THREE.Mesh(new THREE.BoxGeometry(.1,.12,.35), new THREE.MeshLambertMaterial({color:0x7a4f2e}));
-stock.position.set(.25,-.2,-.15);
-gunGroup.add(stock);
 camera.add(gunGroup);
 
+function applyWeaponModel(wKey) {
+  while (gunGroup.children.length) gunGroup.remove(gunGroup.children[0]);
+  const model = weaponModels[wKey];
+  const [px,py,pz] = weaponPos[wKey];
+  model.position.set(px, py, pz);
+  gunGroup.add(model);
+  const [mx,my,mz] = muzzleTip[wKey];
+  muzzleFlash.position.set(px+mx, py+my, pz+mz);
+}
+
 const muzzleFlash = new THREE.Mesh(new THREE.SphereGeometry(.12,8,8), new THREE.MeshBasicMaterial({color:0xffee88}));
-muzzleFlash.position.set(.25,-.18,-.72);
 muzzleFlash.visible = false;
 camera.add(muzzleFlash);
+applyWeaponModel('pistol');
 let flashTimer = 0;
 
 const zombies = [];
@@ -597,6 +696,7 @@ function renderShop() {
       btn.className   = 'btn-equip';
       btn.onclick = () => {
         player.weapon = id;
+        applyWeaponModel(id);
         updateWeaponIndicator();
         renderShop();
       };
@@ -610,6 +710,7 @@ function renderShop() {
             player.cash -= w.cost;
             player.ownedWeapons.add(id);
             player.weapon = id;
+            applyWeaponModel(id);
             document.getElementById('cash-counter').textContent = `$ ${player.cash}`;
             updateWeaponIndicator();
             renderShop();
@@ -648,6 +749,7 @@ function beginGame() {
   player.shotCooldown   = 0;
   player.weapon = 'pistol';
   player.ownedWeapons = new Set(['pistol']);
+  applyWeaponModel('pistol');
   const spawn = safeSpawnPos(15, null);
   player.pos.set(spawn.x, 1.7, spawn.z);
   updatePlayerHPBar();
@@ -680,6 +782,7 @@ function returnToLobby() {
   player.cash  = 0;
   player.weapon = 'pistol';
   player.ownedWeapons = new Set(['pistol']);
+  applyWeaponModel('pistol');
   player.yaw = Math.PI;
   player.pitch = 0;
   player.pos.copy(LOBBY_SPAWN);
