@@ -780,7 +780,8 @@ function renderShop() {
   for (const [id, w] of Object.entries(WEAPONS)) {
     const owned    = player.ownedWeapons.has(id);
     const equipped = player.weapon === id;
-    const canAfford = player.cash >= w.cost;
+    const locked   = id === 'railgun' && player.rebirthCount < 1;
+    const canAfford = !locked && player.cash >= w.cost;
 
     const card = document.createElement('div');
     card.className = 'weapon-card' + (equipped ? ' equipped' : owned ? ' owned' : '');
@@ -798,7 +799,10 @@ function renderShop() {
         Range: <span>${w.range}u</span><br>
         <span>${w.auto ? '🔁 Auto-fire' : '🖱️ Semi-auto'}</span>
       </div>
-      <div class="wcost" style="color:${w.cost===0 ? '#aaa' : canAfford||owned ? '#44ff88' : '#ff4444'}">${w.cost === 0 ? 'FREE' : '$' + w.cost}</div>
+      ${locked
+        ? '<div class="wcost" style="color:#aa44ff">🔒 Requires Rebirth 1</div>'
+        : `<div class="wcost" style="color:${w.cost===0 ? '#aaa' : canAfford||owned ? '#44ff88' : '#ff4444'}">${w.cost === 0 ? 'FREE' : '$' + w.cost}</div>`
+      }
     `;
 
     const btn = document.createElement('button');
@@ -815,6 +819,10 @@ function renderShop() {
         updateWeaponIndicator();
         renderShop();
       };
+    } else if (locked) {
+      btn.textContent = '🔒 LOCKED';
+      btn.className   = 'btn-buy';
+      btn.disabled    = true;
     } else {
       btn.textContent = `BUY  $${w.cost}`;
       btn.className   = 'btn-buy';
