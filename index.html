@@ -1174,13 +1174,25 @@ function tick() {
     for (const z of zombies) {
       if (z.dead) continue;
       const center = new THREE.Vector3(z.pos.x, 1.1, z.pos.z);
-      if (lb.mesh.position.distanceTo(center) < 0.9) {
-        damageZombie(z, WEAPONS.railgun.altDamage);
-        showDamageNumber(center, WEAPONS.railgun.altDamage, z.type);
-        hit = true; break;
-      }
+      if (lb.mesh.position.distanceTo(center) < 0.9) { hit = true; break; }
     }
     if (hit || lb.dist > 80) {
+      if (hit) {
+        // Explosion: damage all zombies within radius
+        const EXPLOSION_RADIUS = 5;
+        for (const z of zombies) {
+          if (z.dead) continue;
+          const center = new THREE.Vector3(z.pos.x, 1.1, z.pos.z);
+          const d = lb.mesh.position.distanceTo(center);
+          if (d < EXPLOSION_RADIUS) {
+            // Falloff: full damage at centre, 25% at edge
+            const falloff = 1 - (d / EXPLOSION_RADIUS) * 0.75;
+            const dmg = Math.round(WEAPONS.railgun.altDamage * falloff);
+            damageZombie(z, dmg);
+            showDamageNumber(center, dmg, z.type);
+          }
+        }
+      }
       scene.remove(lb.mesh);
       laserBalls.splice(i, 1);
     }
