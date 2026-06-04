@@ -456,7 +456,7 @@ const player = {
   yaw: Math.PI, pitch: 0, dead: false, respawnTimer: 0,
   shotCooldown: 0, kills: 0, cash: 0, damageCooldown: 0,
   weapon: 'pistol', ownedWeapons: new Set(['pistol']),
-  rebirthCount: 0, cashMulti: 1.0, dmgMulti: 1.0,
+  rebirthCount: 0, cashMulti: 1.0, dmgMulti: 1.0, highestWave: 0,
 };
 
 let gameState = 'lobby';
@@ -791,6 +791,7 @@ function startWave(n, keepZombies) {
   for (let i = 0; i < blues;    i++) spawnZombie('blue');
 
   waveInfoEl.textContent = `Wave ${n}`;
+  if (n > player.highestWave) player.highestWave = n;
 
   const isBlueWave   = blues > 0;
   const isPurpleWave = purples > 0;
@@ -946,6 +947,7 @@ function beginGame() {
   player.rebirthCount = 0;
   player.cashMulti = 1.0;
   player.dmgMulti  = 1.0;
+  player.highestWave = 0;
   railgunAltMode = false;
   applyWeaponModel('pistol');
   for (const lb of laserBalls) scene.remove(lb.mesh);
@@ -982,7 +984,7 @@ function updateRebirthStatus() {
 
 function rebirth() {
   const needed = player.rebirthCount === 0 ? 10 : 20;
-  if (waveNumber < needed) return;
+  if (player.highestWave < needed) return;
   player.rebirthCount++;
   if (player.rebirthCount === 1) { player.cashMulti = 1.5; player.dmgMulti = 1.25; }
   else                           { player.cashMulti = 2.0; player.dmgMulti = 1.50; }
@@ -1006,11 +1008,11 @@ function updateRebirthHint() {
   const needed = player.rebirthCount === 0 ? 10 : player.rebirthCount === 1 ? 20 : null;
   if (needed === null) { el.textContent = '✨ MAX REBIRTH'; el.style.color = '#ffdd00'; el.style.display = ''; return; }
   el.style.display = '';
-  if (waveNumber >= needed) {
+  if (player.highestWave >= needed) {
     el.textContent = '✨ REBIRTH AVAILABLE — step on the purple plate!';
     el.style.color = '#dd88ff';
   } else {
-    el.textContent = `✨ Rebirth unlocks at wave ${needed} (reached: ${waveNumber})`;
+    el.textContent = `✨ Rebirth unlocks at wave ${needed} (reached: ${player.highestWave})`;
     el.style.color = '#888';
   }
 }
@@ -1297,7 +1299,7 @@ function tick() {
 
   rebirthPulseT += dt * 2.0;
   const rpulse = 0.5 + 0.5 * Math.sin(rebirthPulseT);
-  const rebirthAvail = player.rebirthCount < 2 && waveNumber >= (player.rebirthCount === 0 ? 10 : 20);
+  const rebirthAvail = player.rebirthCount < 2 && player.highestWave >= (player.rebirthCount === 0 ? 10 : 20);
   rebirthPlateMesh.material.color.setRGB(rpulse * 0.67, 0, rpulse);
   rebirthPlateMesh.material.opacity = rebirthAvail ? 1 : 0.35;
   rebirthPlateMesh.material.transparent = true;
