@@ -26,16 +26,19 @@
     color: #fff; font-size: 28px; text-shadow: 1px 1px 3px #000; user-select: none;
   }
   #kill-counter {
-    position: fixed; top: 20px; right: 20px;
+    position: fixed; top: 20px; right: 20px; z-index: 50;
     color: #ffcc00; font-size: 22px; font-weight: bold; text-shadow: 1px 1px 3px #000;
+    pointer-events: none;
   }
   #cash-counter {
-    position: fixed; top: 52px; right: 20px;
+    position: fixed; top: 52px; right: 20px; z-index: 50;
     color: #44ff88; font-size: 22px; font-weight: bold; text-shadow: 1px 1px 3px #000, 0 0 8px #00aa44;
+    pointer-events: none;
   }
   #wave-info {
-    position: fixed; top: 20px; left: 20px;
+    position: fixed; top: 20px; left: 20px; z-index: 50;
     color: #fff; font-size: 22px; font-weight: bold; text-shadow: 1px 1px 3px #000;
+    pointer-events: none;
   }
   #sprint-indicator {
     position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
@@ -86,12 +89,12 @@
     <div id="hp-label">HP</div>
     <div id="hp-bar-bg"><div id="hp-bar"></div></div>
   </div>
-  <div id="kill-counter" style="display:none">Kills: 0</div>
-  <div id="cash-counter" style="display:none">$ 0</div>
-  <div id="wave-info" style="display:none">Wave 1</div>
   <div id="sprint-indicator">&#9889; SPRINTING</div>
   <div id="wave-banner"></div>
 </div>
+<div id="kill-counter" style="display:none">Kills: 0</div>
+<div id="cash-counter" style="display:none">$ 0</div>
+<div id="wave-info" style="display:none">Wave 1</div>
 <div id="death-screen">
   <h1>YOU DIED</h1>
   <p>Returning to lobby...</p>
