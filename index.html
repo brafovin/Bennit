@@ -856,6 +856,7 @@ document.addEventListener('keydown', e => {
     if (shopOpen) closeShop();
     else openShop();
   }
+  if (e.code === 'KeyT') skipWave();
   if (e.code === 'Escape' && shopOpen) closeShop();
 });
 document.addEventListener('keyup',   e => { keys[e.code] = false; });
