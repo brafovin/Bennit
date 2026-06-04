@@ -73,6 +73,10 @@
   #between-wave h2 { color: #ffcc00; font-size: 52px; text-shadow: 2px 2px 8px #000; }
   #between-wave p  { color: #fff; font-size: 24px; text-shadow: 1px 1px 4px #000; }
   #between-wave .shop-hint { color: #44ff88; font-size: 18px; margin-top: 6px; text-shadow: 1px 1px 4px #000; }
+  #skip-wave-btn { margin-top: 16px; padding: 10px 28px; font-size: 18px; font-family: inherit;
+    background: #ff8800; color: #fff; border: none; border-radius: 6px; cursor: pointer;
+    text-shadow: 1px 1px 3px #000; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+  #skip-wave-btn:hover { background: #ffaa22; }
   #lobby-hint {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
@@ -165,6 +169,7 @@
   <h2 id="bw-title">Wave Complete!</h2>
   <p  id="bw-sub">Next wave in 4...</p>
   <p class="shop-hint">&#x1F6D2; Press [B] to open Shop</p>
+  <button id="skip-wave-btn" onclick="skipWave()">&#x23E9; Skip Wave</button>
 </div>
 <div id="shop">
   <div id="shop-panel">
@@ -735,6 +740,10 @@ function closeShop() {
   shopOpen = false;
   document.getElementById('shop').style.display = 'none';
   canvas.requestPointerLock();
+}
+function skipWave() {
+  if (gameState !== 'playing' || !betweenWave) return;
+  betweenTimer = 0;
 }
 
 // ── Game flow ─────────────────────────────────────────────────────────────────
