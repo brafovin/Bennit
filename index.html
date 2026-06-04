@@ -35,6 +35,11 @@
     color: #44ff88; font-size: 22px; font-weight: bold; text-shadow: 1px 1px 3px #000, 0 0 8px #00aa44;
     pointer-events: none;
   }
+  #rebirth-status {
+    position: fixed; top: 80px; right: 20px; z-index: 50;
+    color: #dd88ff; font-size: 14px; font-weight: bold; text-shadow: 1px 1px 3px #000, 0 0 6px #aa00ff;
+    pointer-events: none;
+  }
   #wave-info {
     position: fixed; top: 20px; left: 20px; z-index: 50;
     color: #fff; font-size: 22px; font-weight: bold; text-shadow: 1px 1px 3px #000;
@@ -166,6 +171,7 @@
 </div>
 <div id="kill-counter"     style="display:none">Kills: 0</div>
 <div id="cash-counter"     style="display:none">$ 0</div>
+<div id="rebirth-status" style="display:none"></div>
 <div id="wave-info"        style="display:none">Wave 1</div>
 <button id="skip-btn-hud" onclick="skipWave()" style="display:none">&#x23E9; Skip Wave</button>
 <div id="weapon-indicator" style="display:none">Pistol</div>
@@ -195,7 +201,15 @@
     <b>B</b> &mdash; Weapon Shop (between waves)
   </p>
   <div class="arrow">&#9660; Walk to the GREEN platform to start &#9660;</div>
+  <div id="rebirth-hint" style="margin-top:10px;font-size:16px;color:#888;display:none"></div>
 </div>
+<div id="rebirth-banner" style="
+  position:fixed;top:38%;left:50%;transform:translateX(-50%);
+  z-index:60;color:#dd88ff;font-size:36px;font-weight:bold;
+  text-shadow:0 0 18px #aa00ff,2px 2px 6px #000;
+  pointer-events:none;opacity:0;transition:opacity 0.6s;
+  white-space:nowrap;
+"></div>
 
 <script type="importmap">
 {
@@ -366,6 +380,31 @@ scene.add(triggerPlateMesh);
   scene.add(sp);
 }
 
+// Rebirth platform (placed on the opposite side of the lobby from START)
+const REBIRTH_Z = LOBBY_Z_MAX - 2;
+const REBIRTH_X_HALF = 3;
+const rebirthPlateMesh = new THREE.Mesh(
+  new THREE.BoxGeometry(REBIRTH_X_HALF * 2, 0.18, 4),
+  new THREE.MeshBasicMaterial({ color: 0xaa00ff })
+);
+rebirthPlateMesh.position.set(0, LOBBY_FLOOR + 0.09, REBIRTH_Z);
+scene.add(rebirthPlateMesh);
+let rebirthPulseT = 0;
+
+{
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.font = 'bold 36px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 5; ctx.strokeText('REBIRTH', 128, 32);
+  ctx.fillStyle = '#dd88ff'; ctx.fillText('REBIRTH', 128, 32);
+  const tex = new THREE.CanvasTexture(c);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false }));
+  sp.scale.set(3, 0.75, 1);
+  sp.position.set(0, LOBBY_FLOOR + 2.2, REBIRTH_Z);
+  scene.add(sp);
+}
+
 const clamp = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
 const randRange = (a,b) => a + Math.random()*(b-a);
 
@@ -408,6 +447,7 @@ const player = {
   yaw: Math.PI, pitch: 0, dead: false, respawnTimer: 0,
   shotCooldown: 0, kills: 0, cash: 0, damageCooldown: 0,
   weapon: 'pistol', ownedWeapons: new Set(['pistol']),
+  rebirthCount: 0, cashMulti: 1.0, dmgMulti: 1.0,
 };
 
 let gameState = 'lobby';
@@ -832,6 +872,9 @@ function beginGame() {
   player.shotCooldown   = 0;
   player.weapon = 'pistol';
   player.ownedWeapons = new Set(['pistol']);
+  player.rebirthCount = 0;
+  player.cashMulti = 1.0;
+  player.dmgMulti  = 1.0;
   railgunAltMode = false;
   applyWeaponModel('pistol');
   for (const lb of laserBalls) scene.remove(lb.mesh);
@@ -850,11 +893,54 @@ function beginGame() {
   document.getElementById('weapon-indicator').style.display = '';
   document.getElementById('hp-bar-container').style.display = '';
   document.getElementById('lobby-hint').style.display    = 'none';
+  updateRebirthStatus();
   zombies.forEach(z => { z.dead = true; z.model.visible = false; });
   zombies.length = 0;
   betweenWave = false;
   betweenEl.style.display = 'none';
   startWave(1);
+}
+
+function updateRebirthStatus() {
+  const el = document.getElementById('rebirth-status');
+  if (player.rebirthCount === 0) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.textContent = `✨ Rebirth ${player.rebirthCount}  ×${player.cashMulti} cash  ×${player.dmgMulti} dmg`;
+}
+
+function rebirth() {
+  const needed = player.rebirthCount === 0 ? 10 : 20;
+  if (waveNumber < needed) return;
+  player.rebirthCount++;
+  if (player.rebirthCount === 1) { player.cashMulti = 1.5; player.dmgMulti = 1.25; }
+  else                           { player.cashMulti = 2.0; player.dmgMulti = 1.50; }
+  // Reset weapons but keep rebirth bonuses
+  player.weapon = 'pistol';
+  player.ownedWeapons = new Set(['pistol']);
+  railgunAltMode = false;
+  applyWeaponModel('pistol');
+  // Show banner
+  const banner = document.getElementById('rebirth-banner');
+  banner.textContent = `✨ REBIRTH ${player.rebirthCount}! Cash ×${player.cashMulti} | Damage ×${player.dmgMulti}`;
+  banner.style.opacity = '1';
+  setTimeout(() => { banner.style.opacity = '0'; }, 3500);
+  updateRebirthHint();
+  returnToLobby();
+}
+
+function updateRebirthHint() {
+  const el = document.getElementById('rebirth-hint');
+  if (gameState !== 'lobby') { el.style.display = 'none'; return; }
+  const needed = player.rebirthCount === 0 ? 10 : player.rebirthCount === 1 ? 20 : null;
+  if (needed === null) { el.textContent = '✨ MAX REBIRTH'; el.style.color = '#ffdd00'; el.style.display = ''; return; }
+  el.style.display = '';
+  if (waveNumber >= needed) {
+    el.textContent = '✨ REBIRTH AVAILABLE — step on the purple plate!';
+    el.style.color = '#dd88ff';
+  } else {
+    el.textContent = `✨ Rebirth unlocks at wave ${needed} (reached: ${waveNumber})`;
+    el.style.color = '#888';
+  }
 }
 
 function returnToLobby() {
@@ -867,10 +953,7 @@ function returnToLobby() {
   player.shotCooldown   = 0;
   player.kills = 0;
   player.cash  = 0;
-  player.weapon = 'pistol';
-  player.ownedWeapons = new Set(['pistol']);
-  railgunAltMode = false;
-  applyWeaponModel('pistol');
+  // Keep owned weapons and rebirth bonuses on death
   for (const lb of laserBalls) scene.remove(lb.mesh);
   laserBalls.length = 0;
   player.yaw = Math.PI;
@@ -894,8 +977,10 @@ function returnToLobby() {
   document.getElementById('crosshair').style.display     = 'none';
   document.getElementById('weapon-indicator').style.display = 'none';
   document.getElementById('hp-bar-container').style.display = 'none';
+  document.getElementById('rebirth-status').style.display = 'none';
   document.getElementById('lobby-hint').style.display    = '';
   document.getElementById('death-screen').style.display  = 'none';
+  updateRebirthHint();
 }
 
 // ── Input ─────────────────────────────────────────────────────────────────────
@@ -1055,7 +1140,7 @@ function shoot() {
 }
 
 function damageZombie(z, dmg) {
-  z.hp -= dmg;
+  z.hp -= Math.round(dmg * player.dmgMulti);
   updateZombieHPBar(z);
   if (z.hp <= 0) killZombie(z);
 }
@@ -1065,10 +1150,11 @@ function killZombie(z) {
   z.dead = true;
   z.model.visible = false;
   player.kills++;
-  player.cash += z.cash;
+  const earnedCash = Math.round(z.cash * player.cashMulti);
+  player.cash += earnedCash;
   document.getElementById('kill-counter').textContent = `Kills: ${player.kills}`;
   document.getElementById('cash-counter').textContent = `$ ${player.cash}`;
-  showCashPopup(new THREE.Vector3(z.pos.x, 2.2, z.pos.z), z.cash);
+  showCashPopup(new THREE.Vector3(z.pos.x, 2.2, z.pos.z), earnedCash);
   onZombieDied();
 }
 
@@ -1107,6 +1193,13 @@ function tick() {
   const pulse = 0.55 + 0.45 * Math.sin(triggerPulseT);
   triggerPlateMesh.material.color.setRGB(0, pulse, pulse * 0.4);
 
+  rebirthPulseT += dt * 2.0;
+  const rpulse = 0.5 + 0.5 * Math.sin(rebirthPulseT);
+  const rebirthAvail = player.rebirthCount < 2 && waveNumber >= (player.rebirthCount === 0 ? 10 : 20);
+  rebirthPlateMesh.material.color.setRGB(rpulse * 0.67, 0, rpulse);
+  rebirthPlateMesh.material.opacity = rebirthAvail ? 1 : 0.35;
+  rebirthPlateMesh.material.transparent = true;
+
   if (!shopOpen) {
     player.yaw  -= mouseDX * .0018;
     player.pitch = clamp(player.pitch - mouseDY * .0018, -Math.PI*.45, Math.PI*.45);
@@ -1144,6 +1237,10 @@ function tick() {
       const pz = player.pos.z, px = player.pos.x;
       if (pz >= TRIGGER_Z_MIN && pz <= TRIGGER_Z_MAX && Math.abs(px) <= TRIGGER_X_HALF) {
         beginGame();
+      }
+      // Rebirth plate
+      if (Math.abs(pz - REBIRTH_Z) <= 2 && Math.abs(px) <= REBIRTH_X_HALF) {
+        rebirth();
       }
     }
   } else if (player.dead) {
