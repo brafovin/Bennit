@@ -631,14 +631,17 @@ const betweenEl    = document.getElementById('between-wave');
 const bwTitleEl    = document.getElementById('bw-title');
 const bwSubEl      = document.getElementById('bw-sub');
 
-function startWave(n) {
+function startWave(n, keepZombies) {
   waveNumber  = n;
   betweenWave = false;
   betweenEl.style.display = 'none';
-  zombies.length = 0;
+  if (!keepZombies) zombies.length = 0;
 
   const [normals, yellows, reds, purples] = waveComposition(n);
-  zombiesLeft = normals + yellows + reds + purples;
+  const newCount = normals + yellows + reds + purples;
+  zombiesLeft = keepZombies
+    ? zombies.filter(z => !z.dead).length + newCount
+    : newCount;
 
   for (let i = 0; i < normals;  i++) spawnZombie('green');
   for (let i = 0; i < yellows;  i++) spawnZombie('yellow');
@@ -765,11 +768,7 @@ function skipWave() {
   if (betweenWave) {
     betweenTimer = 0;
   } else {
-    for (const z of zombies) {
-      if (!z.dead) { z.dead = true; scene.remove(z.model); }
-    }
-    zombiesLeft = 0;
-    endWave();
+    startWave(waveNumber + 1, true);
   }
 }
 
