@@ -29,6 +29,10 @@
     position: fixed; top: 20px; right: 20px;
     color: #ffcc00; font-size: 22px; font-weight: bold; text-shadow: 1px 1px 3px #000;
   }
+  #cash-counter {
+    position: fixed; top: 52px; right: 20px;
+    color: #44ff88; font-size: 20px; font-weight: bold; text-shadow: 1px 1px 3px #000;
+  }
   #wave-info {
     position: fixed; top: 20px; left: 20px;
     color: #fff; font-size: 22px; font-weight: bold; text-shadow: 1px 1px 3px #000;
@@ -83,6 +87,7 @@
     <div id="hp-bar-bg"><div id="hp-bar"></div></div>
   </div>
   <div id="kill-counter" style="display:none">Kills: 0</div>
+  <div id="cash-counter" style="display:none">$ 0</div>
   <div id="wave-info" style="display:none">Wave 1</div>
   <div id="sprint-indicator">⚡ SPRINTING</div>
   <div id="wave-banner"></div>
@@ -121,6 +126,10 @@ const PLAYER_SPRINT_MULT  = 2;
 const PLAYER_MAX_HP       = 100;
 const ZOMBIE_MAX_HP       = 100;
 const BLUE_ZOMBIE_MAX_HP  = 250;
+const RED_ZOMBIE_MAX_HP   = 1000;
+const ZOMBIE_CASH         = 10;
+const BLUE_ZOMBIE_CASH    = 25;
+const RED_ZOMBIE_CASH     = 100;
 const ZOMBIE_WALK_SPEED   = 1.6;
 const ZOMBIE_RUN_SPEED    = 4.5;
 const ZOMBIE_SEE_DIST     = 28;
@@ -148,15 +157,16 @@ const TRIGGER_Z_MIN       = LOBBY_Z_MIN;
 const TRIGGER_Z_MAX       = LOBBY_Z_MIN + 4;     // 54 – 58
 const TRIGGER_X_HALF      = 3;
 
-// ─── Wave composition: [normalCount, blueCount] per wave ─────────────────────
+// ─── Wave composition: [normalCount, blueCount, redCount] per wave ───────────
 function waveComposition(waveNum) {
-  if (waveNum === 1) return [1, 0];
-  if (waveNum === 2) return [3, 0];
-  if (waveNum === 3) return [5, 0];
-  if (waveNum === 4) return [7, 0];
+  if (waveNum === 1) return [1, 0, 0];
+  if (waveNum === 2) return [3, 0, 0];
+  if (waveNum === 3) return [5, 0, 0];
+  if (waveNum === 4) return [7, 0, 0];
+  const reds    = waveNum >= 10 ? Math.floor((waveNum - 9) * 1.2) : 0;
   const blues   = Math.floor((waveNum - 4) * 1.5);
-  const normals = Math.max(1, (waveNum - 1) * 2 - blues);
-  return [normals, blues];
+  const normals = Math.max(1, (waveNum - 1) * 2 - blues - reds * 2);
+  return [normals, blues, reds];
 }
 
 // ─── Scene ───────────────────────────────────────────────────────────────────
@@ -316,7 +326,7 @@ function clampToMap(pos) {
 const player = {
   hp: PLAYER_MAX_HP, pos: LOBBY_SPAWN.clone(),
   yaw: Math.PI, pitch: 0, dead: false, respawnTimer: 0,
-  shotCooldown: 0, kills: 0, damageCooldown: 0,
+  shotCooldown: 0, kills: 0, cash: 0, damageCooldown: 0,
 };
 
 let gameState = 'lobby'; // 'lobby' | 'playing'
@@ -344,55 +354,67 @@ let flashTimer = 0;
 // ─── Zombie factory ───────────────────────────────────────────────────────────
 const zombies = [];
 
-function makeZombieModel(isBlue) {
-  const bodyColor = isBlue ? 0x2266cc : 0x3d7a3d;
-  const headColor = isBlue ? 0x3388ee : 0x4da64d;
-  const legColor  = isBlue ? 0x1a4499 : 0x2a5c2a;
+// type: 'green' | 'blue' | 'red'
+function makeZombieModel(type) {
+  const isRed  = type === 'red';
+  const isBlue = type === 'blue';
+  const s      = isRed ? 1.45 : 1; // red zombies are bigger
+
+  const bodyColor = isRed ? 0xcc2222 : isBlue ? 0x2266cc : 0x3d7a3d;
+  const headColor = isRed ? 0xee3333 : isBlue ? 0x3388ee : 0x4da64d;
+  const legColor  = isRed ? 0x991111 : isBlue ? 0x1a4499 : 0x2a5c2a;
+  const eyeColor  = isRed ? 0xffff00 : isBlue ? 0xffffff : 0xff0000;
 
   const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(.6,.8,.3), new THREE.MeshLambertMaterial({color:bodyColor}));
-  body.position.y = 1.1; body.castShadow = true; g.add(body);
-  const head = new THREE.Mesh(new THREE.BoxGeometry(.45,.45,.45), new THREE.MeshLambertMaterial({color:headColor}));
-  head.position.y = 1.75; head.castShadow = true; g.add(head);
-  [-0.1,0.1].forEach(x => {
-    const eye = new THREE.Mesh(new THREE.BoxGeometry(.08,.08,.05), new THREE.MeshBasicMaterial({color: isBlue ? 0xffffff : 0xff0000}));
-    eye.position.set(x,1.78,.24); g.add(eye);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(.6*s,.8*s,.3*s), new THREE.MeshLambertMaterial({color:bodyColor}));
+  body.position.y = 1.1*s; body.castShadow = true; g.add(body);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(.45*s,.45*s,.45*s), new THREE.MeshLambertMaterial({color:headColor}));
+  head.position.y = 1.75*s; head.castShadow = true; g.add(head);
+  [-0.1*s, 0.1*s].forEach(x => {
+    const eye = new THREE.Mesh(new THREE.BoxGeometry(.08*s,.08*s,.05*s), new THREE.MeshBasicMaterial({color:eyeColor}));
+    eye.position.set(x, 1.78*s, .24*s); g.add(eye);
   });
-  [-0.42,0.42].forEach(x => {
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(.18,.65,.2), new THREE.MeshLambertMaterial({color:bodyColor}));
-    arm.position.set(x,1.05,0); g.add(arm);
+  [-0.42*s, 0.42*s].forEach(x => {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(.18*s,.65*s,.2*s), new THREE.MeshLambertMaterial({color:bodyColor}));
+    arm.position.set(x, 1.05*s, 0); g.add(arm);
   });
-  [-0.18,0.18].forEach(x => {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(.22,.6,.25), new THREE.MeshLambertMaterial({color:legColor}));
-    leg.position.set(x,.35,0); g.add(leg);
+  [-0.18*s, 0.18*s].forEach(x => {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(.22*s,.6*s,.25*s), new THREE.MeshLambertMaterial({color:legColor}));
+    leg.position.set(x, .35*s, 0); g.add(leg);
   });
   return g;
 }
 
-function makeHPBar(isBlue) {
+function makeHPBar(type) {
+  const isRed  = type === 'red';
+  const isBlue = type === 'blue';
+  const barW   = isRed ? 2.2 : 1.4;
+  const barY   = isRed ? 3.6 : isBlue ? 2.6 : 2.4;
   const c = document.createElement('canvas');
   c.width = 128; c.height = 24;
   const ctx = c.getContext('2d');
   ctx.fillStyle = '#333'; ctx.fillRect(0,0,128,24);
-  ctx.fillStyle = isBlue ? '#2288ff' : '#22cc44'; ctx.fillRect(2,2,124,20);
+  ctx.fillStyle = isRed ? '#ff3300' : isBlue ? '#2288ff' : '#22cc44';
+  ctx.fillRect(2,2,124,20);
   const tex = new THREE.CanvasTexture(c);
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, depthTest:false}));
-  sprite.scale.set(1.4, 0.24, 1);
-  sprite.position.y = isBlue ? 2.6 : 2.4;
+  sprite.scale.set(barW, 0.28, 1);
+  sprite.position.y = barY;
   return { sprite, ctx, tex };
 }
 
-function spawnZombie(isBlue) {
-  const model  = makeZombieModel(isBlue);
-  const hpBar  = makeHPBar(isBlue);
+function spawnZombie(type) {
+  const model  = makeZombieModel(type);
+  const hpBar  = makeHPBar(type);
   model.add(hpBar.sprite);
   scene.add(model);
   const spawnPos = safeSpawnPos(18, player.pos);
   model.position.copy(spawnPos);
 
-  const maxHp = isBlue ? BLUE_ZOMBIE_MAX_HP : ZOMBIE_MAX_HP;
+  const maxHp = type === 'red' ? RED_ZOMBIE_MAX_HP : type === 'blue' ? BLUE_ZOMBIE_MAX_HP : ZOMBIE_MAX_HP;
+  const cash  = type === 'red' ? RED_ZOMBIE_CASH   : type === 'blue' ? BLUE_ZOMBIE_CASH   : ZOMBIE_CASH;
   const z = {
-    hp: maxHp, maxHp, isBlue, model, hpBar,
+    hp: maxHp, maxHp, type, cash, model, hpBar,
     pos: model.position, state: 'wander',
     wanderTarget: spawnPos.clone().add(new THREE.Vector3(randRange(-10,10),0,randRange(-10,10))),
     wanderTimer: randRange(2,5), atkCooldown: 0,
@@ -407,7 +429,9 @@ function updateZombieHPBar(z) {
   const ctx = z.hpBar.ctx;
   ctx.clearRect(0,0,128,24);
   ctx.fillStyle = '#333'; ctx.fillRect(0,0,128,24);
-  if (z.isBlue) {
+  if (z.type === 'red') {
+    ctx.fillStyle = ratio > .5 ? '#ff3300' : ratio > .25 ? '#ff6600' : '#ff0000';
+  } else if (z.type === 'blue') {
     ctx.fillStyle = ratio > .5 ? '#2288ff' : ratio > .25 ? '#aa44ff' : '#ff4488';
   } else {
     ctx.fillStyle = ratio > .5 ? '#22cc44' : ratio > .25 ? '#ffaa00' : '#dd2222';
@@ -435,17 +459,21 @@ function startWave(n) {
 
   zombies.length = 0;
 
-  const [normals, blues] = waveComposition(n);
-  zombiesLeft = normals + blues;
+  const [normals, blues, reds] = waveComposition(n);
+  zombiesLeft = normals + blues + reds;
 
-  for (let i = 0; i < normals; i++) spawnZombie(false);
-  for (let i = 0; i < blues;   i++) spawnZombie(true);
+  for (let i = 0; i < normals; i++) spawnZombie('green');
+  for (let i = 0; i < blues;   i++) spawnZombie('blue');
+  for (let i = 0; i < reds;    i++) spawnZombie('red');
 
   waveInfoEl.textContent = `Wave ${n}`;
 
+  const isRedWave  = reds > 0;
   const isBlueWave = blues > 0;
-  waveBannerEl.style.color     = isBlueWave ? '#44aaff' : '#ffcc00';
-  waveBannerEl.textContent     = isBlueWave
+  waveBannerEl.style.color   = isRedWave ? '#ff4422' : isBlueWave ? '#44aaff' : '#ffcc00';
+  waveBannerEl.textContent   = isRedWave
+    ? `💀 WAVE ${n} — RED GIANT ZOMBIES!`
+    : isBlueWave
     ? `⚠ WAVE ${n} — BLUE ZOMBIES INCOMING!`
     : `WAVE ${n}`;
   waveBannerEl.style.opacity   = '1';
@@ -472,6 +500,7 @@ function beginGame() {
   // Teleport player to arena centre
   player.hp = PLAYER_MAX_HP;
   player.kills = 0;
+  player.cash  = 0;
   player.dead = false;
   player.damageCooldown = 0;
   player.shotCooldown = 0;
@@ -480,7 +509,9 @@ function beginGame() {
   updatePlayerHPBar();
 
   document.getElementById('kill-counter').textContent = 'Kills: 0';
+  document.getElementById('cash-counter').textContent = '$ 0';
   document.getElementById('kill-counter').style.display = '';
+  document.getElementById('cash-counter').style.display = '';
   document.getElementById('wave-info').style.display   = '';
   document.getElementById('crosshair').style.display   = '';
   document.getElementById('hp-bar-container').style.display = '';
@@ -504,6 +535,7 @@ function returnToLobby() {
   player.damageCooldown = 0;
   player.shotCooldown = 0;
   player.kills = 0;
+  player.cash  = 0;
   player.yaw = Math.PI;
   player.pitch = 0;
   player.pos.copy(LOBBY_SPAWN);
@@ -522,7 +554,9 @@ function returnToLobby() {
   waveBannerEl.textContent = '';
 
   document.getElementById('kill-counter').textContent = 'Kills: 0';
+  document.getElementById('cash-counter').textContent = '$ 0';
   document.getElementById('kill-counter').style.display   = 'none';
+  document.getElementById('cash-counter').style.display   = 'none';
   document.getElementById('wave-info').style.display      = 'none';
   document.getElementById('crosshair').style.display      = 'none';
   document.getElementById('hp-bar-container').style.display = 'none';
@@ -546,13 +580,14 @@ document.addEventListener('mousedown', e => { if (e.button===0 && mouseLocked) s
 // ─── Damage numbers ───────────────────────────────────────────────────────────
 const dmgNumbers = [];
 
-function showDamageNumber(pos, dmg, isBlue) {
+function showDamageNumber(pos, dmg, type) {
   const c = document.createElement('canvas');
   c.width = 128; c.height = 64;
   const ctx = c.getContext('2d');
   ctx.font = 'bold 48px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.strokeStyle = '#000'; ctx.lineWidth = 6; ctx.strokeText(dmg, 64, 32);
-  ctx.fillStyle = isBlue ? '#44aaff' : '#ff4400'; ctx.fillText(dmg, 64, 32);
+  const col = type === 'red' ? '#ff6600' : type === 'blue' ? '#44aaff' : '#ff4400';
+  ctx.fillStyle = col; ctx.fillText(dmg, 64, 32);
   const tex = new THREE.CanvasTexture(c);
   const mat = new THREE.SpriteMaterial({map:tex, depthTest:false, transparent:true});
   const sprite = new THREE.Sprite(mat);
@@ -591,7 +626,7 @@ function shoot() {
       const angle  = pelletDir.angleTo(toZ.normalize());
       if (angle < 0.18 + 0.3/dist) {
         damageZombie(z, SHOTGUN_DAMAGE);
-        showDamageNumber(center, SHOTGUN_DAMAGE, z.isBlue);
+        showDamageNumber(center, SHOTGUN_DAMAGE, z.type);
         break;
       }
     }
@@ -609,7 +644,9 @@ function killZombie(z) {
   z.dead = true;
   z.model.visible = false;
   player.kills++;
+  player.cash += z.cash;
   document.getElementById('kill-counter').textContent = `Kills: ${player.kills}`;
+  document.getElementById('cash-counter').textContent = `$ ${player.cash}`;
   onZombieDied();
 }
 
