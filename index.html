@@ -353,22 +353,34 @@ function shoot() {
   player.shotCooldown = SHOTGUN_COOLDOWN;
   muzzleFlash.visible = true; flashTimer = 0.08;
 
-  // Compute ray directly from yaw/pitch to avoid stale world-matrix reads
-  const origin = player.pos.clone();
+  // Forward vector from player's aim (yaw + pitch)
   const fwd = new THREE.Vector3(
     -Math.sin(player.yaw) * Math.cos(player.pitch),
      Math.sin(player.pitch),
     -Math.cos(player.yaw) * Math.cos(player.pitch)
   ).normalize();
 
+  // Per-pellet: cone angle check against each zombie's centre
+  const CONE_HALF_ANGLE = 0.18;
   for (let p = 0; p < SHOTGUN_PELLETS; p++) {
-    const spread = 0.08;
-    const dir = fwd.clone().add(new THREE.Vector3(randRange(-spread,spread),randRange(-spread,spread),randRange(-spread,spread))).normalize();
-    const ray = new THREE.Raycaster(origin, dir, 0, SHOTGUN_RANGE);
     for (const z of zombies) {
       if (z.dead) continue;
-      const hits = ray.intersectObject(z.model, true);
-      if (hits.length > 0) { damageZombie(z, SHOTGUN_DAMAGE); showDamageNumber(hits[0].point, SHOTGUN_DAMAGE); break; }
+      const zombieCenter = new THREE.Vector3(z.pos.x, 1.1, z.pos.z);
+      const toZombie = zombieCenter.clone().sub(player.pos);
+      const dist = toZombie.length();
+      if (dist > SHOTGUN_RANGE) continue;
+      const spread = 0.12;
+      const pelletDir = fwd.clone().add(new THREE.Vector3(
+        randRange(-spread, spread),
+        randRange(-spread, spread),
+        randRange(-spread, spread)
+      )).normalize();
+      const angle = pelletDir.angleTo(toZombie.normalize());
+      if (angle < CONE_HALF_ANGLE + 0.3 / dist) {
+        damageZombie(z, SHOTGUN_DAMAGE);
+        showDamageNumber(zombieCenter, SHOTGUN_DAMAGE);
+        break;
+      }
     }
   }
 }
