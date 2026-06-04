@@ -123,12 +123,12 @@ import * as THREE from 'three';
 const PLAYER_SPEED        = 6;
 const PLAYER_SPRINT_MULT  = 2;
 const PLAYER_MAX_HP       = 100;
-const ZOMBIE_MAX_HP       = 100;
-const BLUE_ZOMBIE_MAX_HP  = 250;
-const RED_ZOMBIE_MAX_HP   = 1000;
-const ZOMBIE_CASH         = 10;
-const BLUE_ZOMBIE_CASH    = 25;
-const RED_ZOMBIE_CASH     = 100;
+const ZOMBIE_MAX_HP        = 100;
+const YELLOW_ZOMBIE_MAX_HP = 250;
+const RED_ZOMBIE_MAX_HP    = 1000;
+const ZOMBIE_CASH          = 10;
+const YELLOW_ZOMBIE_CASH   = 25;
+const RED_ZOMBIE_CASH      = 100;
 const ZOMBIE_WALK_SPEED   = 1.6;
 const ZOMBIE_RUN_SPEED    = 4.5;
 const ZOMBIE_SEE_DIST     = 28;
@@ -157,10 +157,10 @@ function waveComposition(waveNum) {
   if (waveNum === 2) return [3, 0, 0];
   if (waveNum === 3) return [5, 0, 0];
   if (waveNum === 4) return [7, 0, 0];
-  const reds    = waveNum >= 10 ? Math.floor((waveNum - 9) * 1.2) : 0;
-  const blues   = Math.floor((waveNum - 4) * 1.5);
-  const normals = Math.max(1, (waveNum - 1) * 2 - blues - reds * 2);
-  return [normals, blues, reds];
+  const reds    = waveNum >= 20 ? Math.floor((waveNum - 19) * 1.2) : 0;
+  const yellows = Math.floor((waveNum - 4) * 1.5);
+  const normals = Math.max(1, (waveNum - 1) * 2 - yellows - reds * 2);
+  return [normals, yellows, reds];
 }
 
 const canvas = document.getElementById('canvas');
@@ -335,14 +335,14 @@ let flashTimer = 0;
 const zombies = [];
 
 function makeZombieModel(type) {
-  const isRed  = type === 'red';
-  const isBlue = type === 'blue';
-  const s      = isRed ? 1.45 : 1;
+  const isRed    = type === 'red';
+  const isYellow = type === 'yellow';
+  const s        = isRed ? 1.45 : 1;
 
-  const bodyColor = isRed ? 0xcc2222 : isBlue ? 0x2266cc : 0x3d7a3d;
-  const headColor = isRed ? 0xee3333 : isBlue ? 0x3388ee : 0x4da64d;
-  const legColor  = isRed ? 0x991111 : isBlue ? 0x1a4499 : 0x2a5c2a;
-  const eyeColor  = isRed ? 0xffff00 : isBlue ? 0xffffff : 0xff0000;
+  const bodyColor = isRed ? 0xcc2222 : isYellow ? 0xccaa00 : 0x3d7a3d;
+  const headColor = isRed ? 0xee3333 : isYellow ? 0xffdd00 : 0x4da64d;
+  const legColor  = isRed ? 0x991111 : isYellow ? 0x997700 : 0x2a5c2a;
+  const eyeColor  = isRed ? 0xffff00 : isYellow ? 0xff4400 : 0xff0000;
 
   const g = new THREE.Group();
   const body = new THREE.Mesh(new THREE.BoxGeometry(.6*s,.8*s,.3*s), new THREE.MeshLambertMaterial({color:bodyColor}));
@@ -365,15 +365,15 @@ function makeZombieModel(type) {
 }
 
 function makeHPBar(type) {
-  const isRed  = type === 'red';
-  const isBlue = type === 'blue';
-  const barW   = isRed ? 2.2 : 1.4;
-  const barY   = isRed ? 3.6 : isBlue ? 2.6 : 2.4;
+  const isRed    = type === 'red';
+  const isYellow = type === 'yellow';
+  const barW     = isRed ? 2.2 : 1.4;
+  const barY     = isRed ? 3.6 : isYellow ? 2.6 : 2.4;
   const c = document.createElement('canvas');
   c.width = 128; c.height = 24;
   const ctx = c.getContext('2d');
   ctx.fillStyle = '#333'; ctx.fillRect(0,0,128,24);
-  ctx.fillStyle = isRed ? '#ff3300' : isBlue ? '#2288ff' : '#22cc44';
+  ctx.fillStyle = isRed ? '#ff3300' : isYellow ? '#ffdd00' : '#22cc44';
   ctx.fillRect(2,2,124,20);
   const tex = new THREE.CanvasTexture(c);
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, depthTest:false}));
@@ -390,8 +390,8 @@ function spawnZombie(type) {
   const spawnPos = safeSpawnPos(18, player.pos);
   model.position.copy(spawnPos);
 
-  const maxHp = type === 'red' ? RED_ZOMBIE_MAX_HP : type === 'blue' ? BLUE_ZOMBIE_MAX_HP : ZOMBIE_MAX_HP;
-  const cash  = type === 'red' ? RED_ZOMBIE_CASH   : type === 'blue' ? BLUE_ZOMBIE_CASH   : ZOMBIE_CASH;
+  const maxHp = type === 'red' ? RED_ZOMBIE_MAX_HP : type === 'yellow' ? YELLOW_ZOMBIE_MAX_HP : ZOMBIE_MAX_HP;
+  const cash  = type === 'red' ? RED_ZOMBIE_CASH   : type === 'yellow' ? YELLOW_ZOMBIE_CASH   : ZOMBIE_CASH;
   const z = {
     hp: maxHp, maxHp, type, cash, model, hpBar,
     pos: model.position, state: 'wander',
@@ -410,8 +410,8 @@ function updateZombieHPBar(z) {
   ctx.fillStyle = '#333'; ctx.fillRect(0,0,128,24);
   if (z.type === 'red') {
     ctx.fillStyle = ratio > .5 ? '#ff3300' : ratio > .25 ? '#ff6600' : '#ff0000';
-  } else if (z.type === 'blue') {
-    ctx.fillStyle = ratio > .5 ? '#2288ff' : ratio > .25 ? '#aa44ff' : '#ff4488';
+  } else if (z.type === 'yellow') {
+    ctx.fillStyle = ratio > .5 ? '#ffdd00' : ratio > .25 ? '#ffaa00' : '#ff6600';
   } else {
     ctx.fillStyle = ratio > .5 ? '#22cc44' : ratio > .25 ? '#ffaa00' : '#dd2222';
   }
@@ -436,22 +436,22 @@ function startWave(n) {
   betweenEl.style.display = 'none';
   zombies.length = 0;
 
-  const [normals, blues, reds] = waveComposition(n);
-  zombiesLeft = normals + blues + reds;
+  const [normals, yellows, reds] = waveComposition(n);
+  zombiesLeft = normals + yellows + reds;
 
   for (let i = 0; i < normals; i++) spawnZombie('green');
-  for (let i = 0; i < blues;   i++) spawnZombie('blue');
+  for (let i = 0; i < yellows; i++) spawnZombie('yellow');
   for (let i = 0; i < reds;    i++) spawnZombie('red');
 
   waveInfoEl.textContent = `Wave ${n}`;
 
-  const isRedWave  = reds > 0;
-  const isBlueWave = blues > 0;
-  waveBannerEl.style.color   = isRedWave ? '#ff4422' : isBlueWave ? '#44aaff' : '#ffcc00';
+  const isRedWave    = reds > 0;
+  const isYellowWave = yellows > 0;
+  waveBannerEl.style.color   = isRedWave ? '#ff4422' : isYellowWave ? '#ffdd00' : '#ffcc00';
   waveBannerEl.textContent   = isRedWave
     ? `\u{1F480} WAVE ${n} — RED GIANT ZOMBIES!`
-    : isBlueWave
-    ? `⚠ WAVE ${n} — BLUE ZOMBIES INCOMING!`
+    : isYellowWave
+    ? `⚠ WAVE ${n} — YELLOW ZOMBIES INCOMING!`
     : `WAVE ${n}`;
   waveBannerEl.style.opacity = '1';
   setTimeout(() => { waveBannerEl.style.opacity = '0'; }, 2500);
@@ -547,7 +547,7 @@ function showDamageNumber(pos, dmg, type) {
   const ctx = c.getContext('2d');
   ctx.font = 'bold 48px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.strokeStyle = '#000'; ctx.lineWidth = 6; ctx.strokeText(dmg, 64, 32);
-  const col = type === 'red' ? '#ff6600' : type === 'blue' ? '#44aaff' : '#ff4400';
+  const col = type === 'red' ? '#ff6600' : type === 'yellow' ? '#ffdd00' : '#ff4400';
   ctx.fillStyle = col; ctx.fillText(dmg, 64, 32);
   const tex = new THREE.CanvasTexture(c);
   const mat = new THREE.SpriteMaterial({map:tex, depthTest:false, transparent:true});
