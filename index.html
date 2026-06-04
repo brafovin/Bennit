@@ -228,13 +228,15 @@ const ZOMBIE_ATK_COOLDOWN = 1.2;
 const MAP_HALF            = 40;
 const BETWEEN_WAVE_DELAY  = 4;
 
-// ORIGINAL PRICES: pistol=0, rifle=250, shotgun=1000, sniper=1500, minigun=5000
+// ORIGINAL PRICES: pistol=0, rifle=250, shotgun=1000, sniper=1500, minigun=5000, railgun=15000
 const WEAPONS = {
-  pistol:  { name: 'Pistol',  icon: '🔫', cost:    1, damage:   50, cooldown: 1.00, pellets: 1, range: 12, spread: 0.00, auto: false },
-  rifle:   { name: 'Rifle',   icon: '🎯', cost:    1, damage:   25, cooldown: 0.20, pellets: 1, range: 20, spread: 0.04, auto: true  },
-  shotgun: { name: 'Shotgun', icon: '💥', cost:    1, damage:   67, cooldown: 0.90, pellets: 8, range:  7, spread: 0.12, auto: false },
-  sniper:  { name: 'Sniper',  icon: '🎖️', cost:    1, damage: 1000, cooldown: 1.50, pellets: 1, range: 50, spread: 0.00, auto: false },
-  minigun: { name: 'Minigun', icon: '⚡', cost:    1, damage:   15, cooldown: 0.01, pellets: 1, range: 15, spread: 0.08, auto: true  },
+  pistol:   { name: 'Pistol',   icon: '🔫', cost:    1, damage:   50, cooldown: 1.00, pellets: 1, range: 12, spread: 0.00, auto: false },
+  rifle:    { name: 'Rifle',    icon: '🎯', cost:    1, damage:   25, cooldown: 0.20, pellets: 1, range: 20, spread: 0.04, auto: true  },
+  shotgun:  { name: 'Shotgun',  icon: '💥', cost:    1, damage:   67, cooldown: 0.90, pellets: 8, range:  7, spread: 0.12, auto: false },
+  sniper:   { name: 'Sniper',   icon: '🎖️', cost:    1, damage: 1000, cooldown: 1.50, pellets: 1, range: 50, spread: 0.00, auto: false },
+  minigun:  { name: 'Minigun',  icon: '⚡', cost:    1, damage:   15, cooldown: 0.01, pellets: 1, range: 15, spread: 0.08, auto: true  },
+  railgun:  { name: 'Railgun',  icon: '🔵', cost:    1, damage:   50, cooldown: 0.01, pellets: 1, range: 80, spread: 0.00, auto: true,
+              altDamage: 1500, altCooldown: 0.5 },
 };
 
 const LOBBY_FLOOR    = 3;
@@ -485,29 +487,51 @@ function buildMinigun(){
   return g;
 }
 
+function buildRailgun(){
+  const g=new THREE.Group();
+  // main barrel — long, thin, glowing blue tint
+  g.add(cyl(.03,.03,.90,new THREE.MeshLambertMaterial({color:0x224488}), 0, 0,-.45, Math.PI/2,0,0));
+  // energy coils along barrel
+  for(let i=0;i<5;i++){
+    g.add(cyl(.045,.045,.04,new THREE.MeshBasicMaterial({color:0x44aaff}), 0, 0, -.15-i*.15, Math.PI/2,0,0));
+  }
+  // receiver body
+  g.add(box(.10,.10,.30,new THREE.MeshLambertMaterial({color:0x111133}), 0, 0, .10));
+  // grip
+  g.add(box(.07,.16,.10,new THREE.MeshLambertMaterial({color:0x222244}), 0, -.12, .12));
+  // scope rail
+  g.add(box(.06,.03,.50,new THREE.MeshLambertMaterial({color:0x333366}), 0, .07, -.20));
+  // energy core glow
+  g.add(box(.06,.06,.06,new THREE.MeshBasicMaterial({color:0x0088ff}), 0, 0, .04));
+  return g;
+}
+
 const weaponModels = {
-  pistol:  buildPistol(),
-  rifle:   buildRifle(),
-  shotgun: buildShotgun(),
-  sniper:  buildSniper(),
-  minigun: buildMinigun(),
+  pistol:   buildPistol(),
+  rifle:    buildRifle(),
+  shotgun:  buildShotgun(),
+  sniper:   buildSniper(),
+  minigun:  buildMinigun(),
+  railgun:  buildRailgun(),
 };
 
 // weapon-specific view positions [x, y, z]
 const weaponPos = {
-  pistol:  [.22, -.20, -.28],
-  rifle:   [.20, -.22, -.38],
-  shotgun: [.20, -.22, -.34],
-  sniper:  [.18, -.22, -.46],
-  minigun: [.24, -.20, -.30],
+  pistol:   [.22, -.20, -.28],
+  rifle:    [.20, -.22, -.38],
+  shotgun:  [.20, -.22, -.34],
+  sniper:   [.18, -.22, -.46],
+  minigun:  [.24, -.20, -.30],
+  railgun:  [.20, -.20, -.44],
 };
 // muzzle tip offsets relative to weapon position
 const muzzleTip = {
-  pistol:  [0,  0,  -.44],
-  rifle:   [0,  0,  -.76],
-  shotgun: [0,  0,  -.74],
-  sniper:  [0,  0,  -.95],
-  minigun: [0, .07, -.68],
+  pistol:   [0,  0,  -.44],
+  rifle:    [0,  0,  -.76],
+  shotgun:  [0,  0,  -.74],
+  sniper:   [0,  0,  -.95],
+  minigun:  [0, .07, -.68],
+  railgun:  [0,  0,  -.92],
 };
 
 const gunGroup = new THREE.Group();
@@ -528,6 +552,25 @@ muzzleFlash.visible = false;
 camera.add(muzzleFlash);
 applyWeaponModel('pistol');
 let flashTimer = 0;
+
+// Railgun laser beam (world-space, shown briefly on fire)
+const laserMat  = new THREE.MeshBasicMaterial({color:0x44ccff, transparent:true, opacity:0.85});
+const laserMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1, 8), laserMat);
+laserMesh.visible = false;
+scene.add(laserMesh);
+let laserTimer = 0;
+
+// Laser ball projectiles
+const laserBalls = [];
+const lbMat = new THREE.MeshBasicMaterial({color:0x0088ff, transparent:true, opacity:0.9});
+function spawnLaserBall(origin, dir) {
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), lbMat.clone());
+  mesh.position.copy(origin);
+  scene.add(mesh);
+  laserBalls.push({ mesh, dir: dir.clone(), dist: 0 });
+}
+
+let railgunAltMode = false;
 
 const zombies = [];
 
@@ -681,8 +724,12 @@ function onZombieDied() {
 // ── Shop ──────────────────────────────────────────────────────────────────────
 
 function updateWeaponIndicator() {
-  document.getElementById('weapon-indicator').textContent =
-    WEAPONS[player.weapon].icon + '  ' + WEAPONS[player.weapon].name.toUpperCase();
+  const w = WEAPONS[player.weapon];
+  let label = w.icon + '  ' + w.name.toUpperCase();
+  if (player.weapon === 'railgun') {
+    label += railgunAltMode ? '  [ALT: BALL  — press E]' : '  [BEAM — press E]';
+  }
+  document.getElementById('weapon-indicator').textContent = label;
 }
 
 function renderShop() {
@@ -723,6 +770,7 @@ function renderShop() {
       btn.className   = 'btn-equip';
       btn.onclick = () => {
         player.weapon = id;
+        railgunAltMode = false;
         applyWeaponModel(id);
         updateWeaponIndicator();
         renderShop();
@@ -784,7 +832,10 @@ function beginGame() {
   player.shotCooldown   = 0;
   player.weapon = 'pistol';
   player.ownedWeapons = new Set(['pistol']);
+  railgunAltMode = false;
   applyWeaponModel('pistol');
+  for (const lb of laserBalls) scene.remove(lb.mesh);
+  laserBalls.length = 0;
   const spawn = safeSpawnPos(15, null);
   player.pos.set(spawn.x, 1.7, spawn.z);
   updatePlayerHPBar();
@@ -818,7 +869,10 @@ function returnToLobby() {
   player.cash  = 0;
   player.weapon = 'pistol';
   player.ownedWeapons = new Set(['pistol']);
+  railgunAltMode = false;
   applyWeaponModel('pistol');
+  for (const lb of laserBalls) scene.remove(lb.mesh);
+  laserBalls.length = 0;
   player.yaw = Math.PI;
   player.pitch = 0;
   player.pos.copy(LOBBY_SPAWN);
@@ -856,6 +910,10 @@ document.addEventListener('keydown', e => {
     else openShop();
   }
   if (e.code === 'KeyT') skipWave();
+  if (e.code === 'KeyE' && player.weapon === 'railgun' && mouseLocked) {
+    railgunAltMode = !railgunAltMode;
+    updateWeaponIndicator();
+  }
   if (e.code === 'Escape' && shopOpen) closeShop();
 });
 document.addEventListener('keyup',   e => { keys[e.code] = false; });
@@ -914,14 +972,62 @@ function showCashPopup(pos, amount) {
 function shoot() {
   if (player.dead || player.shotCooldown > 0) return;
   const w = WEAPONS[player.weapon];
-  player.shotCooldown = w.cooldown;
-  muzzleFlash.visible = true; flashTimer = .08;
 
   const fwd = new THREE.Vector3(
     -Math.sin(player.yaw) * Math.cos(player.pitch),
      Math.sin(player.pitch),
     -Math.cos(player.yaw) * Math.cos(player.pitch)
   ).normalize();
+
+  // Railgun special handling
+  if (player.weapon === 'railgun') {
+    if (railgunAltMode) {
+      // Alt mode: laser ball projectile
+      player.shotCooldown = w.altCooldown;
+      const [mx,my,mz] = muzzleTip.railgun;
+      const [px,py,pz] = weaponPos.railgun;
+      // World-space muzzle origin: camera position + camera-local offset
+      const muzzleWorld = new THREE.Vector3(px+mx, py+my, pz+mz).applyMatrix4(camera.matrixWorld);
+      spawnLaserBall(muzzleWorld, fwd);
+    } else {
+      // Normal mode: instant hitscan laser beam
+      player.shotCooldown = w.cooldown;
+      const [px,py,pz] = weaponPos.railgun;
+      const [mx,my,mz] = muzzleTip.railgun;
+      const muzzleWorld = new THREE.Vector3(px+mx, py+my, pz+mz).applyMatrix4(camera.matrixWorld);
+      // Find hit point (first zombie or max range)
+      let hitDist = w.range;
+      let hitZombie = null;
+      for (const z of zombies) {
+        if (z.dead) continue;
+        const center = new THREE.Vector3(z.pos.x, 1.1, z.pos.z);
+        const toZ = center.clone().sub(muzzleWorld);
+        const dist = toZ.length();
+        if (dist > w.range) continue;
+        const angle = fwd.angleTo(toZ.normalize());
+        if (angle < 0.18 + 0.3/dist && dist < hitDist) {
+          hitDist = dist; hitZombie = z;
+        }
+      }
+      if (hitZombie) {
+        const center = new THREE.Vector3(hitZombie.pos.x, 1.1, hitZombie.pos.z);
+        damageZombie(hitZombie, w.damage);
+        showDamageNumber(center, w.damage, hitZombie.type);
+      }
+      // Show laser beam
+      const endPoint = muzzleWorld.clone().addScaledVector(fwd, hitDist);
+      const mid = muzzleWorld.clone().lerp(endPoint, 0.5);
+      laserMesh.position.copy(mid);
+      laserMesh.scale.y = hitDist;
+      laserMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), fwd);
+      laserMesh.visible = true;
+      laserTimer = 0.06;
+    }
+    return;
+  }
+
+  player.shotCooldown = w.cooldown;
+  muzzleFlash.visible = true; flashTimer = .08;
 
   for (let p = 0; p < w.pellets; p++) {
     const pelletDir = w.spread > 0
@@ -1056,6 +1162,29 @@ function tick() {
   shootQueued = false;
 
   if (flashTimer > 0) { flashTimer -= dt; if (flashTimer <= 0) muzzleFlash.visible = false; }
+  if (laserTimer > 0) { laserTimer -= dt; if (laserTimer <= 0) laserMesh.visible = false; }
+
+  // Laser ball movement & collision
+  for (let i = laserBalls.length - 1; i >= 0; i--) {
+    const lb = laserBalls[i];
+    const speed = 28;
+    lb.mesh.position.addScaledVector(lb.dir, speed * dt);
+    lb.dist += speed * dt;
+    let hit = false;
+    for (const z of zombies) {
+      if (z.dead) continue;
+      const center = new THREE.Vector3(z.pos.x, 1.1, z.pos.z);
+      if (lb.mesh.position.distanceTo(center) < 0.9) {
+        damageZombie(z, WEAPONS.railgun.altDamage);
+        showDamageNumber(center, WEAPONS.railgun.altDamage, z.type);
+        hit = true; break;
+      }
+    }
+    if (hit || lb.dist > 80) {
+      scene.remove(lb.mesh);
+      laserBalls.splice(i, 1);
+    }
+  }
 
   if (gameState === 'playing' && betweenWave) {
     betweenTimer -= dt;
