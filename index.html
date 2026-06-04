@@ -942,12 +942,9 @@ function beginGame() {
   player.dead  = false;
   player.damageCooldown = 0;
   player.shotCooldown   = 0;
+  // Keep rebirth bonuses across runs — only reset on explicit new game (not here)
   player.weapon = 'pistol';
   player.ownedWeapons = new Set(['pistol']);
-  player.rebirthCount = 0;
-  player.cashMulti = 1.0;
-  player.dmgMulti  = 1.0;
-  player.highestWave = 0;
   railgunAltMode = false;
   applyWeaponModel('pistol');
   for (const lb of laserBalls) scene.remove(lb.mesh);
@@ -986,6 +983,7 @@ function rebirth() {
   const needed = player.rebirthCount === 0 ? 10 : 20;
   if (player.highestWave < needed) return;
   player.rebirthCount++;
+  player.highestWave = 0; // reset so plate can't fire again until next run
   if (player.rebirthCount === 1) { player.cashMulti = 1.5; player.dmgMulti = 1.25; }
   else                           { player.cashMulti = 2.0; player.dmgMulti = 1.50; }
   // Reset weapons but keep rebirth bonuses
