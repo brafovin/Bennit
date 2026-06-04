@@ -157,7 +157,7 @@ function waveComposition(waveNum) {
   if (waveNum === 2) return [3, 0, 0];
   if (waveNum === 3) return [5, 0, 0];
   if (waveNum === 4) return [7, 0, 0];
-  const reds    = waveNum >= 20 ? Math.floor((waveNum - 19) * 1.2) : 0;
+  const reds    = waveNum >= 10 ? Math.floor((waveNum - 9) * 1.2) : 0;
   const yellows = Math.floor((waveNum - 4) * 1.5);
   const normals = Math.max(1, (waveNum - 1) * 2 - yellows - reds * 2);
   return [normals, yellows, reds];
