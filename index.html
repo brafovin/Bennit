@@ -31,7 +31,7 @@
   }
   #cash-counter {
     position: fixed; top: 52px; right: 20px;
-    color: #44ff88; font-size: 20px; font-weight: bold; text-shadow: 1px 1px 3px #000;
+    color: #44ff88; font-size: 22px; font-weight: bold; text-shadow: 1px 1px 3px #000, 0 0 8px #00aa44;
   }
   #wave-info {
     position: fixed; top: 20px; left: 20px;
@@ -560,6 +560,23 @@ function showDamageNumber(pos, dmg, type) {
   dmgNumbers.push({sprite, mat, timer:.75, maxTimer:.75});
 }
 
+function showCashPopup(pos, amount) {
+  const c = document.createElement('canvas');
+  c.width = 160; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.font = 'bold 40px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 5; ctx.strokeText(`+$${amount}`, 80, 32);
+  ctx.fillStyle = '#44ff88'; ctx.fillText(`+$${amount}`, 80, 32);
+  const tex = new THREE.CanvasTexture(c);
+  const mat = new THREE.SpriteMaterial({map:tex, depthTest:false, transparent:true});
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(1.2, .48, 1);
+  sprite.position.copy(pos);
+  sprite.position.y += 0.6;
+  scene.add(sprite);
+  dmgNumbers.push({sprite, mat, timer:1.1, maxTimer:1.1});
+}
+
 function shoot() {
   if (player.dead || player.shotCooldown > 0) return;
   player.shotCooldown = SHOTGUN_COOLDOWN;
@@ -607,6 +624,7 @@ function killZombie(z) {
   player.cash += z.cash;
   document.getElementById('kill-counter').textContent = `Kills: ${player.kills}`;
   document.getElementById('cash-counter').textContent = `$ ${player.cash}`;
+  showCashPopup(new THREE.Vector3(z.pos.x, 2.2, z.pos.z), z.cash);
   onZombieDied();
 }
 
