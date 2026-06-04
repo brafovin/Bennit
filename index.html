@@ -40,6 +40,11 @@
     color: #fff; font-size: 22px; font-weight: bold; text-shadow: 1px 1px 3px #000;
     pointer-events: none;
   }
+  #weapon-indicator {
+    position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%); z-index: 50;
+    color: #fff; font-size: 15px; font-weight: bold; text-shadow: 1px 1px 3px #000;
+    pointer-events: none; letter-spacing: 1px;
+  }
   #sprint-indicator {
     position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
     color: #aaffff; font-size: 13px; text-shadow: 1px 1px 2px #000; opacity: 0;
@@ -67,6 +72,7 @@
   }
   #between-wave h2 { color: #ffcc00; font-size: 52px; text-shadow: 2px 2px 8px #000; }
   #between-wave p  { color: #fff; font-size: 24px; text-shadow: 1px 1px 4px #000; }
+  #between-wave .shop-hint { color: #44ff88; font-size: 18px; margin-top: 6px; text-shadow: 1px 1px 4px #000; }
   #lobby-hint {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
@@ -74,11 +80,66 @@
   }
   #lobby-hint h1 { color: #ffcc00; font-size: 52px; text-shadow: 2px 2px 8px #000; }
   #lobby-hint p { color: #fff; font-size: 18px; text-align: center; line-height: 1.7;
-    text-shadow: 1px 1px 4px #000; max-width: 500px; }
+    text-shadow: 1px 1px 4px #000; max-width: 520px; }
   #lobby-hint .arrow {
     color: #00ff88; font-size: 32px; animation: bounce 1s infinite alternate;
   }
   @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+
+  /* ── Shop ── */
+  #shop {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); display: none;
+    align-items: center; justify-content: center;
+    z-index: 40; pointer-events: all;
+  }
+  #shop-panel {
+    background: #0d0d1a; border: 2px solid #44ff88;
+    border-radius: 14px; padding: 28px 36px;
+    max-width: 960px; width: 94%;
+  }
+  #shop-panel h2 {
+    color: #44ff88; font-size: 30px; text-align: center;
+    margin-bottom: 6px; letter-spacing: 2px;
+  }
+  #shop-cash-display {
+    color: #ffcc00; font-size: 18px; text-align: center;
+    margin-bottom: 18px; font-weight: bold;
+  }
+  #shop-weapons {
+    display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+  }
+  .weapon-card {
+    background: #1a1a2e; border: 2px solid #333;
+    border-radius: 10px; padding: 16px 12px;
+    width: 155px; display: flex; flex-direction: column;
+    gap: 6px; align-items: center; transition: border-color 0.15s;
+  }
+  .weapon-card.owned   { border-color: #44aaff; }
+  .weapon-card.equipped { border-color: #ffcc00; background: #1c1a08; }
+  .weapon-card h3 { color: #fff; font-size: 15px; text-align: center; }
+  .weapon-card .wicon { font-size: 26px; }
+  .weapon-card .stats {
+    color: #aaa; font-size: 11px; text-align: center;
+    line-height: 1.6; width: 100%;
+  }
+  .weapon-card .stats span { color: #ddd; }
+  .weapon-card .wcost { font-size: 14px; font-weight: bold; }
+  .weapon-card button {
+    width: 100%; padding: 7px 4px; border: none; border-radius: 5px;
+    cursor: pointer; font-weight: bold; font-size: 12px; margin-top: 4px;
+    transition: opacity 0.1s;
+  }
+  .btn-buy      { background: #44ff88; color: #000; }
+  .btn-buy:hover { opacity: 0.85; }
+  .btn-buy:disabled { background: #2a3a2a; color: #556655; cursor: default; }
+  .btn-equip    { background: #4488ff; color: #fff; }
+  .btn-equip:hover { opacity: 0.85; }
+  .btn-equipped { background: #ffcc00; color: #000; cursor: default; }
+  #shop-footer {
+    color: #666; font-size: 13px; text-align: center;
+    margin-top: 18px;
+  }
 </style>
 </head>
 <body>
@@ -92,22 +153,33 @@
   <div id="sprint-indicator">&#9889; SPRINTING</div>
   <div id="wave-banner"></div>
 </div>
-<div id="kill-counter" style="display:none">Kills: 0</div>
-<div id="cash-counter" style="display:none">$ 0</div>
-<div id="wave-info" style="display:none">Wave 1</div>
+<div id="kill-counter"     style="display:none">Kills: 0</div>
+<div id="cash-counter"     style="display:none">$ 0</div>
+<div id="wave-info"        style="display:none">Wave 1</div>
+<div id="weapon-indicator" style="display:none">Pistol</div>
 <div id="death-screen">
   <h1>YOU DIED</h1>
   <p>Returning to lobby...</p>
 </div>
 <div id="between-wave">
   <h2 id="bw-title">Wave Complete!</h2>
-  <p  id="bw-sub">Next wave in 3...</p>
+  <p  id="bw-sub">Next wave in 4...</p>
+  <p class="shop-hint">&#x1F6D2; Press [B] to open Shop</p>
+</div>
+<div id="shop">
+  <div id="shop-panel">
+    <h2>&#x1F6D2; WEAPON SHOP</h2>
+    <div id="shop-cash-display">$ 0</div>
+    <div id="shop-weapons"></div>
+    <div id="shop-footer">[B] or [Esc] to close &nbsp;&#x2014;&nbsp; weapons persist until you die</div>
+  </div>
 </div>
 <div id="lobby-hint">
   <h1>ZOMBIE SHOOTER</h1>
   <p>
     <b>Click</b> to lock mouse &nbsp;|&nbsp; <b>WASD</b> &mdash; Move<br>
-    <b>Mouse</b> &mdash; Aim &nbsp;|&nbsp; <b>LMB</b> &mdash; Shoot &nbsp;|&nbsp; <b>Shift</b> &mdash; Sprint
+    <b>Mouse</b> &mdash; Aim &nbsp;|&nbsp; <b>LMB</b> &mdash; Shoot &nbsp;|&nbsp; <b>Shift</b> &mdash; Sprint<br>
+    <b>B</b> &mdash; Weapon Shop (between waves)
   </p>
   <div class="arrow">&#9660; Walk to the GREEN platform to start &#9660;</div>
 </div>
@@ -138,12 +210,16 @@ const ZOMBIE_SEE_DIST     = 28;
 const ZOMBIE_ATK_DIST     = 1.8;
 const ZOMBIE_ATK_DAMAGE   = 10;
 const ZOMBIE_ATK_COOLDOWN = 1.2;
-const SHOTGUN_RANGE       = 7;
-const SHOTGUN_DAMAGE      = 67;
-const SHOTGUN_COOLDOWN    = 0.9;
-const SHOTGUN_PELLETS     = 8;
 const MAP_HALF            = 40;
 const BETWEEN_WAVE_DELAY  = 4;
+
+const WEAPONS = {
+  pistol:  { name: 'Pistol',  icon: '🔫', cost:    0, damage:   50, cooldown: 1.00, pellets: 1, range: 12, spread: 0.00, auto: false },
+  rifle:   { name: 'Rifle',   icon: '🎯', cost:  500, damage:   25, cooldown: 0.20, pellets: 1, range: 20, spread: 0.04, auto: true  },
+  shotgun: { name: 'Shotgun', icon: '💥', cost: 1000, damage:   67, cooldown: 0.90, pellets: 8, range:  7, spread: 0.12, auto: false },
+  sniper:  { name: 'Sniper',  icon: '🎖️', cost: 1500, damage: 1000, cooldown: 1.50, pellets: 1, range: 50, spread: 0.00, auto: false },
+  minigun: { name: 'Minigun', icon: '⚡', cost: 5000, damage:   10, cooldown: 0.01, pellets: 1, range: 15, spread: 0.08, auto: true  },
+};
 
 const LOBBY_FLOOR    = 3;
 const LOBBY_PLAYER_Y = LOBBY_FLOOR + 1.7;
@@ -312,9 +388,11 @@ const player = {
   hp: PLAYER_MAX_HP, pos: LOBBY_SPAWN.clone(),
   yaw: Math.PI, pitch: 0, dead: false, respawnTimer: 0,
   shotCooldown: 0, kills: 0, cash: 0, damageCooldown: 0,
+  weapon: 'pistol', ownedWeapons: new Set(['pistol']),
 };
 
 let gameState = 'lobby';
+let shopOpen   = false;
 
 const camPivot = new THREE.Object3D();
 scene.add(camPivot);
@@ -473,25 +551,115 @@ function onZombieDied() {
   if (zombiesLeft <= 0) endWave();
 }
 
+// ── Shop ──────────────────────────────────────────────────────────────────────
+
+function updateWeaponIndicator() {
+  document.getElementById('weapon-indicator').textContent =
+    WEAPONS[player.weapon].icon + '  ' + WEAPONS[player.weapon].name.toUpperCase();
+}
+
+function renderShop() {
+  document.getElementById('shop-cash-display').textContent = `Cash: $ ${player.cash}`;
+  const container = document.getElementById('shop-weapons');
+  container.innerHTML = '';
+
+  for (const [id, w] of Object.entries(WEAPONS)) {
+    const owned    = player.ownedWeapons.has(id);
+    const equipped = player.weapon === id;
+    const canAfford = player.cash >= w.cost;
+
+    const card = document.createElement('div');
+    card.className = 'weapon-card' + (equipped ? ' equipped' : owned ? ' owned' : '');
+
+    const rateLabel = w.cooldown <= 0.02 ? 'Very Fast'
+                    : w.cooldown <= 0.25 ? 'Fast'
+                    : w.cooldown <= 1.0  ? 'Medium' : 'Slow';
+
+    card.innerHTML = `
+      <div class="wicon">${w.icon}</div>
+      <h3>${w.name}</h3>
+      <div class="stats">
+        DMG: <span>${w.damage}${w.pellets > 1 ? ' ×' + w.pellets : ''}</span><br>
+        Rate: <span>${rateLabel}</span><br>
+        Range: <span>${w.range}u</span><br>
+        <span>${w.auto ? '🔁 Auto-fire' : '🖱️ Semi-auto'}</span>
+      </div>
+      <div class="wcost" style="color:${w.cost===0 ? '#aaa' : canAfford||owned ? '#44ff88' : '#ff4444'}">${w.cost === 0 ? 'FREE' : '$' + w.cost}</div>
+    `;
+
+    const btn = document.createElement('button');
+    if (equipped) {
+      btn.textContent = '✓ EQUIPPED';
+      btn.className   = 'btn-equipped';
+    } else if (owned) {
+      btn.textContent = 'EQUIP';
+      btn.className   = 'btn-equip';
+      btn.onclick = () => {
+        player.weapon = id;
+        updateWeaponIndicator();
+        renderShop();
+      };
+    } else {
+      btn.textContent = `BUY  $${w.cost}`;
+      btn.className   = 'btn-buy';
+      btn.disabled    = !canAfford;
+      if (canAfford) {
+        btn.onclick = () => {
+          if (player.cash >= w.cost) {
+            player.cash -= w.cost;
+            player.ownedWeapons.add(id);
+            player.weapon = id;
+            document.getElementById('cash-counter').textContent = `$ ${player.cash}`;
+            updateWeaponIndicator();
+            renderShop();
+          }
+        };
+      }
+    }
+    card.appendChild(btn);
+    container.appendChild(card);
+  }
+}
+
+function openShop() {
+  if (gameState !== 'playing') return;
+  shopOpen = true;
+  document.getElementById('shop').style.display = 'flex';
+  renderShop();
+  if (document.pointerLockElement === canvas) document.exitPointerLock();
+}
+
+function closeShop() {
+  shopOpen = false;
+  document.getElementById('shop').style.display = 'none';
+  canvas.requestPointerLock();
+}
+
+// ── Game flow ─────────────────────────────────────────────────────────────────
+
 function beginGame() {
   gameState = 'playing';
   player.hp = PLAYER_MAX_HP;
   player.kills = 0;
   player.cash  = 0;
-  player.dead = false;
+  player.dead  = false;
   player.damageCooldown = 0;
-  player.shotCooldown = 0;
+  player.shotCooldown   = 0;
+  player.weapon = 'pistol';
+  player.ownedWeapons = new Set(['pistol']);
   const spawn = safeSpawnPos(15, null);
   player.pos.set(spawn.x, 1.7, spawn.z);
   updatePlayerHPBar();
-  document.getElementById('kill-counter').textContent = 'Kills: 0';
-  document.getElementById('cash-counter').textContent = '$ 0';
-  document.getElementById('kill-counter').style.display = '';
-  document.getElementById('cash-counter').style.display = '';
-  document.getElementById('wave-info').style.display   = '';
-  document.getElementById('crosshair').style.display   = '';
+  updateWeaponIndicator();
+  document.getElementById('kill-counter').textContent    = 'Kills: 0';
+  document.getElementById('cash-counter').textContent    = '$ 0';
+  document.getElementById('kill-counter').style.display  = '';
+  document.getElementById('cash-counter').style.display  = '';
+  document.getElementById('wave-info').style.display     = '';
+  document.getElementById('crosshair').style.display     = '';
+  document.getElementById('weapon-indicator').style.display = '';
   document.getElementById('hp-bar-container').style.display = '';
-  document.getElementById('lobby-hint').style.display  = 'none';
+  document.getElementById('lobby-hint').style.display    = 'none';
   zombies.forEach(z => { z.dead = true; z.model.visible = false; });
   zombies.length = 0;
   betweenWave = false;
@@ -501,12 +669,16 @@ function beginGame() {
 
 function returnToLobby() {
   gameState = 'lobby';
+  shopOpen  = false;
+  document.getElementById('shop').style.display = 'none';
   player.hp = PLAYER_MAX_HP;
   player.dead = false;
   player.damageCooldown = 0;
-  player.shotCooldown = 0;
+  player.shotCooldown   = 0;
   player.kills = 0;
   player.cash  = 0;
+  player.weapon = 'pistol';
+  player.ownedWeapons = new Set(['pistol']);
   player.yaw = Math.PI;
   player.pitch = 0;
   player.pos.copy(LOBBY_SPAWN);
@@ -519,28 +691,43 @@ function returnToLobby() {
   betweenEl.style.display = 'none';
   waveBannerEl.style.opacity = '0';
   waveBannerEl.textContent = '';
-  document.getElementById('kill-counter').textContent = 'Kills: 0';
-  document.getElementById('cash-counter').textContent = '$ 0';
-  document.getElementById('kill-counter').style.display   = 'none';
-  document.getElementById('cash-counter').style.display   = 'none';
-  document.getElementById('wave-info').style.display      = 'none';
-  document.getElementById('crosshair').style.display      = 'none';
+  document.getElementById('kill-counter').textContent    = 'Kills: 0';
+  document.getElementById('cash-counter').textContent    = '$ 0';
+  document.getElementById('kill-counter').style.display  = 'none';
+  document.getElementById('cash-counter').style.display  = 'none';
+  document.getElementById('wave-info').style.display     = 'none';
+  document.getElementById('crosshair').style.display     = 'none';
+  document.getElementById('weapon-indicator').style.display = 'none';
   document.getElementById('hp-bar-container').style.display = 'none';
-  document.getElementById('lobby-hint').style.display     = '';
-  document.getElementById('death-screen').style.display   = 'none';
+  document.getElementById('lobby-hint').style.display    = '';
+  document.getElementById('death-screen').style.display  = 'none';
 }
 
-const keys = {};
-let mouseLocked = false, mouseDX = 0, mouseDY = 0;
+// ── Input ─────────────────────────────────────────────────────────────────────
 
-document.addEventListener('keydown', e => { keys[e.code] = true; });
+const keys = {};
+let mouseLocked = false, mouseDX = 0, mouseDY = 0, mouseHeld = false;
+
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'KeyB') {
+    if (shopOpen) closeShop();
+    else openShop();
+  }
+  if (e.code === 'Escape' && shopOpen) closeShop();
+});
 document.addEventListener('keyup',   e => { keys[e.code] = false; });
 document.addEventListener('mousemove', e => { if (!mouseLocked) return; mouseDX += e.movementX; mouseDY += e.movementY; });
-canvas.addEventListener('click', () => { if (!mouseLocked) canvas.requestPointerLock(); });
+canvas.addEventListener('click', () => { if (!mouseLocked && !shopOpen) canvas.requestPointerLock(); });
 document.addEventListener('pointerlockchange', () => { mouseLocked = document.pointerLockElement === canvas; });
 
 let shootQueued = false;
-document.addEventListener('mousedown', e => { if (e.button===0 && mouseLocked) shootQueued = true; });
+document.addEventListener('mousedown', e => {
+  if (e.button === 0 && mouseLocked) { shootQueued = true; mouseHeld = true; }
+});
+document.addEventListener('mouseup', e => { if (e.button === 0) mouseHeld = false; });
+
+// ── Sprites ───────────────────────────────────────────────────────────────────
 
 const dmgNumbers = [];
 
@@ -580,9 +767,12 @@ function showCashPopup(pos, amount) {
   dmgNumbers.push({sprite, mat, timer:1.1, maxTimer:1.1});
 }
 
+// ── Combat ────────────────────────────────────────────────────────────────────
+
 function shoot() {
   if (player.dead || player.shotCooldown > 0) return;
-  player.shotCooldown = SHOTGUN_COOLDOWN;
+  const w = WEAPONS[player.weapon];
+  player.shotCooldown = w.cooldown;
   muzzleFlash.visible = true; flashTimer = .08;
 
   const fwd = new THREE.Vector3(
@@ -591,22 +781,25 @@ function shoot() {
     -Math.cos(player.yaw) * Math.cos(player.pitch)
   ).normalize();
 
-  for (let p = 0; p < SHOTGUN_PELLETS; p++) {
-    const spread = .12;
-    const pelletDir = fwd.clone().add(new THREE.Vector3(
-      randRange(-spread,spread), randRange(-spread,spread), randRange(-spread,spread)
-    )).normalize();
+  for (let p = 0; p < w.pellets; p++) {
+    const pelletDir = w.spread > 0
+      ? fwd.clone().add(new THREE.Vector3(
+          randRange(-w.spread, w.spread),
+          randRange(-w.spread, w.spread),
+          randRange(-w.spread, w.spread)
+        )).normalize()
+      : fwd.clone();
 
     for (const z of zombies) {
       if (z.dead) continue;
       const center = new THREE.Vector3(z.pos.x, 1.1, z.pos.z);
       const toZ    = center.clone().sub(player.pos);
       const dist   = toZ.length();
-      if (dist > SHOTGUN_RANGE) continue;
+      if (dist > w.range) continue;
       const angle  = pelletDir.angleTo(toZ.normalize());
       if (angle < 0.18 + 0.3/dist) {
-        damageZombie(z, SHOTGUN_DAMAGE);
-        showDamageNumber(center, SHOTGUN_DAMAGE, z.type);
+        damageZombie(z, w.damage);
+        showDamageNumber(center, w.damage, z.type);
         break;
       }
     }
@@ -651,6 +844,8 @@ function updatePlayerHPBar() {
   bar.style.background = r>.5 ? '#22cc44' : r>.25 ? '#ffaa00' : '#dd2222';
 }
 
+// ── Game loop ─────────────────────────────────────────────────────────────────
+
 let triggerPulseT = 0;
 let lastTime = performance.now();
 
@@ -664,14 +859,16 @@ function tick() {
   const pulse = 0.55 + 0.45 * Math.sin(triggerPulseT);
   triggerPlateMesh.material.color.setRGB(0, pulse, pulse * 0.4);
 
-  player.yaw  -= mouseDX * .0018;
-  player.pitch = clamp(player.pitch - mouseDY * .0018, -Math.PI*.45, Math.PI*.45);
+  if (!shopOpen) {
+    player.yaw  -= mouseDX * .0018;
+    player.pitch = clamp(player.pitch - mouseDY * .0018, -Math.PI*.45, Math.PI*.45);
+  }
   mouseDX = 0; mouseDY = 0;
 
   const sprinting = keys['ShiftLeft'] || keys['ShiftRight'];
-  document.getElementById('sprint-indicator').style.opacity = (sprinting && gameState === 'playing') ? '1' : '0';
+  document.getElementById('sprint-indicator').style.opacity = (sprinting && gameState === 'playing' && !shopOpen) ? '1' : '0';
 
-  if (!player.dead) {
+  if (!player.dead && !shopOpen) {
     const speed = PLAYER_SPEED * (sprinting ? PLAYER_SPRINT_MULT : 1);
     const moveDir = new THREE.Vector3();
     if (keys['KeyW']||keys['ArrowUp'])    moveDir.z -= 1;
@@ -701,7 +898,7 @@ function tick() {
         beginGame();
       }
     }
-  } else {
+  } else if (player.dead) {
     player.respawnTimer -= dt;
     if (player.respawnTimer <= 0) returnToLobby();
   }
@@ -710,12 +907,17 @@ function tick() {
   camPivot.rotation.y = player.yaw;
   camera.rotation.x   = player.pitch;
 
-  if (shootQueued) { if (gameState === 'playing') shoot(); shootQueued = false; }
+  if (gameState === 'playing' && !shopOpen) {
+    const w = WEAPONS[player.weapon];
+    if (shootQueued || (w.auto && mouseHeld)) shoot();
+  }
+  shootQueued = false;
+
   if (flashTimer > 0) { flashTimer -= dt; if (flashTimer <= 0) muzzleFlash.visible = false; }
 
   if (gameState === 'playing' && betweenWave) {
     betweenTimer -= dt;
-    bwSubEl.textContent = `Next wave in ${Math.ceil(betweenTimer)}...`;
+    bwSubEl.textContent = `Next wave in ${Math.ceil(Math.max(0, betweenTimer))}...`;
     if (betweenTimer <= 0) startWave(waveNumber + 1);
   }
 
