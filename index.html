@@ -169,6 +169,8 @@ const ZTYPES = [
   {name:'Titan',  wave:50, hp:10000, cash:1000, spd:2.55,col:0x38bdf8, size:1.7},
 ];
 const BOSS = {name:'BOSS', wave:99, hp:100000, cash:10000, spd:1.9, col:0x991b1b, size:3.4, tier:7};
+const SCREAMER={name:'Screamer',wave:8,hp:500,cash:75,spd:1.7,col:0xf8fafc,size:1.1,tier:2,screamer:true};
+const SCREAM_R=10, SCREAM_CD=12, SCREAM_T=1.6, BUFF_T=12;
 const BASE_DMG = 10, DMG_GROWTH = 1.15;
 const WALK = 3.6, SPRINT = 6.0, EYE0 = 1.6, JUMP_V = 6.8, GRAV = 17;
 let EYE = EYE0; // eye height (follows jumps)
@@ -391,6 +393,7 @@ const GC={}, boneMat=new THREE.MeshLambertMaterial({color:0xd8d0b4}), bloodMat=n
 function zbox(w,h,d,m,x,y,z){ const k=w+','+h+','+d; const me=new THREE.Mesh(GC[k]||(GC[k]=new THREE.BoxGeometry(w,h,d)),m); me.position.set(x,y,z); return me; }
 function pivot(x,y,z,parent){ const p=new THREE.Group(); p.position.set(x,y,z); parent.add(p); return p; }
 function makeZombie(t){
+  if(t.screamer) return makeScreamer(t);
   const s=t.size, tier=t.tier||0;
   const skin=new THREE.MeshLambertMaterial({color:t.col}), cloth=new THREE.MeshLambertMaterial({color:new THREE.Color(t.col).multiplyScalar(.3)});
   const g=new THREE.Group(); g.rotation.order='YXZ'; const body=pivot(0,0,0,g);
@@ -424,7 +427,52 @@ function makeZombie(t){
   gameG.add(g,bar);
   return {g,body,legs,torso,head,jaw,arms,skin,cloth,bar,fill,height:2.05*s,r:.42*s,fastLean:t.fast?.3:.12};
 }
+function makeScreamer(t){
+  const s=t.size, skin=new THREE.MeshLambertMaterial({color:t.col}), cloth=new THREE.MeshLambertMaterial({color:0x8d92a8});
+  const g=new THREE.Group(); g.rotation.order='YXZ'; const body=pivot(0,0,0,g);
+  const sock=mat(0x0a0a12,'matte'), hairM=mat(0x1c1c28,'matte'), pale=mat(0xeef0f6,'matte'), glowM=new THREE.MeshBasicMaterial({color:0x9be7ff});
+  const legs=[-1,1].map(sd=>{ const hip=pivot(sd*.1,.9,0,body), knee=pivot(0,-.45,0,hip);
+    hip.add(zbox(.11,.46,.12,skin,0,-.22,0)); knee.add(zbox(.09,.43,.1,skin,0,-.21,0), zbox(.1,.04,.22,skin,0,-.44,.05)); return {hip,knee}; });
+  const torso=pivot(0,.9,0,body);
+  torso.add(zbox(.34,.62,.2,cloth,0,.34,0), zbox(.2,.26,.02,skin,0,.5,.11), zbox(.26,.06,.22,cloth,0,.66,0), zbox(.52,.46,.34,cloth,0,-.12,0), zbox(.62,.4,.4,cloth,0,-.45,0));
+  const tatters=[]; for(let i=0;i<6;i++){ const p=pivot((i-2.5)*.1,-.62,.2*(i%2?1:-1)*.9,torso); p.add(zbox(.09,.32,.02,cloth,0,-.16,0)); tatters.push(p); }
+  const neck=pivot(0,.66,0,torso); neck.add(zbox(.08,.14,.08,skin,0,.06,0));
+  const head=pivot(0,.14,0,neck);
+  head.add(zbox(.24,.36,.24,skin,0,.2,0), zbox(.27,.1,.27,hairM,0,.4,-.01), zbox(.07,.1,.03,sock,-.065,.26,.12), zbox(.07,.1,.03,sock,.065,.26,.12), zbox(.17,.1,.02,sock,0,.1,.121), zbox(.03,.08,.02,pale,0,.18,.125));
+  const pupils=[zbox(.025,.04,.02,glowM,-.065,.26,.14), zbox(.025,.04,.02,glowM,.065,.26,.14)]; head.add(...pupils);
+  const hair=[]; for(let i=0;i<8;i++){ const a=(i/8)*Math.PI*2, p=pivot(Math.cos(a)*.13,.38,Math.sin(a)*.13-.02,head); p.add(zbox(.04,.52+(i%3)*.12,.04,hairM,0,-.28,0)); p.userData.a=a; hair.push(p); }
+  const jaw=pivot(0,.06,-.1,head); jaw.add(zbox(.2,.14,.22,skin,0,-.05,.11), zbox(.17,.02,.2,sock,0,.03,.11), zbox(.15,.02,.02,pale,0,.04,.21));
+  const arms=[-1,1].map(sd=>{ const sh=pivot(sd*.22,.56,0,torso), el=pivot(0,-.4,0,sh);
+    sh.add(zbox(.09,.42,.09,skin,0,-.2,0)); el.add(zbox(.08,.44,.08,skin,0,-.21,0), zbox(.1,.1,.06,skin,0,-.46,0)); for(const fx_ of [-.03,0,.03]) el.add(zbox(.015,.17,.02,skin,fx_,-.58,0)); return {sh,el}; });
+  g.scale.setScalar(s);
+  const bar=new THREE.Group(); const bg=new THREE.Mesh(barGeo,barBg), fill=new THREE.Mesh(barGeo,barFill);
+  bg.renderOrder=10; fill.renderOrder=11; fill.position.z=.001; bar.add(bg,fill); bar.scale.set(.9,1,1);
+  gameG.add(g,bar);
+  return {g,body,legs,torso,head,jaw,arms,skin,cloth,bar,fill,height:2.1*s,r:.4*s,fastLean:.1,hair,tatters,pupils};
+}
+function animScreamer(z,dt){
+  const ph=z.phase, sw=Math.sin(ph), L=z.legs, A=z.arms, sc=z.scream>0, u=sc?1-z.scream/SCREAM_T:0, att=z.swing>0;
+  let hover=Math.sin(ph*.7)*.04+.04, lean=.1, headX=Math.sin(ph*1.3)*.06, jaw=.15+.1*Math.sin(ph*2), shX=-.55+Math.sin(ph*.8)*.12, shZ=.12, elX=-.3, shake=0, flare=0;
+  if(sc){
+    const inh=Math.min(1,u/.25), roar=u>.25&&u<.85?1:0, rec=u>=.85?(u-.85)/.15:0;
+    if(u<.85){ lean=.1-.5*inh; headX=-.75*inh; jaw=.15+.95*inh; shX=-.55-1.9*inh; shZ=.12+1.1*inh; elX=-.3-.2*inh; flare=inh; shake=roar; }
+    else { lean=-.4+.5*rec; headX=-.75*(1-rec); jaw=1.1-.95*rec; shX=-2.45+1.9*rec; shZ=1.22-1.1*rec; flare=1-rec; }
+    hover+=.12*inh*(1-rec);
+  } else if(att){
+    const k=1-z.swing/.6, e=k<.5?k/.5:(1-k)/.5; shX=-.55-1.2*e; lean=.1+.25*(k>.5?e:0)-.2*(k<.5?e:0); jaw=.15+.7*e; elX=-.3-.3*e;
+  }
+  const amp=sc?.1:(att?.2:1);
+  L[0].hip.rotation.x=sw*.45*amp; L[1].hip.rotation.x=-sw*.45*amp; L[0].knee.rotation.x=Math.max(0,-sw)*.6*amp; L[1].knee.rotation.x=Math.max(0,sw)*.6*amp;
+  z.body.position.set(shake?(Math.random()-.5)*.07:0,hover,att&&z.swing<.35?.25*Math.sin((.35-z.swing)/.35*Math.PI):0);
+  z.torso.rotation.set(lean,0,Math.sin(ph)*.05+(shake?(Math.random()-.5)*.1:0));
+  z.head.rotation.set(headX,Math.sin(ph*.6)*.2*(1-flare),Math.sin(ph*.6)*.1*(1-flare)+(shake?(Math.random()-.5)*.15:0)); z.jaw.rotation.x=jaw;
+  A[0].sh.rotation.set(shX,0,-shZ); A[1].sh.rotation.set(shX,0,shZ); A[0].el.rotation.x=elX; A[1].el.rotation.x=elX;
+  for(const h of z.hair){ h.rotation.x=Math.sin(ph*1.1+h.userData.a)*.12-flare*.9*Math.sin(h.userData.a+1.57)*-1; h.rotation.z=Math.sin(ph+h.userData.a*2)*.1+flare*.7*Math.cos(h.userData.a); }
+  for(let i=0;i<z.tatters.length;i++) z.tatters[i].rotation.x=Math.sin(ph*1.4+i)*.18+flare*.3;
+  const ps=1+flare*1.6+(sc?Math.sin(clock*40)*.2:0); for(const p of z.pupils) p.scale.setScalar(ps);
+}
 function animZombie(z,dt,run){
+  if(z.screamer) return animScreamer(z,dt);
   const ph=z.phase, sw=Math.sin(ph), swinging=z.swing>0, L=z.legs, A=z.arms;
   const stride=swinging?.15:1;
   L[0].hip.rotation.x=sw*.7*stride; L[1].hip.rotation.x=-sw*.7*stride;
@@ -570,6 +618,7 @@ function updateFx(dt){
   for(const f of fx){ f.life-=dt;
     if(f.kind==='smoke'){ f.m.position.addScaledVector(f.vel,dt); const k=1-f.life/f.max; f.m.scale.setScalar(1+k*4); f.m.material.opacity=.6*(1-k); }
     else if(f.kind==='spark'){ f.vel.y-=9*dt; f.m.position.addScaledVector(f.vel,dt); f.m.material.opacity=Math.max(0,f.life/f.max); }
+    else if(f.kind==='vring'){ const k=1-f.life/f.max; f.m.scale.setScalar(f.radius*(.15+.85*k)); f.m.position.addScaledVector(f.dir,dt); f.m.material.opacity=.85*(1-k); }
     else if(f.kind==='ring'){ const k=1-f.life/f.max; f.m.scale.setScalar(f.radius*(.15+.85*k)); f.m.material.opacity=.9*(1-k); }
     else if(f.kind==='blast'){ const k=1-f.life/f.max; f.m.scale.setScalar(f.radius*(.2+.8*k)); f.m.material.opacity=.7*(1-k); }
     else if(f.kind==='flame'){ f.m.position.addScaledVector(f.vel,dt); const k=1-f.life/f.max; f.m.scale.setScalar(1+k*2.5); f.m.material.opacity=.85*(1-k); f.m.material.color.setHSL(.1-.08*k,1,.55); }
@@ -607,6 +656,7 @@ function startGame(){
 function startWave(){ S.wave++; S.toSpawn=2*S.wave-1; S.spawnT=0; say('Wave '+S.wave,2.5); }
 const FAST_CHANCE=.3, NEW_WAVES=2, NEW_WEIGHT=.2;
 function pickType(){
+  if(S.wave>=SCREAMER.wave&&Math.random()<.1&&S.zombies.filter(z=>z.screamer).length<2) return {...SCREAMER};
   const t=pickBase();
   if(Math.random()>=FAST_CHANCE*(t.tier>0&&S.wave<t.wave+NEW_WAVES?.5:1)) return t;
   return {...t,name:'Fast '+t.name,fast:true,hp:t.hp/2,size:t.size*.65,spd:Math.min(5.5,t.spd*2.2),col:new THREE.Color(t.col).lerp(new THREE.Color(0xffffff),.35).getHex()};
@@ -625,7 +675,7 @@ function spawnZombie(boss){
   }while(Math.hypot(x-P.x,z-P.z)<14&&n++<20);
   const m=makeZombie(t);
   const zb={x,z,hp:t.hp,max:t.hp,cash:t.cash,spd:t.spd*(.92+Math.random()*.16),dmg:BASE_DMG*Math.pow(DMG_GROWTH,t.tier),
-    atk:0,boss,flash:0,burn:0,burnT:0,dead:false,kvx:0,kvz:0,stun:0,swing:0,hitDone:true,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,...m};
+    atk:0,boss,flash:0,screamer:!!t.screamer,scream:0,screamCd:2.5,screamFired:true,waves:0,buff:0,burn:0,burnT:0,dead:false,kvx:0,kvz:0,stun:0,swing:0,hitDone:true,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,...m};
   collide(zb,zb.r,bricks); S.zombies.push(zb);
 }
 
@@ -663,6 +713,26 @@ const ringGeo=new THREE.RingGeometry(.9,1,56);
 function groundRing(x,z,radius,color,life=.55){
   const m=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending}));
   m.rotation.x=-Math.PI/2; m.position.set(x,.08,z); m.scale.setScalar(.3); scene.add(m); fx.push({m,life,max:life,radius,kind:'ring'});
+}
+function vRing(pos,yaw,color,life=.6,radius=4,speed=7){
+  const m=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.85,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending}));
+  m.position.copy(pos); m.rotation.y=yaw; m.scale.setScalar(.3); scene.add(m);
+  fx.push({m,life,max:life,radius,kind:'vring',dir:new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)).multiplyScalar(speed)});
+}
+function buffZombie(o){
+  if(o.buff<=0){ o.max*=1.25; o.hp*=1.25; o.spd*=1.25; o.dmg*=1.5; }
+  o.buff=BUFF_T;
+}
+function endBuff(o){ o.max/=1.25; o.hp/=1.25; o.spd/=1.25; o.dmg/=1.5; }
+function startScream(z){ z.scream=SCREAM_T; z.screamCd=SCREAM_CD; z.screamFired=false; z.waves=0; }
+function screamStep(z,dt){
+  const u=1-z.scream/SCREAM_T, yaw=Math.atan2(P.x-z.x,P.z-z.z), mouth=new THREE.Vector3(z.x+Math.sin(yaw)*.3*z.g.scale.x,z.height*.88,z.z+Math.cos(yaw)*.3*z.g.scale.x);
+  if(u>=.25&&z.waves<3&&u>=.25+z.waves*.12){ z.waves++; vRing(mouth,yaw,0xe9d5ff,.7,3.2,6); if(z.waves===1) groundRing(z.x,z.z,SCREAM_R,0xc4b5fd,.9); }
+  if(!z.screamFired&&u>=.3){
+    z.screamFired=true; groundRing(z.x,z.z,SCREAM_R*.6,0xffffff,.6); blast(new THREE.Vector3(z.x,z.height*.8,z.z),2.2,0xd8b4fe,.45);
+    for(const o of S.zombies){ if(o===z||o.dead||o.screamer) continue; if(Math.hypot(o.x-z.x,o.z-z.z)<=SCREAM_R) buffZombie(o); }
+    const d=Math.hypot(P.x-z.x,P.z-z.z); if(d<28) S.shake=Math.max(S.shake,.45*(1-d/28)+.1);
+  }
 }
 function windWave(){
   groundRing(P.x,P.z,WIND_R,0xbfe3ff,.55); groundRing(P.x,P.z,WIND_R*.6,0x7dd3fc,.4);
@@ -914,8 +984,13 @@ function update(dt){
     z.los-=dt; if(z.los<=0){ z.los=.12+Math.random()*.08; z.clear=d<1.8||clearPath(z.x,z.z,z.r+.05); }
     let tx=dx/d, tz=dz/d;
     if(!z.clear){ const w=navTarget(z); if(w){ const wx=w.x-z.x, wz=w.z-z.z, wl=Math.hypot(wx,wz)||1; tx=wx/wl; tz=wz/wl; } }
+    if(z.buff>0){ z.buff-=dt; if(z.buff<=0) endBuff(z); else if(Math.random()<dt*5){ const sp=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0xff3355,transparent:true,depthWrite:false})); sp.scale.setScalar(.3); sp.position.set(z.x+(Math.random()-.5)*z.r*2,z.height*Math.random(),z.z+(Math.random()-.5)*z.r*2); scene.add(sp); fx.push({m:sp,life:.7,max:.7,vel:new THREE.Vector3(0,1.4,0),kind:'spark'}); } }
+    if(z.screamer){
+      if(z.scream>0){ z.scream-=dt; screamStep(z,dt); }
+      else { z.screamCd-=dt; if(z.screamCd<=0&&S.zombies.some(o=>o!==z&&!o.screamer&&!o.dead&&Math.hypot(o.x-z.x,o.z-z.z)<=SCREAM_R)) startScream(z); }
+    }
     if(z.stun>0) z.stun-=dt;
-    const mv=(z.swing>0?.2:1)*(z.stun>0?.15:1); z.x+=tx*z.spd*mv*dt; z.z+=tz*z.spd*mv*dt;
+    const mv=(z.swing>0?.2:1)*(z.stun>0?.15:1)*(z.scream>0?0:1); z.x+=tx*z.spd*mv*dt; z.z+=tz*z.spd*mv*dt;
     if(z.kvx||z.kvz){ z.x+=z.kvx*dt; z.z+=z.kvz*dt; const f=Math.max(0,1-5*dt); z.kvx*=f; z.kvz*=f; if(Math.abs(z.kvx)+Math.abs(z.kvz)<.1) z.kvx=z.kvz=0; }
     for(const o of S.zombies) if(o!==z){ const ox=z.x-o.x, oz=z.z-o.z, od=Math.hypot(ox,oz), m=z.r+o.r;
       if(od>0&&od<m){ const p=(m-od)*.5*Math.min(1,dt*8); z.x+=ox/od*p; z.z+=oz/od*p; } }
@@ -979,7 +1054,7 @@ function render(dt){
     for(const z of S.zombies){
       z.g.position.set(z.x,0,z.z); z.g.rotation.y=Math.atan2(P.x-z.x,P.z-z.z);
       if(!S.shopOpen&&!S.rebirthOpen) z.phase+=dt*z.spd*3.2*(z.swing>0?.3:1); animZombie(z,dt);
-      if(z.flash>0){ z.flash-=dt; } z.skin.emissive.setHex(z.flash>0?0xaa0000:(z.burn>0?0x993300:0));
+      if(z.flash>0){ z.flash-=dt; } z.skin.emissive.setHex(z.flash>0?0xaa0000:(z.burn>0?0x993300:(z.buff>0?(Math.sin(clock*8)>0?0x5a0f28:0x3a0a1a):(z.scream>0?0x6b4fa0:0))));
       z.bar.position.set(z.x,z.height+.35,z.z); z.bar.quaternion.copy(camera.quaternion);
       const k=Math.max(0,z.hp/z.max); z.fill.scale.x=k; z.fill.position.x=-.5*(1-k);
     }
