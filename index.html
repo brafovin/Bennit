@@ -177,7 +177,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], rebirths:0, cleared:0, rebirthOpen:false,
+  railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -568,6 +568,7 @@ function tracer(a,b){
 function updateFx(dt){
   for(const f of fx){ f.life-=dt;
     if(f.kind==='smoke'){ f.m.position.addScaledVector(f.vel,dt); const k=1-f.life/f.max; f.m.scale.setScalar(1+k*4); f.m.material.opacity=.6*(1-k); }
+    else if(f.kind==='spark'){ f.vel.y-=9*dt; f.m.position.addScaledVector(f.vel,dt); f.m.material.opacity=Math.max(0,f.life/f.max); }
     else if(f.kind==='ring'){ const k=1-f.life/f.max; f.m.scale.setScalar(f.radius*(.15+.85*k)); f.m.material.opacity=.9*(1-k); }
     else if(f.kind==='blast'){ const k=1-f.life/f.max; f.m.scale.setScalar(f.radius*(.2+.8*k)); f.m.material.opacity=.7*(1-k); }
     else if(f.kind==='flame'){ f.m.position.addScaledVector(f.vel,dt); const k=1-f.life/f.max; f.m.scale.setScalar(1+k*2.5); f.m.material.opacity=.85*(1-k); f.m.material.color.setHSL(.1-.08*k,1,.55); }
@@ -587,14 +588,14 @@ function setMode(m){
   $('cross').style.display=m==='game'?'block':'none';
 }
 function enterLobby(){
-  closeRebirth(); clearProjs();
+  closeRebirth(); clearProjs(); clearChests();
   for(const z of S.zombies) removeZombie(z); S.zombies=[]; for(const z of S.corpses) removeZombie(z); S.corpses=[];
   setMode('lobby'); P.x=-6; P.z=0; P.yaw=-Math.PI/2; P.pitch=0; closeShop();
   $('heatWrap').style.display=$('heatTxt').style.display='none';
 }
 function startGame(){
   setMode('game');
-  S.cash=0; S.hpBuys=0; S.hp=S.maxHp=hpMax(); S.cleared=0; S.railMode='laser'; S.bladeMode='blood'; S.shake=0; S.swing=0; clearProjs(); S.owned={glock:true}; S.weapon='glock';
+  S.cash=0; S.hpBuys=0; S.hp=S.maxHp=hpMax(); S.cleared=0; S.railMode='laser'; S.bladeMode='blood'; clearChests(); S.chestT=30; S.shake=0; S.swing=0; clearProjs(); S.owned={glock:true}; S.weapon='glock';
   S.wave=0; S.breakT=2; S.toSpawn=0; S.heat=0; S.lock=0; S.bossSpawned=false; S.fireCd=0;
   genMap(); P.x=MAP.w/2; P.z=MAP.h/2; buildGun('glock');
   say('Get ready!',2);
@@ -757,6 +758,58 @@ function updatePuddles(dt){
   }
   S.puddles=S.puddles.filter(p=>{ if(p.life<=0){ gameG.remove(p.m); p.m.material.dispose(); return false; } return true; });
 }
+/* ---------- Chests ---------- */
+const CHESTS={
+  wood:   {name:'Wood',   val:50,  w:50, base:0x7a4a22, band:0x2a2a2a, lock:0xb8860b, kind:'matte', spark:0xd9a05b},
+  silver: {name:'Silver', val:100, w:28, base:0xaab4c0, band:0x5b6470, lock:0xf3f4f6, kind:'metal', spark:0xe5e7eb},
+  gold:   {name:'Gold',   val:250, w:14, base:0xd4a017, band:0x8a6508, lock:0xfff3a0, kind:'metal', spark:0xfacc15},
+  diamond:{name:'Diamond',val:500, w:6,  base:0x38bdf8, band:0xe0f7ff, lock:0xffffff, kind:'metal', spark:0x7dd3fc, gem:0x9be7ff},
+  hyper:  {name:'Hyper',  val:1000,w:2,  base:0x5b21b6, band:0xc084fc, lock:0xf5d0fe, kind:'metal', spark:0xc084fc, gem:0xd946ef, hyper:true},
+};
+const CHEST_EVERY=30, CHEST_MAX=5, CHEST_REACH=1.5;
+function makeChest(type){
+  const c=CHESTS[type], g=new THREE.Group(), base=mat(c.base,c.kind), band=mat(c.band,c.hyper?'glow':'metal');
+  g.add(zbox(.9,.5,.6,base,0,.25,0), zbox(.1,.52,.62,band,-.28,.26,0), zbox(.1,.52,.62,band,.28,.26,0), zbox(.92,.04,.62,band,0,.02,0));
+  const lid=pivot(0,.5,-.3,g);
+  lid.add(zbox(.9,.2,.6,base,0,.1,.3), zbox(.84,.06,.54,base,0,.23,.3), zbox(.1,.22,.62,band,-.28,.11,.3), zbox(.1,.22,.62,band,.28,.11,.3));
+  g.add(zbox(.14,.17,.04,mat(c.lock,'metal'),0,.46,.32));
+  if(c.gem) for(const [x,z] of [[-.45,-.3],[.45,-.3],[-.45,.3],[.45,.3]]){ const gm=zbox(.1,.1,.1,mat(c.gem,'glow'),x,.52,z); gm.rotation.set(.8,.8,0); g.add(gm); }
+  let shell=null;
+  if(c.hyper){ shell=zbox(1.1,.75,.8,mat(0xa855f7,'glass'),0,.38,0); g.add(shell); }
+  const beam=new THREE.Mesh(new THREE.CylinderGeometry(c.hyper?.16:.09,c.hyper?.16:.09,16,10,1,true),new THREE.MeshBasicMaterial({color:c.spark,transparent:true,opacity:c.hyper?.45:.3,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
+  beam.position.y=8; g.add(beam);
+  return {g,lid,shell,beam};
+}
+function pickChestType(){ const ts=Object.keys(CHESTS); let r=Math.random()*ts.reduce((a,t)=>a+CHESTS[t].w,0); for(const t of ts){ r-=CHESTS[t].w; if(r<=0) return t; } return 'wood'; }
+function spawnChest(){
+  let x,z,n=0;
+  do{ x=3+Math.random()*(MAP.w-6); z=3+Math.random()*(MAP.h-6); }
+  while((bricks.some(b=>x>b.x-1.2&&x<b.x+b.w+1.2&&z>b.z-1.2&&z<b.z+b.d+1.2)||Math.hypot(x-P.x,z-P.z)<6)&&n++<60);
+  const type=pickChestType(), m=makeChest(type);
+  m.g.position.set(x,0,z); m.g.rotation.y=Math.random()*6.28; gameG.add(m.g);
+  S.chests.push({type,x,z,...m,t:Math.random()*6,opened:false,openT:0});
+  while(S.chests.length>CHEST_MAX){ const o=S.chests.shift(); gameG.remove(o.g); }
+  say(`${CHESTS[type].name} chest spawned!`,2);
+}
+function lootChest(ch){
+  const c=CHESTS[ch.type], amt=Math.round(c.val*mult().cash); S.cash+=amt; ch.opened=true; ch.openT=0;
+  floatText(new THREE.Vector3(ch.x,1.4,ch.z),'+$'+amt,'#facc15');
+  for(let i=0;i<18;i++){ const m=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:i%3?c.spark:0xfacc15,transparent:true,depthWrite:false})); m.scale.setScalar(.6);
+    m.position.set(ch.x,.7,ch.z); scene.add(m); fx.push({m,life:.9,max:.9,vel:new THREE.Vector3((Math.random()-.5)*3,3+Math.random()*3,(Math.random()-.5)*3),kind:'spark'}); }
+}
+function updateChests(dt){
+  S.chestT-=dt; if(S.chestT<=0){ S.chestT=CHEST_EVERY; spawnChest(); }
+  for(const ch of S.chests){
+    ch.t+=dt;
+    if(!ch.opened){
+      ch.g.position.y=.05+Math.sin(ch.t*2)*.04; ch.g.rotation.y+=dt*.4; ch.beam.material.opacity=(CHESTS[ch.type].hyper?.4:.28)+Math.sin(ch.t*4)*.08;
+      if(ch.shell) ch.shell.scale.setScalar(1+Math.sin(ch.t*5)*.05);
+      if(Math.hypot(P.x-ch.x,P.z-ch.z)<CHEST_REACH) lootChest(ch);
+    } else { ch.openT+=dt; ch.lid.rotation.x=-Math.min(1,ch.openT*4)*1.9; ch.beam.visible=false; if(ch.shell) ch.shell.visible=false; ch.g.position.y=Math.max(-.6,Math.min(0,-(ch.openT-.8)*1.2)); }
+  }
+  S.chests=S.chests.filter(ch=>{ if(ch.opened&&ch.openT>1.4){ gameG.remove(ch.g); return false; } return true; });
+}
+function clearChests(){ for(const ch of S.chests) gameG.remove(ch.g); S.chests=[]; }
 function clearProjs(){ for(const p of S.projs){ scene.remove(p.mesh); p.mesh.traverse(o=>{ if(o.material) o.material.dispose(); }); } S.projs=[]; for(const p of S.puddles){ gameG.remove(p.m); p.m.material.dispose(); } S.puddles=[]; }
 function shootRay(yaw,pitch,dmgNear,dmgFar,range){
   _o.set(P.x,EYE,P.z); dirFrom(yaw,pitch,_d);
@@ -813,7 +866,7 @@ function update(dt){
   } else S.heat=0;
 
   for(let i=S.zombies.length-1;i>=0;i--) if(S.zombies[i].hp<=0){ killZombie(S.zombies[i]); S.zombies.splice(i,1); }
-  updateProjs(dt); updatePuddles(dt);
+  updateProjs(dt); updatePuddles(dt); updateChests(dt);
   nav.t-=dt; if(nav.t<=0||nav.cell!==cellIdx(P.x,P.z)&&nav.t<.15){ nav.t=.25; computeNav(); }
   const hurt=[];
   for(const z of S.zombies){
