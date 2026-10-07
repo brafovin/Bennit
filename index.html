@@ -551,14 +551,14 @@ function startGame(){
 
 /* ---------- Waves ---------- */
 function startWave(){ S.wave++; S.toSpawn=2*S.wave-1; S.spawnT=0; say('Wave '+S.wave,2.5); }
-const FAST_CHANCE=.3;
+const FAST_CHANCE=.3, NEW_WAVES=2, NEW_WEIGHT=.2;
 function pickType(){
   const t=pickBase();
-  if(Math.random()>=FAST_CHANCE) return t;
+  if(Math.random()>=FAST_CHANCE*(t.tier>0&&S.wave<t.wave+NEW_WAVES?.5:1)) return t;
   return {...t,name:'Fast '+t.name,fast:true,hp:t.hp/2,size:t.size*.65,spd:Math.min(5.5,t.spd*2.2),col:new THREE.Color(t.col).lerp(new THREE.Color(0xffffff),.35).getHex()};
 }
 function pickBase(){
-  const un=ZTYPES.filter(z=>z.wave<=S.wave), ws=un.map((z,i)=>1+i*1.5);
+  const un=ZTYPES.filter(z=>z.wave<=S.wave), ws=un.map((z,i)=>(1+i*1.5)*(i>0&&S.wave<z.wave+NEW_WAVES?NEW_WEIGHT:1)); // newly introduced types are rare for their first waves
   let r=Math.random()*ws.reduce((a,b)=>a+b,0);
   for(let i=0;i<un.length;i++){ r-=ws[i]; if(r<=0) return {...un[i],tier:ZTYPES.indexOf(un[i])}; }
   return {...un[0],tier:0};
