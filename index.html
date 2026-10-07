@@ -36,6 +36,15 @@
   button.buy:disabled{background:#4b5563;cursor:not-allowed}
   button.buy.eq{background:#2563eb}
   #close{background:#dc2626;color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-weight:700}
+  #rbBtn{position:fixed;top:10px;right:74px;width:54px;height:54px;border-radius:12px;border:2px solid #a78bfa;background:#1e293bcc;font-size:28px;cursor:pointer}
+  #rebirth{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center}
+  #rpanel{background:#111827;border:2px solid #a78bfa;border-radius:14px;padding:18px;width:min(520px,94vw);max-height:92vh;overflow:auto;text-align:center}
+  #rpanel h2{margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}
+  #rbody{color:#d1d5db;line-height:1.5;margin-bottom:14px}
+  #rbody b{color:#fff}
+  #rbGo{width:100%;padding:22px;font-size:30px;font-weight:900;letter-spacing:3px;border:0;border-radius:14px;background:linear-gradient(#8b5cf6,#6d28d9);color:#fff;cursor:pointer}
+  #rbGo:disabled{background:#4b5563;color:#9ca3af;cursor:not-allowed}
+  #rclose{background:#dc2626;color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-weight:700}
 </style>
 </head>
 <body>
@@ -54,7 +63,13 @@
   <div id="hint"></div>
 </div>
 <button id="shopBtn" title="Shop (B)">🛒</button>
+<button id="rbBtn" title="Rebirth (G)">♻</button>
 <button id="fireBtn">🔫</button>
+<div id="rebirth"><div id="rpanel">
+  <h2><span>♻ Rebirth</span><button id="rclose">X</button></h2>
+  <div id="rbody"></div>
+  <button id="rbGo">REBIRTH</button>
+</div></div>
 <div id="shop"><div id="panel">
   <h2><span>🛒 Shop</span><span id="cashTxt"></span><button id="close">X</button></h2>
   <div id="items"></div>
@@ -92,7 +107,11 @@ const WEAPONS = [
   {id:'mg',     name:'Machine Gun',cost:500,  dmg:20, cd:0.15, desc:'20 dmg / 0.15s'},
   {id:'shotgun',name:'Shotgun',    cost:1500, dmg:20, cd:1.0,  pellets:9, spread:0.07, far:10, range:8, desc:'9 pellets, 20 dmg close → 10 far / 1s'},
   {id:'minigun',name:'Minigun',    cost:3000, dmg:15, cd:0.05, desc:'15 dmg / 0.05s, overheats after ~4s (3s lockout)'},
+  {id:'flame', name:'Flamethrower',cost:5000,dmg:50, cd:0.1,  range:7, cone:0.3, burn:3, rebirth:1, desc:'50 dmg / 0.1s in a cone, sets enemies on fire (50 dmg / 0.5s)'},
 ];
+const REQ=[10,20,30,40,50,99]; // wave to defeat for rebirth 1..6 (6 = special)
+const mult=(n=S.rebirths)=>n<=0?{cash:1,dmg:1,hp:1}:{cash:1+.5*n,dmg:1+.25*n,hp:2*n};
+const hpMax=()=>(100+10*S.hpBuys)*mult().hp;
 const MINI_HEAT_TIME = 4, MINI_LOCK = 3;
 // speed in m/s, size = scale of the humanoid model
 const ZTYPES = [
@@ -113,10 +132,12 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
+  rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
 const P = {x:0,z:0,yaw:0,pitch:0};
+try{ S.rebirths=Math.min(6,Math.max(0,parseInt(localStorage.getItem('zs_rebirths'))||0)); }catch(e){}
 const IN = {down:false};
 const keys = {};
 let joy = null, lookTouch = null;
@@ -207,6 +228,7 @@ function buildGun(id){
   else if(id==='rifle'){ g.add(box(.06,.09,.75,0x3b2f26,0,0,-.35), box(.04,.04,.35,0x111111,0,.03,-.9), box(.05,.14,.07,0x222222,0,-.1,-.2)); tip=1.08; }
   else if(id==='mg'){ g.add(box(.09,.12,.8,0x2d3a2d,0,0,-.35), box(.05,.05,.4,0x111111,0,.02,-.9), box(.1,.16,.12,0x1a1a1a,0,-.13,-.3)); tip=1.1; }
   else if(id==='shotgun'){ g.add(box(.05,.05,.8,0x111111,-.03,.03,-.45), box(.05,.05,.8,0x111111,.03,.03,-.45), box(.09,.09,.45,0x5b3a1e,0,-.02,-.05)); tip=.88; }
+  else if(id==='flame'){ g.add(box(.08,.08,.7,0x7f1d1d,0,0,-.3), box(.14,.14,.25,0x444444,0,-.02,-.08), box(.05,.05,.14,0x111111,0,0,-.72)); tip=.82; }
   else if(id==='minigun'){
     g.add(box(.16,.16,.35,0x333333,0,0,-.1));
     const spin=new THREE.Group(); spin.position.set(0,0,-.6);
@@ -288,6 +310,10 @@ function smoke(pos){
   const m=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0x9ca3af,transparent:true,opacity:.6,depthWrite:false}));
   m.position.copy(pos); scene.add(m); fx.push({m,life:1.2,max:1.2,vel:new THREE.Vector3((Math.random()-.5)*.3,.7+Math.random()*.4,(Math.random()-.5)*.3),kind:'smoke'});
 }
+function flameFx(pos,vel,life=.35){
+  const m=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0xff9900,transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending}));
+  m.position.copy(pos); scene.add(m); fx.push({m,life,max:life,vel,kind:'flame'});
+}
 function tracer(a,b){
   const g=new THREE.BufferGeometry().setFromPoints([a,b]);
   const l=new THREE.Line(g,new THREE.LineBasicMaterial({color:0xfde68a,transparent:true,opacity:.8}));
@@ -296,6 +322,7 @@ function tracer(a,b){
 function updateFx(dt){
   for(const f of fx){ f.life-=dt;
     if(f.kind==='smoke'){ f.m.position.addScaledVector(f.vel,dt); const k=1-f.life/f.max; f.m.scale.setScalar(1+k*4); f.m.material.opacity=.6*(1-k); }
+    else if(f.kind==='flame'){ f.m.position.addScaledVector(f.vel,dt); const k=1-f.life/f.max; f.m.scale.setScalar(1+k*2.5); f.m.material.opacity=.85*(1-k); f.m.material.color.setHSL(.1-.08*k,1,.55); }
     else f.m.material.opacity=.8*Math.max(0,f.life/f.max); }
   for(let i=fx.length-1;i>=0;i--) if(fx[i].life<=0){ const f=fx[i]; scene.remove(f.m); f.m.material.dispose(); if(f.kind==='line') f.m.geometry.dispose(); fx.splice(i,1); }
 }
@@ -312,13 +339,14 @@ function setMode(m){
   $('cross').style.display=m==='game'?'block':'none';
 }
 function enterLobby(){
+  closeRebirth();
   for(const z of S.zombies) removeZombie(z); S.zombies=[];
   setMode('lobby'); P.x=-6; P.z=0; P.yaw=-Math.PI/2; P.pitch=0; closeShop();
   $('heatWrap').style.display=$('heatTxt').style.display='none';
 }
 function startGame(){
   setMode('game');
-  S.cash=0; S.hp=S.maxHp=100; S.hpBuys=0; S.owned={glock:true}; S.weapon='glock';
+  S.cash=0; S.hpBuys=0; S.hp=S.maxHp=hpMax(); S.cleared=0; S.owned={glock:true}; S.weapon='glock';
   S.wave=0; S.breakT=2; S.toSpawn=0; S.heat=0; S.lock=0; S.bossSpawned=false; S.fireCd=0;
   genMap(); P.x=MAP.w/2; P.z=MAP.h/2; buildGun('glock');
   say('Get ready!',2);
@@ -340,13 +368,38 @@ function spawnZombie(boss){
   }while(Math.hypot(x-P.x,z-P.z)<14&&n++<20);
   const m=makeZombie(t);
   const zb={x,z,hp:t.hp,max:t.hp,cash:t.cash,spd:t.spd*(.92+Math.random()*.16),dmg:BASE_DMG*Math.pow(DMG_GROWTH,t.tier),
-    atk:0,boss,flash:0,phase:Math.random()*6,...m};
+    atk:0,boss,flash:0,burn:0,burnT:0,dead:false,phase:Math.random()*6,...m};
   collide(zb,zb.r,bricks); S.zombies.push(zb);
 }
 
 /* ---------- Shooting ---------- */
 const _o=new THREE.Vector3(), _d=new THREE.Vector3(), _m=new THREE.Vector3(), _e=new THREE.Vector3();
 function dirFrom(yaw,pitch,out){ out.set(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)); return out; }
+function hurtZombie(z,base,pos,col){
+  if(z.dead) return;
+  const dmg=Math.round(base*mult().dmg); z.hp-=dmg; if(!col) z.flash=.1;
+  floatText(pos,dmg,col);
+  if(z.hp<=0){ z.dead=true; const c=Math.round(z.cash*mult().cash); S.cash+=c; floatText(new THREE.Vector3(z.x,z.height+.3,z.z),'+$'+c,'#facc15'); }
+}
+function fireFlame(w){
+  const o=new THREE.Vector3(P.x,EYE,P.z), dir=dirFrom(P.yaw,P.pitch,new THREE.Vector3());
+  for(const z of S.zombies){
+    if(z.dead) continue;
+    const c=new THREE.Vector3(z.x,Math.min(z.height*.5,EYE),z.z).sub(o), dist=c.length();
+    if(dist-z.r>w.range) continue;
+    if(Math.acos(Math.max(-1,Math.min(1,c.dot(dir)/dist)))-Math.atan2(z.r,dist)>w.cone) continue;
+    const cd=c.clone().normalize(); let blocked=false;
+    for(const b of bricks){ if(rayBox(o,cd,b,dist)!==Infinity){blocked=true;break;} }
+    if(blocked) continue;
+    hurtZombie(z,w.dmg,new THREE.Vector3(z.x,z.height*.6,z.z),'#fb923c');
+    if(z.burn<=0) z.burnT=0; z.burn=w.burn;
+  }
+  gunMuzzle.getWorldPosition(_m);
+  for(let i=0;i<5;i++){
+    const d=dirFrom(P.yaw+(Math.random()-.5)*w.cone*1.6,P.pitch+(Math.random()-.5)*w.cone*1.6,new THREE.Vector3());
+    flameFx(_m.clone(),d.multiplyScalar(w.range/.35*(.6+Math.random()*.4)),.3+Math.random()*.1);
+  }
+}
 function shootRay(yaw,pitch,dmgNear,dmgFar,range){
   _o.set(P.x,EYE,P.z); dirFrom(yaw,pitch,_d);
   let tb=80; for(const b of bricks){ const t=rayBox({x:_o.x,y:_o.y,z:_o.z},_d,b,tb); if(t<tb) tb=t; }
@@ -357,16 +410,15 @@ function shootRay(yaw,pitch,dmgNear,dmgFar,range){
   gunMuzzle.getWorldPosition(_m); _e.copy(_o).addScaledVector(_d,end); tracer(_m.clone(),_e.clone());
   if(hit){
     let dmg=dmgNear; if(dmgFar!==dmgNear) dmg=dmgNear+(dmgFar-dmgNear)*Math.min(1,tz/range);
-    dmg=Math.round(dmg); hit.hp-=dmg; hit.flash=.1;
-    floatText(_e.clone().setY(Math.min(hit.height,_e.y+.2)),dmg);
+    hurtZombie(hit,dmg,_e.clone().setY(Math.min(hit.height,_e.y+.2)));
     $('cross').classList.add('hit'); setTimeout(()=>$('cross').classList.remove('hit'),90);
-    if(hit.hp<=0){ S.cash+=hit.cash; floatText(_e.clone().setY(hit.height+.3),'+$'+hit.cash,'#facc15'); }
   }
 }
 function fire(){
   const w=wpn();
   if(S.fireCd>0||(w.id==='minigun'&&S.lock>0)) return;
   S.fireCd=w.cd;
+  if(w.id==='flame'){ fireFlame(w); kick=Math.min(.05,kick+.01); return; }
   if(w.pellets){ for(let i=0;i<w.pellets;i++) shootRay(P.yaw+(Math.random()-.5)*w.spread*2,P.pitch+(Math.random()-.5)*w.spread*2,w.dmg,w.far,w.range); }
   else { const j=w.id==='minigun'?.025:(w.id==='mg'?.012:0); shootRay(P.yaw+(Math.random()-.5)*j,P.pitch+(Math.random()-.5)*j,w.dmg,w.dmg,1); }
   kick=Math.min(.25,kick+(w.cd<.1?.03:w.cd<.3?.09:.18)); flashT=.05; flash.visible=true;
@@ -382,7 +434,7 @@ function moveInput(){
 function update(dt){
   if(S.msgT>0){ S.msgT-=dt; if(S.msgT<=0) $('msg').style.opacity=0; }
   if(S.mode==='lobby') return updateLobby(dt);
-  if(S.shopOpen) return;
+  if(S.shopOpen||S.rebirthOpen) return;
   const {mx,my,sprint}=moveInput(), sp=sprint?SPRINT:WALK;
   const fx_=-Math.sin(P.yaw), fz_=-Math.cos(P.yaw), rx=Math.cos(P.yaw), rz=-Math.sin(P.yaw);
   P.x+=(fx_*my+rx*mx)*sp*dt; P.z+=(fz_*my+rz*mx)*sp*dt;
@@ -407,6 +459,11 @@ function update(dt){
     for(const o of S.zombies) if(o!==z){ const ox=z.x-o.x, oz=z.z-o.z, od=Math.hypot(ox,oz), m=z.r+o.r;
       if(od>0&&od<m){ const p=(m-od)*.5*Math.min(1,dt*8); z.x+=ox/od*p; z.z+=oz/od*p; } }
     collide(z,z.r,bricks);
+    if(z.burn>0){
+      z.burn-=dt; z.burnT+=dt;
+      while(z.burnT>=.5&&!z.dead){ z.burnT-=.5; hurtZombie(z,50,new THREE.Vector3(z.x,z.height*.6,z.z),'#fb923c'); }
+      if(Math.random()<dt*14) flameFx(new THREE.Vector3(z.x+(Math.random()-.5)*z.r,z.height*Math.random(),z.z+(Math.random()-.5)*z.r),new THREE.Vector3(0,1.2,0),.4);
+    }
     z.atk-=dt;
     if(d<z.r+.4+.35&&z.atk<=0){ z.atk=1; S.hp-=Math.round(z.dmg); hurt.push(Math.round(z.dmg)); }
   }
@@ -423,7 +480,7 @@ function update(dt){
       S.toSpawn--; S.spawnT=Math.max(.3,1.4-S.wave*.02);
     }
   } else if(S.zombies.length===0){
-    if(S.breakT<=0){ if(S.wave>0) S.hp=Math.min(S.maxHp,S.hp+Math.ceil(S.maxHp*.2)); S.breakT=3.5; }
+    if(S.breakT<=0){ if(S.wave>0){ S.hp=Math.min(S.maxHp,S.hp+Math.ceil(S.maxHp*.2)); S.cleared=Math.max(S.cleared,S.wave); if(S.rebirths<6&&S.cleared>=REQ[S.rebirths]) say('Rebirth available! Press G',3.5); } S.breakT=3.5; }
     else { S.breakT-=dt; if(S.breakT<=0){ S.bossSpawned=false; startWave(); } }
   }
 }
@@ -445,7 +502,7 @@ function render(dt){
   const sprinting=(keys.shift||(joy&&joy.len>.95));
   const tf=sprinting?82:75; camera.fov+=(tf-camera.fov)*Math.min(1,dt*8); camera.updateProjectionMatrix();
   if(S.mode==='game'){
-    if(!S.shopOpen){
+    if(!S.shopOpen&&!S.rebirthOpen){
       kick=Math.max(0,kick-dt*1.2);
       if(flashT>0){ flashT-=dt; if(flashT<=0) flash.visible=false; }
     }
@@ -456,7 +513,7 @@ function render(dt){
     for(const z of S.zombies){
       z.g.position.set(z.x,0,z.z); z.g.rotation.y=Math.atan2(P.x-z.x,P.z-z.z);
       z.phase+=dt*z.spd*3.2; z.pl.rotation.x=Math.sin(z.phase)*.7; z.pr.rotation.x=-Math.sin(z.phase)*.7;
-      if(z.flash>0){ z.flash-=dt; } z.skin.emissive.setHex(z.flash>0?0xaa0000:0);
+      if(z.flash>0){ z.flash-=dt; } z.skin.emissive.setHex(z.flash>0?0xaa0000:(z.burn>0?0x993300:0));
       z.bar.position.set(z.x,z.height+.35,z.z); z.bar.quaternion.copy(camera.quaternion);
       const k=Math.max(0,z.hp/z.max); z.fill.scale.x=k; z.fill.position.x=-.5*(1-k);
     }
@@ -465,13 +522,13 @@ function render(dt){
   updateFx(dt); updateFloaters(dt);
   const hint=$('hint');
   const locked=document.pointerLockElement===cv, touch='ontouchstart' in window;
-  hint.textContent=touch?'':(S.shopOpen?'':(!locked?'Click the screen to capture the mouse (Esc releases it)':(S.mode==='lobby'?'WASD move · Shift sprint · Mouse look · Walk onto the green PLAY platform':'WASD move · Shift sprint · Click to shoot · B shop')));
+  hint.textContent=touch?'':((S.shopOpen||S.rebirthOpen)?'':(!locked?'Click the screen to capture the mouse (Esc releases it)':(S.mode==='lobby'?'WASD move · Shift sprint · Mouse look · Walk onto the green PLAY platform · G rebirth':'WASD move · Shift sprint · Click to shoot · B shop · G rebirth')));
   renderer.render(scene,camera);
 }
 function updateHud(){
   $('hpBar').style.width=Math.max(0,S.hp/S.maxHp*100)+'%'; $('hpTxt').textContent=Math.max(0,Math.ceil(S.hp))+' / '+S.maxHp;
   $('cashTxtHud').textContent='$ '+S.cash;
-  $('waveTxt').textContent=`Wave ${S.wave} · Zombies: ${S.zombies.length+S.toSpawn}`;
+  $('waveTxt').textContent=`Wave ${S.wave} · Zombies: ${S.zombies.length+S.toSpawn}`+(S.rebirths?` · Rebirth ${S.rebirths}`:'');
   $('wpnTxt').textContent=wpn().name;
   const mini=wpn().id==='minigun';
   $('heatWrap').style.display=mini?'block':'none'; $('heatTxt').style.display=mini&&S.lock>0?'block':'none';
@@ -481,7 +538,7 @@ function updateHud(){
 }
 
 /* ---------- Shop ---------- */
-function openShop(){ if(S.mode!=='game') return; S.shopOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('shop').style.display='flex'; renderShop(); }
+function openShop(){ if(S.mode!=='game') return; closeRebirth(); S.shopOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('shop').style.display='flex'; renderShop(); }
 function closeShop(){ S.shopOpen=false; $('shop').style.display='none'; }
 function renderShop(){
   $('cashTxt').textContent='$ '+S.cash;
@@ -490,25 +547,54 @@ function renderShop(){
     const owned=S.owned[w.id], eq=S.weapon===w.id;
     const d=document.createElement('div'); d.className='item'; d.innerHTML=`<div><b>${w.name}</b><small>${w.desc}</small></div>`;
     const b=document.createElement('button'); b.className='buy';
-    if(eq){ b.textContent='Equipped'; b.disabled=true; }
+    if(w.rebirth&&S.rebirths<w.rebirth){ b.textContent='🔒 Rebirth'; b.disabled=true; }
+    else if(eq){ b.textContent='Equipped'; b.disabled=true; }
     else if(owned){ b.textContent='Equip'; b.classList.add('eq'); b.onclick=()=>{ equip(w.id); renderShop(); }; }
     else { b.textContent='$ '+w.cost; b.disabled=S.cash<w.cost; b.onclick=()=>{ if(S.cash>=w.cost){ S.cash-=w.cost; S.owned[w.id]=true; equip(w.id); renderShop(); } }; }
     d.appendChild(b); el.appendChild(d);
   }
-  const d=document.createElement('div'); d.className='item'; d.innerHTML=`<div><b>❤ Health +10</b><small>Max health: ${S.maxHp}</small></div>`;
+  const d=document.createElement('div'); d.className='item'; d.innerHTML=`<div><b>❤ Health +10</b><small>Max health: ${S.maxHp} (+${10*mult().hp} per buy)</small></div>`;
   const b=document.createElement('button'); b.className='buy'; const c=hpCost(); b.textContent='$ '+c; b.disabled=S.cash<c;
-  b.onclick=()=>{ if(S.cash>=c){ S.cash-=c; S.hpBuys++; S.maxHp+=10; S.hp+=10; renderShop(); } };
+  b.onclick=()=>{ if(S.cash>=c){ S.cash-=c; S.hpBuys++; const old=S.maxHp; S.maxHp=hpMax(); S.hp+=S.maxHp-old; renderShop(); } };
   d.appendChild(b); el.appendChild(d);
 }
 function equip(id){ S.weapon=id; S.heat=0; S.lock=0; S.fireCd=0; buildGun(id); }
 $('shopBtn').addEventListener('click',()=>S.shopOpen?closeShop():openShop());
 $('close').addEventListener('click',closeShop);
 
+/* ---------- Rebirth ---------- */
+const canRebirth=()=>S.mode==='game'&&S.rebirths<6&&S.cleared>=REQ[S.rebirths];
+function openRebirth(){ closeShop(); S.rebirthOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('rebirth').style.display='flex'; renderRebirth(); }
+function closeRebirth(){ S.rebirthOpen=false; $('rebirth').style.display='none'; }
+function renderRebirth(){
+  const n=S.rebirths, m=mult(), fmt=x=>`<b>x${x}</b>`;
+  let h=`Rebirths: <b>${n} / 6</b><br>Current bonus: ${fmt(m.cash)} cash · ${fmt(m.dmg)} damage · ${fmt(m.hp)} health<br>`;
+  if(n<6){
+    const nm=mult(n+1), req=REQ[n];
+    h+=`<br>${n===5?'<b>SPECIAL REBIRTH</b><br>Defeat <b>wave 99</b> and the final boss':'Defeat <b>wave '+req+'</b>'} to rebirth.<br>Best this run: <b>wave ${S.mode==='game'?S.cleared:0}</b> defeated<br>`;
+    h+=`<br>Next rebirth: ${fmt(nm.cash)} cash · ${fmt(nm.dmg)} damage · ${fmt(nm.hp)} health`;
+    if(n===0) h+=`<br>Unlocks the <b>Flamethrower</b> in the shop`;
+    h+=`<br><small>Rebirthing resets your cash, weapons and upgrades and sends you back to the void.</small>`;
+  } else h+=`<br><b>MAX REBIRTH reached!</b>`;
+  $('rbody').innerHTML=h;
+  const go=$('rbGo'); go.textContent=n>=6?'MAXED':(n===5?'SPECIAL REBIRTH':'REBIRTH'); go.disabled=!canRebirth();
+}
+function doRebirth(){
+  if(!canRebirth()) return;
+  S.rebirths++; try{ localStorage.setItem('zs_rebirths',S.rebirths); }catch(e){}
+  closeRebirth(); enterLobby(); const m=mult();
+  say(`Rebirth ${S.rebirths}! x${m.cash} cash · x${m.dmg} dmg · x${m.hp} health`,4);
+}
+$('rbGo').addEventListener('click',doRebirth);
+$('rclose').addEventListener('click',closeRebirth);
+$('rbBtn').addEventListener('click',()=>S.rebirthOpen?closeRebirth():openRebirth());
+
 /* ---------- Input ---------- */
 addEventListener('keydown',e=>{
   const k=e.key.toLowerCase(); keys[k]=true; if(e.shiftKey) keys.shift=true;
   if(k==='b'&&!e.repeat) S.shopOpen?closeShop():openShop();
-  if(k==='escape') closeShop();
+  if(k==='g'&&!e.repeat) S.rebirthOpen?closeRebirth():openRebirth();
+  if(k==='escape'){ closeShop(); closeRebirth(); }
   if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
 });
 addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; if(!e.shiftKey) keys.shift=false; });
@@ -524,7 +610,7 @@ cv.addEventListener('pointerdown',e=>{
     else if(!lookTouch){ lookTouch={id:e.pointerId,x:e.clientX,y:e.clientY}; }
     cv.setPointerCapture(e.pointerId); return;
   }
-  if(document.pointerLockElement!==cv){ if(!S.shopOpen) cv.requestPointerLock?.(); return; }
+  if(document.pointerLockElement!==cv){ if(!S.shopOpen&&!S.rebirthOpen) cv.requestPointerLock?.(); return; }
   if(e.button===0) IN.down=true;
 });
 cv.addEventListener('pointermove',e=>{
