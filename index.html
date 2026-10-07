@@ -27,15 +27,48 @@
   #fl div{position:absolute;font-weight:800;font-size:16px;text-shadow:0 1px 2px #000;transform:translate(-50%,-50%)}
   #shopBtn{position:fixed;top:10px;right:10px;width:54px;height:54px;border-radius:12px;border:2px solid #facc15;background:#1e293bcc;font-size:28px;cursor:pointer;display:none}
   #fireBtn{position:fixed;right:24px;bottom:30px;width:90px;height:90px;border-radius:50%;border:3px solid #fff8;background:#dc262699;font-size:30px;display:none;color:#fff}
-  #shop{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center}
-  #panel{background:#111827;border:2px solid #facc15;border-radius:14px;padding:16px;width:min(560px,94vw);max-height:90vh;overflow:auto}
-  #panel h2{margin:0 0 4px;display:flex;justify-content:space-between;align-items:center}
-  .item{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#1f2937;border-radius:10px;padding:10px;margin-top:8px}
-  .item small{color:#9ca3af;display:block}
-  button.buy{background:#16a34a;color:#fff;border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;min-width:90px}
-  button.buy:disabled{background:#4b5563;cursor:not-allowed}
-  button.buy.eq{background:#2563eb}
-  #close{background:#dc2626;color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-weight:700}
+  #shop{position:fixed;inset:0;background:radial-gradient(#0f172aee,#000d);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s;backdrop-filter:blur(4px)}
+  #shop.open{opacity:1;visibility:visible}
+  #panel{background:linear-gradient(#111827,#0b1220);border:1px solid #facc1566;box-shadow:0 20px 80px #000a,0 0 0 1px #000;border-radius:18px;padding:18px;width:min(980px,96vw);max-height:92vh;overflow:auto;transform:translateY(18px) scale(.97);transition:transform .25s cubic-bezier(.2,.9,.3,1.2)}
+  #shop.open #panel{transform:none}
+  #panel::-webkit-scrollbar{width:8px} #panel::-webkit-scrollbar-thumb{background:#374151;border-radius:8px}
+  .sh-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+  .sh-head h2{margin:0;font-size:26px;letter-spacing:.5px;flex:1}
+  .chip{background:#1f2937;border:1px solid #374151;border-radius:999px;padding:6px 14px;font-weight:700;font-size:14px}
+  #cashTxt{color:#facc15;font-size:18px;border-color:#facc1555}
+  #mulChip{color:#c4b5fd;border-color:#8b5cf655}
+  .sh-sub{margin:14px 2px 8px;font-size:12px;font-weight:800;letter-spacing:2px;color:#9ca3af;text-transform:uppercase}
+  #wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:12px}
+  .card{position:relative;background:#1a2332;border:1px solid #2b3648;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;transition:transform .15s,border-color .15s,box-shadow .15s,background .15s}
+  .card:hover{transform:translateY(-3px);border-color:#facc1588;box-shadow:0 8px 24px #0008}
+  .card.eq{border-color:#3b82f6;background:#17233a;box-shadow:0 0 0 1px #3b82f655,0 0 22px #3b82f633}
+  .card.locked{opacity:.55;filter:grayscale(.7)} .card.locked:hover{transform:none;border-color:#2b3648;box-shadow:none}
+  .ctop{display:flex;align-items:center;gap:10px}
+  .ico{font-size:30px;width:46px;height:46px;border-radius:12px;background:#0f172a;display:grid;place-items:center;flex:none}
+  .nm{font-weight:800;font-size:17px}
+  .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+  .tag{font-size:10.5px;font-weight:700;background:#0f172a;color:#93c5fd;border-radius:6px;padding:2px 6px}
+  .key{margin-left:auto;font-size:12px;font-weight:800;color:#9ca3af;border:1px solid #4b5563;border-radius:6px;padding:1px 7px;align-self:flex-start}
+  .st{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:8px;font-size:12.5px;color:#cbd5e1}
+  .st b{color:#fff;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+  .bar{height:7px;background:#0b1220;border-radius:6px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:6px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+  .st.d i{background:linear-gradient(90deg,#ef4444,#f97316)} .st.r i{background:linear-gradient(90deg,#22c55e,#a3e635)} .st.p i{background:linear-gradient(90deg,#8b5cf6,#38bdf8)}
+  .note{font-size:12px;color:#94a3b8;line-height:1.4;min-height:34px}
+  button.buy{margin-top:auto;background:linear-gradient(#22c55e,#16a34a);color:#fff;border:0;border-radius:10px;padding:10px 12px;font-weight:800;font-size:15px;cursor:pointer;transition:filter .15s,transform .1s}
+  button.buy:hover:not(:disabled){filter:brightness(1.12)} button.buy:active:not(:disabled){transform:scale(.97)}
+  button.buy:disabled{background:#374151;color:#9ca3af;cursor:not-allowed}
+  button.buy.eqb{background:linear-gradient(#3b82f6,#2563eb)}
+  button.buy.curr{background:#1e3a8a;color:#bfdbfe}
+  button.buy.poor:disabled{background:#3b1d1d;color:#fca5a5}
+  .lockov{position:absolute;inset:0;border-radius:14px;display:none;align-items:center;justify-content:center;background:#0009;font-weight:800;font-size:15px;text-align:center;padding:10px;color:#e9d5ff}
+  .card.locked .lockov{display:flex}
+  .card.pop{animation:pop .45s}
+  @keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.045);box-shadow:0 0 30px #22c55eaa}100%{transform:scale(1)}}
+  #close{background:#dc2626;color:#fff;border:0;border-radius:10px;padding:6px 12px;cursor:pointer;font-weight:800;font-size:15px}
+  #close:hover{filter:brightness(1.15)}
+  .hpcard{margin-top:12px}
+  .hpbar{height:10px;background:#0b1220;border-radius:6px;overflow:hidden} .hpbar i{display:block;height:100%;background:linear-gradient(90deg,#ef4444,#fb7185);transition:width .4s}
   #rbBtn{position:fixed;top:10px;right:74px;width:54px;height:54px;border-radius:12px;border:2px solid #a78bfa;background:#1e293bcc;font-size:28px;cursor:pointer}
   #rebirth{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center}
   #rpanel{background:#111827;border:2px solid #a78bfa;border-radius:14px;padding:18px;width:min(520px,94vw);max-height:92vh;overflow:auto;text-align:center}
@@ -71,8 +104,11 @@
   <button id="rbGo">REBIRTH</button>
 </div></div>
 <div id="shop"><div id="panel">
-  <h2><span>🛒 Shop</span><span id="cashTxt"></span><button id="close">X</button></h2>
-  <div id="items"></div>
+  <div class="sh-head"><h2>🛒 Shop</h2><span class="chip" id="mulChip"></span><span class="chip" id="cashTxt"></span><button id="close">✕</button></div>
+  <div class="sh-sub">Weapons <span style="letter-spacing:0;text-transform:none;font-weight:600">· press 1-9 in game to switch</span></div>
+  <div id="wgrid"></div>
+  <div class="sh-sub">Upgrades</div>
+  <div id="upg"></div>
 </div></div>
 
 <script>
@@ -204,18 +240,20 @@ lobbyG.add(slab(-12,12,-10,10,0x374151), slab(6,10,-2.5,2.5,0x16a34a,0.03,0.06,0
 }
 const brickGroup = new THREE.Group(); gameG.add(brickGroup);
 function genMap(){
+  // (nav grid is rebuilt at the end)
   while(brickGroup.children.length){ const m=brickGroup.children.pop(); m.material.map.dispose(); m.material.dispose(); m.geometry.dispose(); }
   bricks=[]; let tries=0;
   while(bricks.length<20 && tries++<800){
     const w=1.5+Math.random()*3, d=1.5+Math.random()*3, h=2+Math.random()*1.6;
     const x=3+Math.random()*(MAP.w-6-w), z=3+Math.random()*(MAP.h-6-d);
     if(Math.hypot(x+w/2-MAP.w/2,z+d/2-MAP.h/2)<5) continue;
-    if(bricks.some(b=>x<b.x+b.w+2.2&&x+w+2.2>b.x&&z<b.z+b.d+2.2&&z+d+2.2>b.z)) continue;
+    if(bricks.some(b=>x<b.x+b.w+3.4&&x+w+3.4>b.x&&z<b.z+b.d+3.4&&z+d+3.4>b.z)) continue;
     const b={x,z,w,d,h}; bricks.push(b);
     const tex=brickBase.clone(); tex.needsUpdate=true; tex.repeat.set(Math.max(w,d)/1.2,h/1.2);
     const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({map:tex}));
     m.position.set(x+w/2,h/2,z+d/2); brickGroup.add(m);
   }
+  buildNav();
 }
 // invisible boundary solids for bullets
 const edgeSolids=[{x:-1,z:-1,w:MAP.w+2,d:1,h:4},{x:-1,z:MAP.h,w:MAP.w+2,d:1,h:4},{x:-1,z:-1,w:1,d:MAP.h+2,h:4},{x:MAP.w,z:-1,w:1,d:MAP.h+2,h:4}];
@@ -286,6 +324,51 @@ function collide(o,r,list){ // push circle (x,z) out of AABBs {x,z,w,d}
     const dx=o.x-cx, dz=o.z-cz, d=Math.hypot(dx,dz);
     if(d<r){ if(d===0){ o.z=b.z-r; continue; } o.x=cx+dx/d*r; o.z=cz+dz/d*r; }
   }
+}
+/* ----- zombie navigation: flow fields on a grid ----- */
+const CELL=.5, GW=Math.round(MAP.w/CELL), GH=Math.round(MAP.h/CELL), NAV_INFL=[.5,.85,1.6];
+const nav={blk:NAV_INFL.map(()=>new Uint8Array(GW*GH)),dist:NAV_INFL.map(()=>new Int16Array(GW*GH)),q:new Int32Array(GW*GH),cell:-1,t:0};
+const NB=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+const cellIdx=(x,z)=>Math.max(0,Math.min(GH-1,Math.floor(z/CELL)))*GW+Math.max(0,Math.min(GW-1,Math.floor(x/CELL)));
+function buildNav(){
+  NAV_INFL.forEach((inf,k)=>{ const bl=nav.blk[k]; bl.fill(0);
+    for(let cz=0;cz<GH;cz++) for(let cx=0;cx<GW;cx++){ const x=(cx+.5)*CELL, z=(cz+.5)*CELL;
+      for(const b of bricks) if(x>b.x-inf&&x<b.x+b.w+inf&&z>b.z-inf&&z<b.z+b.d+inf){ bl[cz*GW+cx]=1; break; } } });
+  nav.cell=-1;
+}
+function computeNav(){
+  const sc=cellIdx(P.x,P.z); nav.cell=sc;
+  NAV_INFL.forEach((_,k)=>{
+    const bl=nav.blk[k], d=nav.dist[k], q=nav.q; d.fill(32767);
+    let src=sc;
+    if(bl[src]){ // player hugging a wall: start from the nearest free cell
+      const sx=src%GW, sz=(src/GW)|0; let found=-1;
+      for(let rad=1;rad<=8&&found<0;rad++) for(let dz=-rad;dz<=rad&&found<0;dz++) for(let dx=-rad;dx<=rad;dx++){
+        if(Math.max(Math.abs(dx),Math.abs(dz))!==rad) continue; const nx=sx+dx, nz=sz+dz;
+        if(nx<0||nz<0||nx>=GW||nz>=GH) continue; if(!bl[nz*GW+nx]){ found=nz*GW+nx; break; } }
+      if(found>=0) src=found;
+    }
+    let h=0,t=0; q[t++]=src; d[src]=0;
+    while(h<t){ const c=q[h++], cx=c%GW, cz=(c/GW)|0, dc=d[c]+1;
+      for(let i=0;i<8;i++){ const nx=cx+NB[i][0], nz=cz+NB[i][1]; if(nx<0||nz<0||nx>=GW||nz>=GH) continue;
+        const n=nz*GW+nx; if(bl[n]||d[n]<=dc) continue;
+        if(i>=4&&(bl[cz*GW+nx]||bl[nz*GW+cx])) continue; // no corner cutting
+        d[n]=dc; q[t++]=n; } }
+  });
+}
+function navTarget(z){ // world position of the next waypoint, or null
+  const k=z.nk, d=nav.dist[k], bl=nav.blk[k], cx=Math.max(0,Math.min(GW-1,Math.floor(z.x/CELL))), cz=Math.max(0,Math.min(GH-1,Math.floor(z.z/CELL)));
+  let bd=d[cz*GW+cx], bx=-1, bz=-1;
+  for(let i=0;i<8;i++){ const nx=cx+NB[i][0], nz=cz+NB[i][1]; if(nx<0||nz<0||nx>=GW||nz>=GH) continue;
+    if(i>=4&&!bl[cz*GW+cx]&&(bl[cz*GW+nx]||bl[nz*GW+cx])) continue;
+    const v=d[nz*GW+nx]; if(v<bd){ bd=v; bx=nx; bz=nz; } }
+  return bx<0?null:{x:(bx+.5)*CELL,z:(bz+.5)*CELL};
+}
+function clearPath(x,z,r){ // straight line to the player free of bricks?
+  const dx=P.x-x, dz=P.z-z, dist=Math.hypot(dx,dz); if(dist<.01) return true;
+  const o={x,y:1,z}, d={x:dx/dist,y:0,z:dz/dist};
+  for(const b of bricks){ const t=rayBox(o,d,{x:b.x-r,z:b.z-r,w:b.w+2*r,d:b.d+2*r,h:10},dist); if(t!==Infinity) return false; }
+  return true;
 }
 function rayBox(o,d,b,maxT){
   let t0=0,t1=maxT; const mn=[b.x,0,b.z], mx=[b.x+b.w,b.h,b.z+b.d], oo=[o.x,o.y,o.z], dd=[d.x,d.y,d.z];
@@ -390,7 +473,7 @@ function spawnZombie(boss){
   }while(Math.hypot(x-P.x,z-P.z)<14&&n++<20);
   const m=makeZombie(t);
   const zb={x,z,hp:t.hp,max:t.hp,cash:t.cash,spd:t.spd*(.92+Math.random()*.16),dmg:BASE_DMG*Math.pow(DMG_GROWTH,t.tier),
-    atk:0,boss,flash:0,burn:0,burnT:0,dead:false,phase:Math.random()*6,...m};
+    atk:0,boss,flash:0,burn:0,burnT:0,dead:false,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,...m};
   collide(zb,zb.r,bricks); S.zombies.push(zb);
 }
 
@@ -550,10 +633,14 @@ function update(dt){
 
   for(let i=S.zombies.length-1;i>=0;i--) if(S.zombies[i].hp<=0){ removeZombie(S.zombies[i]); S.zombies.splice(i,1); }
   updateProjs(dt); updatePuddles(dt);
+  nav.t-=dt; if(nav.t<=0||nav.cell!==cellIdx(P.x,P.z)&&nav.t<.15){ nav.t=.25; computeNav(); }
   const hurt=[];
   for(const z of S.zombies){
     const dx=P.x-z.x, dz=P.z-z.z, d=Math.hypot(dx,dz)||1;
-    z.x+=dx/d*z.spd*dt; z.z+=dz/d*z.spd*dt;
+    z.los-=dt; if(z.los<=0){ z.los=.12+Math.random()*.08; z.clear=d<1.8||clearPath(z.x,z.z,z.r+.05); }
+    let tx=dx/d, tz=dz/d;
+    if(!z.clear){ const w=navTarget(z); if(w){ const wx=w.x-z.x, wz=w.z-z.z, wl=Math.hypot(wx,wz)||1; tx=wx/wl; tz=wz/wl; } }
+    z.x+=tx*z.spd*dt; z.z+=tz*z.spd*dt;
     for(const o of S.zombies) if(o!==z){ const ox=z.x-o.x, oz=z.z-o.z, od=Math.hypot(ox,oz), m=z.r+o.r;
       if(od>0&&od<m){ const p=(m-od)*.5*Math.min(1,dt*8); z.x+=ox/od*p; z.z+=oz/od*p; } }
     collide(z,z.r,bricks);
@@ -636,26 +723,72 @@ function updateHud(){
 }
 
 /* ---------- Shop ---------- */
-function openShop(){ if(S.mode!=='game') return; closeRebirth(); S.shopOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('shop').style.display='flex'; renderShop(); }
-function closeShop(){ S.shopOpen=false; $('shop').style.display='none'; }
-function renderShop(){
-  $('cashTxt').textContent='$ '+S.cash;
-  const el=$('items'); el.innerHTML='';
-  for(const w of WEAPONS){
-    const owned=S.owned[w.id], eq=S.weapon===w.id;
-    const d=document.createElement('div'); d.className='item'; d.innerHTML=`<div><b>${w.name}</b><small>${w.desc}</small></div>`;
-    const b=document.createElement('button'); b.className='buy';
-    if(w.rebirth&&S.rebirths<w.rebirth){ b.textContent='🔒 Rebirth '+w.rebirth; b.disabled=true; }
-    else if(eq){ b.textContent='Equipped'; b.disabled=true; }
-    else if(owned){ b.textContent='Equip'; b.classList.add('eq'); b.onclick=()=>{ equip(w.id); renderShop(); }; }
-    else { b.textContent='$ '+w.cost; b.disabled=S.cash<w.cost; b.onclick=()=>{ if(S.cash>=w.cost){ S.cash-=w.cost; S.owned[w.id]=true; equip(w.id); renderShop(); } }; }
-    d.appendChild(b); el.appendChild(d);
-  }
-  const d=document.createElement('div'); d.className='item'; d.innerHTML=`<div><b>❤ Health +10</b><small>Max health: ${S.maxHp} (+${10*mult().hp} per buy)</small></div>`;
-  const b=document.createElement('button'); b.className='buy'; const c=hpCost(); b.textContent='$ '+c; b.disabled=S.cash<c;
-  b.onclick=()=>{ if(S.cash>=c){ S.cash-=c; S.hpBuys++; const old=S.maxHp; S.maxHp=hpMax(); S.hp+=S.maxHp-old; renderShop(); } };
-  d.appendChild(b); el.appendChild(d);
+const WINFO={
+  glock:{ico:'🔫',tags:['Starter'],note:'Reliable starter pistol.'},
+  rifle:{ico:'🎯',tags:['Accurate'],note:'Hard-hitting rifle, solid all-rounder.'},
+  mg:{ico:'⚙️',tags:['Full-auto'],note:'Fast and steady fire.'},
+  shotgun:{ico:'💥',tags:['9 pellets','Spread','Falloff'],note:'Devastating up close: 20 dmg per pellet, dropping to 10 at 8 m.'},
+  minigun:{ico:'🌀',tags:['Full-auto','Overheats'],note:'Overcharges after ~4 s of fire, then 3 s lockout (smokes).'},
+  flame:{ico:'🔥',tags:['Cone','Burn'],note:'Ignites enemies: +50 dmg every 0.5 s for 3 s.'},
+  lava:{ico:'🌋',tags:['Explosion','Lava pool','Burn'],note:'Lobbed lava balls explode (3 m) and leave a pool: 10 dmg / 0.1 s + burning.'},
+  railgun:{ico:'⚡',tags:['Pierces all','Overheats','E: Railblaster'],note:'Blue laser pierces everything. E = Railblaster: 1000 dmg explosive balls / 1 s.'},
+  orbital:{ico:'🔴',tags:['Black hole','Huge blast'],note:'Giant sphere sucks enemies in, then explodes after 1.5 s (6 m radius).'},
+};
+const lg=(v,m)=>Math.min(100,Math.log(v+1)/Math.log(m+1)*100);
+const wDps=w=>w.dmg*(w.pellets||1)/w.cd;
+const MAXD=Math.max(...WEAPONS.map(w=>w.dmg)), MAXR=Math.max(...WEAPONS.map(w=>1/w.cd)), MAXP=Math.max(...WEAPONS.map(wDps));
+const fmtN=n=>n>=1e4?(n/1e3).toFixed(n>=1e5?0:1)+'k':Math.round(n).toLocaleString();
+function buildShop(){
+  const g=$('wgrid'); g.innerHTML='';
+  WEAPONS.forEach((w,i)=>{
+    const f=WINFO[w.id], c=document.createElement('div'); c.className='card'; c.id='card-'+w.id;
+    c.innerHTML=`<div class="ctop"><div class="ico">${f.ico}</div><div><div class="nm">${w.name}</div><div class="tags">${f.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div><span class="key">${i+1}</span></div>
+      <div class="st d"><span>Damage</span><div class="bar"><i style="width:${lg(w.dmg,MAXD)}%"></i></div><b class="vd"></b></div>
+      <div class="st r"><span>Fire rate</span><div class="bar"><i style="width:${lg(1/w.cd,MAXR)}%"></i></div><b class="vr"></b></div>
+      <div class="st p"><span>DPS</span><div class="bar"><i style="width:${lg(wDps(w),MAXP)}%"></i></div><b class="vp"></b></div>
+      <div class="note">${f.note}</div><button class="buy"></button><div class="lockov"></div>`;
+    c.querySelector('button').onclick=()=>shopAction(w,c);
+    g.appendChild(c);
+  });
+  const u=$('upg'); u.innerHTML=`<div class="card hpcard" id="hpcard"><div class="ctop"><div class="ico">❤️</div><div><div class="nm">Health Upgrade</div><div class="tags"><span class="tag" id="hpLvl"></span></div></div></div>
+    <div class="st"><span>Max HP</span><div class="hpbar"><i id="hpFill"></i></div><b id="hpVal"></b></div>
+    <div class="note" id="hpNote"></div><button class="buy" id="hpBuy"></button></div>`;
+  $('hpBuy').onclick=()=>{ const c=hpCost(); if(S.cash<c) return; S.cash-=c; S.hpBuys++; const old=S.maxHp; S.maxHp=hpMax(); S.hp+=S.maxHp-old; pop($('hpcard')); updateShop(); };
 }
+function pop(c){ c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
+function shopAction(w,c){
+  if(w.rebirth&&S.rebirths<w.rebirth) return;
+  if(S.owned[w.id]){ equip(w.id); }
+  else if(S.cash>=w.cost){ S.cash-=w.cost; S.owned[w.id]=true; equip(w.id); pop(c); }
+  updateShop();
+}
+function updateShop(){
+  const m=mult(), r=x=>Math.round(x*m.dmg);
+  $('cashTxt').textContent='$ '+S.cash.toLocaleString();
+  $('mulChip').textContent=S.rebirths?`♻ ${S.rebirths} · x${m.dmg} dmg · x${m.cash} cash · x${m.hp} HP`:'♻ No rebirth bonus yet';
+  for(const w of WEAPONS){
+    const c=$('card-'+w.id), locked=w.rebirth&&S.rebirths<w.rebirth, owned=S.owned[w.id], eq=S.weapon===w.id, b=c.querySelector('button.buy');
+    c.classList.toggle('locked',!!locked); c.classList.toggle('eq',eq&&!locked);
+    c.querySelector('.lockov').textContent=locked?`🔒 Unlocks at Rebirth ${w.rebirth}`:'';
+    c.querySelector('.vd').textContent=w.pellets?`${r(w.dmg)}→${r(w.far)} ×${w.pellets}`:fmtN(r(w.dmg));
+    c.querySelector('.vr').textContent=(1/w.cd>=10?(1/w.cd).toFixed(0):(1/w.cd).toFixed(1))+'/s';
+    c.querySelector('.vp').textContent=fmtN(r(wDps(w)));
+    b.className='buy'; b.disabled=false;
+    if(locked){ b.textContent='Locked'; b.disabled=true; }
+    else if(eq){ b.textContent='Equipped ✓'; b.disabled=true; b.classList.add('curr'); }
+    else if(owned){ b.textContent='Equip'; b.classList.add('eqb'); }
+    else { b.textContent='Buy · $'+w.cost.toLocaleString(); if(S.cash<w.cost){ b.disabled=true; b.classList.add('poor'); } }
+  }
+  const c=hpCost(), per=10*m.hp;
+  $('hpLvl').textContent='Level '+S.hpBuys; $('hpVal').textContent=S.maxHp+' HP';
+  $('hpFill').style.width=Math.min(100,S.maxHp/(hpMax()+per*10)*100)+'%';
+  $('hpNote').textContent=`+${per} max HP per purchase. Price rises 5% each time.`;
+  const hb=$('hpBuy'); hb.textContent='Buy +'+per+' HP · $'+c.toLocaleString(); hb.disabled=S.cash<c; hb.classList.toggle('poor',S.cash<c);
+}
+const renderShop=updateShop;
+function openShop(){ if(S.mode!=='game') return; closeRebirth(); S.shopOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('shop').classList.add('open'); updateShop(); }
+function closeShop(){ S.shopOpen=false; $('shop').classList.remove('open'); }
+buildShop();
 function equip(id){ S.weapon=id; S.heat=0; S.lock=0; S.fireCd=0; buildGun(id); }
 $('shopBtn').addEventListener('click',()=>S.shopOpen?closeShop():openShop());
 $('close').addEventListener('click',closeShop);
@@ -691,6 +824,7 @@ $('rbBtn').addEventListener('click',()=>S.rebirthOpen?closeRebirth():openRebirth
 addEventListener('keydown',e=>{
   const k=e.key.toLowerCase(); keys[k]=true; if(e.shiftKey) keys.shift=true;
   if(k==='b'&&!e.repeat) S.shopOpen?closeShop():openShop();
+  if(/^[1-9]$/.test(k)&&S.mode==='game'&&!S.rebirthOpen){ const w=WEAPONS[+k-1]; if(w&&S.owned[w.id]&&!(w.rebirth&&S.rebirths<w.rebirth)){ equip(w.id); if(S.shopOpen) updateShop(); } }
   if(k==='e'&&!e.repeat&&S.mode==='game'&&!S.shopOpen&&!S.rebirthOpen&&S.weapon==='railgun'){ S.railMode=S.railMode==='laser'?'blaster':'laser'; buildGun('railgun'); S.fireCd=Math.max(S.fireCd,.3); say(S.railMode==='laser'?'Railgun – laser mode':'Railblaster mode',1.2); }
   if(k==='g'&&!e.repeat) S.rebirthOpen?closeRebirth():openRebirth();
   if(k==='escape'){ closeShop(); closeRebirth(); }
