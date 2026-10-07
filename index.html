@@ -106,7 +106,8 @@
   <h2><span>♻ Rebirth</span><button id="rclose">X</button></h2>
   <div id="rbody"></div>
   <button id="rbGo">REBIRTH</button>
-  <div style="margin-top:12px"><a href="#" id="rbReset" style="color:#9ca3af;font-size:12px">Reset all saved progress</a></div>
+  <div id="saveInfo" style="margin-top:14px;font-size:12px;color:#9ca3af"></div>
+  <div style="margin-top:6px;font-size:12px;color:#9ca3af"><a href="#" id="rbExport" style="color:#9ca3af">Copy save code</a> · <a href="#" id="rbImport" style="color:#9ca3af">Load save code</a> · <a href="#" id="rbReset" style="color:#9ca3af">Reset all progress</a></div>
 </div></div>
 <div id="shop"><div id="panel">
   <div class="sh-head"><h2>🛒 Shop</h2><span class="chip" id="mulChip"></span><span class="chip" id="cashTxt"></span><button id="close">✕</button></div>
@@ -191,24 +192,42 @@ const S = {
 };
 const P = {x:0,z:0,y:0,vy:0,yaw:0,pitch:0};
 /* ---------- Save / load (browser localStorage) ---------- */
-const SAVE_KEY='zs_save_v1';
-S.savedRun=null; S.saveT=5;
+const SAVE_KEY='zs_save_v1', COOKIE_KEY='zs_save';
+S.savedRun=null; S.saveT=5; S.saveOK=false;
 function runSnapshot(){
   const busy=S.toSpawn>0||S.zombies.length>0;
   return {cash:S.cash,owned:S.owned,weapon:S.weapon,hpBuys:S.hpBuys,wave:busy?Math.max(0,S.wave-1):S.wave,cleared:S.cleared,railMode:S.railMode,bladeMode:S.bladeMode};
 }
+function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,run:S.mode==='game'?runSnapshot():S.savedRun}; }
 function saveGame(){
-  try{ localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,rebirths:S.rebirths,run:S.mode==='game'?runSnapshot():S.savedRun})); }catch(e){}
+  const js=JSON.stringify(savePayload()); let ok=false;
+  try{ localStorage.setItem(SAVE_KEY,js); ok=localStorage.getItem(SAVE_KEY)===js; }catch(e){}
+  try{ document.cookie=COOKIE_KEY+'='+encodeURIComponent(js)+';max-age=31536000;path=/;SameSite=Lax'; }catch(e){}
+  try{ sessionStorage.setItem(SAVE_KEY,js); }catch(e){}
+  S.saveOK=ok;
+}
+function parseSave(js){ try{ const d=JSON.parse(js); return d&&d.v===1?d:null; }catch(e){ return null; } }
+function applySave(d){
+  S.rebirths=Math.min(6,Math.max(0,d.rebirths|0)); S.savedRun=null; const r=d.run;
+  if(r&&r.owned&&r.owned.glock&&WEAPONS_IDS.includes(r.weapon)) S.savedRun={cash:+r.cash||0,owned:r.owned,weapon:r.weapon,hpBuys:r.hpBuys|0,wave:r.wave|0,cleared:r.cleared|0,railMode:r.railMode==='blaster'?'blaster':'laser',bladeMode:['blood','wing','earth'].includes(r.bladeMode)?r.bladeMode:'blood'};
 }
 function loadGame(){
-  try{
-    const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
-    if(d&&d.v===1){ S.rebirths=Math.min(6,Math.max(0,d.rebirths|0)); const r=d.run;
-      if(r&&r.owned&&r.owned.glock&&WEAPONS_IDS.includes(r.weapon)) S.savedRun={cash:+r.cash||0,owned:r.owned,weapon:r.weapon,hpBuys:r.hpBuys|0,wave:r.wave|0,cleared:r.cleared|0,railMode:r.railMode==='blaster'?'blaster':'laser',bladeMode:['blood','wing','earth'].includes(r.bladeMode)?r.bladeMode:'blood'};
-    } else { S.rebirths=Math.min(6,Math.max(0,parseInt(localStorage.getItem('zs_rebirths'))||0)); } // old save format
-  }catch(e){}
+  const cands=[];
+  try{ cands.push(parseSave(localStorage.getItem(SAVE_KEY))); }catch(e){}
+  try{ const m=document.cookie.match(new RegExp('(?:^|; )'+COOKIE_KEY+'=([^;]*)')); if(m) cands.push(parseSave(decodeURIComponent(m[1]))); }catch(e){}
+  try{ cands.push(parseSave(sessionStorage.getItem(SAVE_KEY))); }catch(e){}
+  const best=cands.filter(Boolean).sort((x,y)=>(y.t||0)-(x.t||0)||y.rebirths-x.rebirths)[0];
+  if(best) applySave(best);
+  else { try{ S.rebirths=Math.min(6,Math.max(0,parseInt(localStorage.getItem('zs_rebirths'))||0)); }catch(e){} } // very old save format
+  saveGame(); // write everything back (also tests whether saving works)
 }
-function resetProgress(){ S.rebirths=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); }catch(e){} }
+function resetProgress(){ S.rebirths=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
+function exportCode(){ return btoa(unescape(encodeURIComponent(JSON.stringify(savePayload())))); }
+function importCode(txt){
+  txt=(txt||'').trim(); if(!txt) return false;
+  if(/^[0-6]$/.test(txt)){ S.rebirths=+txt; S.savedRun=null; return true; }
+  try{ const d=parseSave(decodeURIComponent(escape(atob(txt)))); if(!d) return false; applySave(d); return true; }catch(e){ return false; }
+}
 addEventListener('pagehide',saveGame); document.addEventListener('visibilitychange',()=>{ if(document.hidden) saveGame(); });
 const IN = {down:false};
 const keys = {};
@@ -1315,6 +1334,7 @@ function renderRebirth(){
     h+=`<br><small>Rebirthing resets your cash, weapons and upgrades and sends you back to the void.</small>`;
   } else h+=`<br><b>MAX REBIRTH reached!</b>`;
   $('rbody').innerHTML=h;
+  $('saveInfo').innerHTML=S.saveOK?'💾 Auto-save is working in this browser.':'<span style="color:#fca5a5">⚠ This browser is blocking saving (private mode or blocked storage). Use "Copy save code" to keep your progress.</span>';
   const go=$('rbGo'); go.textContent=n>=6?'MAXED':(n===5?'SPECIAL REBIRTH':'REBIRTH'); go.disabled=!canRebirth();
 }
 function doRebirth(){
@@ -1324,6 +1344,8 @@ function doRebirth(){
   say(`Rebirth ${S.rebirths}! x${m.cash} cash · x${m.dmg} dmg · x${m.hp} health`,4);
 }
 $('rbGo').addEventListener('click',doRebirth);
+$('rbExport').addEventListener('click',e=>{ e.preventDefault(); const c=exportCode(); if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(c).catch(()=>{}); prompt('Your save code (copied if possible). Keep it somewhere safe:',c); });
+$('rbImport').addEventListener('click',e=>{ e.preventDefault(); const t=prompt('Paste your save code here (or a number 0-6 to set your rebirths):'); if(t===null) return; if(importCode(t)){ saveGame(); closeRebirth(); enterLobby(); say(`Save loaded – rebirths: ${S.rebirths}`,3); } else alert('That save code is not valid.'); });
 $('rbReset').addEventListener('click',e=>{ e.preventDefault(); if(confirm('Delete ALL saved progress (rebirths, weapons, cash)?')){ resetProgress(); closeRebirth(); enterLobby(); say('Progress reset',2.5); } });
 $('rclose').addEventListener('click',closeRebirth);
 $('rbBtn').addEventListener('click',()=>S.rebirthOpen?closeRebirth():openRebirth());
@@ -1378,7 +1400,8 @@ function loop(now){
 buildGun('glock'); gunRoot.visible=false;
 loadGame();
 enterLobby();
-if(S.savedRun) say(`Progress restored – wave ${S.savedRun.wave}, $${S.savedRun.cash}. Step on PLAY to continue!`,5);
+if(!S.saveOK) say('⚠ Saving is blocked in this browser – progress may be lost! (G → Copy save code)',8);
+else if(S.savedRun) say(`Progress restored – wave ${S.savedRun.wave}, $${S.savedRun.cash}. Step on PLAY to continue!`,5);
 else if(S.rebirths) say(`Welcome back! Rebirths: ${S.rebirths}`,4);
 requestAnimationFrame(loop);
 window.__S=S; window.__P=P; window.__IN=IN; // debug hooks
