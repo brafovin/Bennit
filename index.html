@@ -176,6 +176,8 @@ const ZTYPES = [
 ];
 const BOSS = {name:'BOSS', wave:99, hp:100000, cash:10000, spd:1.9, col:0x991b1b, size:3.4, tier:7};
 const SCREAMER={name:'Howler',wave:15,hp:500,cash:75,spd:1.7,col:0xf8fafc,size:1.45,tier:2,screamer:true};
+const ARCHER_WAVE=10, ARCHER_CHANCE=.05, ARCHER_RANGE=32, ARROW_V=30, ARROW_G=8;
+const incoming=[]; // damage dealt to the player by arrows this frame
 const SCREAM_R=10, SCREAM_CD=12, SCREAM_T=1.6, BUFF_T=12;
 const BASE_DMG = 10, DMG_GROWTH = 1.15;
 const WALK = 3.6, SPRINT = 6.0, EYE0 = 1.6, JUMP_V = 6.8, GRAV = 17;
@@ -406,6 +408,7 @@ function genDecor(){
       for(const yy of [.2,.75]){ const rg=new THREE.Mesh(new THREE.CylinderGeometry(.335,.335,.06,14),mat(0x222222,'metal')); rg.position.set(x,yy,z); decorGroup.add(rg); } } }
 }
 function genMap(){
+  incoming.length=0;
   while(brickGroup.children.length){ const m=brickGroup.children.pop(); if(m.material.map) m.material.map.dispose(); if(m.material&&!m.userData.shared) m.material.dispose(); if(m.geometry&&!m.userData.shared) m.geometry.dispose(); }
   bricks=[]; let tries=0;
   const capM=new THREE.MeshLambertMaterial({color:0x3a3f47}), plM=new THREE.MeshLambertMaterial({color:0x2a1a14}), rubM=new THREE.MeshLambertMaterial({color:0x5a3a2a});
@@ -553,6 +556,7 @@ const boneMat=new THREE.MeshLambertMaterial({color:0xd8d0b4}), bloodMat=new THRE
 function zbox(w,h,d,m,x,y,z){ const k=w+','+h+','+d; const me=new THREE.Mesh(GC[k]||(GC[k]=new THREE.BoxGeometry(w,h,d)),m); me.position.set(x,y,z); return me; }
 function pivot(x,y,z,parent){ const p=new THREE.Group(); p.position.set(x,y,z); parent.add(p); return p; }
 function makeZombie(t){
+  if(t.archer&&!t._base){ const m=makeZombie({...t,_base:true,archer:false}); return decorateArcher(m,t); }
   if(t.screamer) return makeScreamer(t);
   const s=t.size, tier=t.tier||0;
   const skin=new THREE.MeshLambertMaterial({color:t.col}), cloth=new THREE.MeshLambertMaterial({color:new THREE.Color(t.col).multiplyScalar(.3)});
@@ -631,7 +635,89 @@ function animScreamer(z,dt){
   for(let i=0;i<z.tatters.length;i++) z.tatters[i].rotation.x=Math.sin(ph*1.4+i)*.18+flare*.3;
   const ps=1+flare*1.6+(sc?Math.sin(clock*40)*.2:0); for(const p of z.pupils) p.scale.setScalar(ps);
 }
+const BOW_R=.52;
+function decorateArcher(m,t){
+  const wood=mat(0x6b4423,'matte'), str=mat(0xe8e0c8,'matte'), dark=mat(0x1d1a16,'matte'), red=mat(0xb91c1c,'matte'), shaft=mat(0xc9a66b,'matte');
+  const inner=new THREE.Group(), bow=new THREE.Group();
+  const arc=new THREE.Mesh(new THREE.TorusGeometry(BOW_R,.025,6,26,Math.PI),wood); arc.rotation.z=Math.PI; inner.add(arc);
+  inner.add(zbox(.075,.15,.075,dark,0,-BOW_R,0));
+  const segA=zbox(1,.011,.011,str,0,0,0), segB=zbox(1,.011,.011,str,0,0,0); inner.add(segA,segB);
+  const arrow=new THREE.Group();
+  arrow.add(zbox(.016,.72,.016,shaft,0,-.36,0)); const hd=new THREE.Mesh(GC['acone']||(GC['acone']=new THREE.ConeGeometry(.032,.13,6)),mat(0x9aa0aa,'metal')); hd.rotation.z=Math.PI; hd.position.y=-.76; arrow.add(hd);
+  for(let i=0;i<3;i++){ const v=zbox(.07,.1,.004,red,0,-.06,0); v.rotation.y=i*Math.PI/3; arrow.add(v); }
+  inner.add(arrow); bow.add(inner); bow.rotation.y=Math.PI/2; bow.position.set(0,-.36,.0);
+  m.arms[1].el.add(bow);
+  // quiver + hood
+  m.torso.add(zbox(.15,.5,.12,dark,.13,.46,-.2), zbox(.12,.04,.1,mat(0x3a2a1a,'matte'),.13,.72,-.2)); m.torso.children[m.torso.children.length-2].rotation.z=-.15;
+  for(let i=0;i<3;i++) m.torso.add(zbox(.04,.1,.004,red,.1+i*.025,.78+i*.01,-.2));
+  m.head.add(zbox(.35,.1,.35,dark,0,.35,-.01), zbox(.35,.32,.08,dark,0,.2,-.17), zbox(.05,.26,.3,dark,-.175,.2,-.02), zbox(.05,.26,.3,dark,.175,.2,-.02), zbox(.3,.05,.06,mat(0x7f1d1d,'matte'),0,.1,.15));
+  m.bow={bow,segA,segB,arrow,inner};
+  setBowDraw(m,0,false);
+  return m;
+}
+function setBowDraw(m,d,showArrow){
+  const {segA,segB,arrow}=m.bow, R=BOW_R, L=Math.hypot(R,d);
+  segA.scale.x=L; segA.position.set(R/2,d/2,0); segA.rotation.z=Math.atan2(d,-R);
+  segB.scale.x=L; segB.position.set(-R/2,d/2,0); segB.rotation.z=Math.atan2(d,R);
+  arrow.visible=showArrow; arrow.position.y=d;
+}
+const lerp=(a,b,t)=>a+(b-a)*t;
+function animArcher(z,dt){
+  const ph=clock*1.3+z.phase, st=z.aSt, A=z.arms, tor=z.torso, hd=z.head;
+  let raise=0, pull=0, rec=0, reload=0, showArrow=false;
+  if(st==='draw'){ const k=Math.min(1,z.aT/1.0); raise=Math.min(1,k*2.2); pull=Math.max(0,(k-.35)/.65); showArrow=raise>.3; }
+  else if(st==='hold'){ raise=1; pull=1; showArrow=true; }
+  else if(st==='release'){ const k=Math.min(1,z.aT/.25); raise=1-.4*k; rec=(1-k); pull=0; }
+  else if(st==='reload'){ const k=Math.min(1,z.aT/.8); raise=Math.max(0,.6-k*1.3); reload=Math.sin(k*Math.PI); showArrow=k>.6; pull=0; }
+  const bowArm=A[1], drawArm=A[0], sway=Math.sin(ph)*.02;
+  bowArm.sh.rotation.set(lerp(-.65,-1.52,raise)+rec*.3,0,lerp(-.1,0,raise));
+  bowArm.el.rotation.x=lerp(-.55,-.04,raise);
+  let dsh=lerp(-.15,-1.5,raise); if(st==='reload') dsh=lerp(dsh,1.1,reload);
+  drawArm.sh.rotation.set(dsh,0,lerp(0,-.4,raise)*(1-reload));
+  drawArm.el.rotation.x=st==='reload'?lerp(-.3,-.7,reload):lerp(-.3,-2.35,pull);
+  tor.rotation.set(-.14*pull+rec*.25,.5*raise,sway);
+  hd.rotation.set(-.05*raise,-.5*raise+Math.sin(ph*.8)*.35*(1-raise),0);
+  z.jaw.rotation.x=.1+.25*pull;
+  z.body.position.set(0,0,0); z.legs[0].hip.rotation.set(-.1*raise,0,.1*raise); z.legs[1].hip.rotation.set(.1*raise,0,-.1*raise); z.legs[0].knee.rotation.x=.12*raise; z.legs[1].knee.rotation.x=.12*raise;
+  const vib=st==='release'?Math.sin(z.aT*90)*.05*(1-z.aT/.25):0;
+  setBowDraw(z,.46*pull+(st==='release'?-.07*Math.sin(Math.min(1,z.aT/.12)*Math.PI):0)+vib,showArrow);
+  z.bow.bow.rotation.x=vib*2;
+}
+function archerLOS(z){
+  const o={x:z.x,y:z.y0+z.height*.78,z:z.z}, tx=P.x-z.x, ty=P.y+1.4-o.y, tz=P.z-z.z, dist=Math.hypot(tx,ty,tz)||1, d={x:tx/dist,y:ty/dist,z:tz/dist};
+  for(const b of bricks){ if(b===z.brick) continue; if(rayBox(o,d,b,dist)!==Infinity) return false; }
+  return true;
+}
+function archerStep(z,dt,dist){
+  z.aT+=dt; z.seeT-=dt; if(z.seeT<=0){ z.seeT=.2; z.seen=dist<ARCHER_RANGE&&archerLOS(z); }
+  const st=z.aSt;
+  if(st==='wait'){ if(z.aT>=z.aCd&&z.seen){ z.aSt='draw'; z.aT=0; } }
+  else if(st==='draw'||st==='hold'){
+    if(!z.seen&&z.aT>.15){ z.aSt='wait'; z.aT=0; z.aCd=.4; }
+    else if(st==='draw'&&z.aT>=1.0){ z.aSt='hold'; z.aT=0; }
+    else if(st==='hold'&&z.aT>=.3){ launchArrow(z); z.aSt='release'; z.aT=0; }
+  }
+  else if(st==='release'){ if(z.aT>=.25){ z.aSt='reload'; z.aT=0; } }
+  else if(st==='reload'){ if(z.aT>=.8){ z.aSt='wait'; z.aT=0; z.aCd=.6+Math.random()*1.4; } }
+}
+function makeArrowMesh(){
+  const g=new THREE.Group();
+  g.add(cy(.014,.9,0xc9a66b,0,0,0,'matte'));
+  const hd=new THREE.Mesh(GC['acone2']||(GC['acone2']=new THREE.ConeGeometry(.04,.14,6)),mat(0x9aa0aa,'metal')); hd.rotation.x=Math.PI/2; hd.position.z=.5; g.add(hd);
+  for(let i=0;i<3;i++){ const v=zbox(.08,.004,.12,mat(0xb91c1c,'matte'),0,0,-.4); v.rotation.z=i*Math.PI/3; g.add(v); }
+  return g;
+}
+function launchArrow(z){
+  const face=Math.atan2(P.x-z.x,P.z-z.z), s=z.g.scale.x;
+  const o=new THREE.Vector3(z.x+Math.sin(face)*.7*s,z.y0+z.height*.78,z.z+Math.cos(face)*.7*s);
+  const tgt=new THREE.Vector3(P.x+rnd(-.3,.3),P.y+1.15+rnd(-.2,.2),P.z+rnd(-.3,.3));
+  const T=Math.max(.15,o.distanceTo(tgt)/ARROW_V); tgt.y+=.5*ARROW_G*T*T;
+  const vel=tgt.sub(o).divideScalar(T), mesh=makeArrowMesh(); mesh.position.copy(o); gameG.add(mesh);
+  S.projs.push({kind:'arrow',mesh,pos:mesh.position,vel,g:ARROW_G,r:.1,life:5,t:0,anchor:false,dead:false,shared:true,dmg:Math.max(1,Math.round(z.dmg))});
+  const wp=o.clone(); for(let i=0;i<5;i++){ const sp=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0xe8e0c8,transparent:true,depthWrite:false})); sp.scale.setScalar(.12); sp.position.copy(wp); gameG.add(sp); fx.push({m:sp,life:.35,max:.35,vel:new THREE.Vector3(rnd(-1,1),rnd(0,1.2),rnd(-1,1)),kind:'spark'}); }
+}
 function animZombie(z,dt,run){
+  if(z.archer) return animArcher(z,dt);
   if(z.screamer) return animScreamer(z,dt);
   const ph=z.phase, sw=Math.sin(ph), swinging=z.swing>0, L=z.legs, A=z.arms;
   const stride=swinging?.15:1;
@@ -660,7 +746,7 @@ function updateCorpses(dt){
   for(const z of S.corpses){ z.dyingT+=dt; const t=z.dyingT, k=Math.min(1,t/.45), e=1-(1-k)*(1-k);
     z.g.rotation.x=-1.5*e; z.body.position.y=0; z.body.position.z=0;
     z.legs[0].hip.rotation.x=.3*e; z.legs[1].hip.rotation.x=-.2*e; z.arms[0].sh.rotation.x=-1.45+(-1.2)*e; z.arms[1].sh.rotation.x=-1.45+(-.6)*e; z.jaw.rotation.x=.7*e;
-    z.g.position.set(z.x,Math.min(0,-(t-.9)*.8)-.02+.28*Math.sin(k*Math.PI)*0,z.z);
+    z.g.position.set(z.x,(z.y0||0)+Math.min(0,-(t-.9)*.8)-.02,z.z);
     z.skin.emissive.setHex(0); }
   S.corpses=S.corpses.filter(z=>{ if(z.dyingT>1.5){ removeZombie(z); return false; } return true; });
 }
@@ -734,7 +820,7 @@ function rayZombie(o,d,z){
   const px=o.x-z.x, pz=o.z-z.z, a=d.x*d.x+d.z*d.z; if(a<1e-9) return Infinity;
   const b=px*d.x+pz*d.z, c=px*px+pz*pz-z.r*z.r, disc=b*b-a*c; if(disc<0) return Infinity;
   let t=(-b-Math.sqrt(disc))/a; if(t<0) t=(-b+Math.sqrt(disc))/a; if(t<0) return Infinity;
-  const y=o.y+d.y*t; return (y>=0&&y<=z.height)?t:Infinity;
+  const y=o.y+d.y*t, y0=z.y0||0; return (y>=y0&&y<=y0+z.height)?t:Infinity;
 }
 
 /* ---------- Floating text ---------- */
@@ -778,12 +864,13 @@ function updateFx(dt){
   for(const f of fx){ f.life-=dt;
     if(f.kind==='smoke'){ f.m.position.addScaledVector(f.vel,dt); const k=1-f.life/f.max; f.m.scale.setScalar(1+k*4); f.m.material.opacity=.6*(1-k); }
     else if(f.kind==='spark'){ f.vel.y-=9*dt; f.m.position.addScaledVector(f.vel,dt); f.m.material.opacity=Math.max(0,f.life/f.max); }
+    else if(f.kind==='stuck'){ }
     else if(f.kind==='vring'){ const k=1-f.life/f.max; f.m.scale.setScalar(f.radius*(.15+.85*k)); f.m.position.addScaledVector(f.dir,dt); f.m.material.opacity=.85*(1-k); }
     else if(f.kind==='ring'){ const k=1-f.life/f.max; f.m.scale.setScalar(f.radius*(.15+.85*k)); f.m.material.opacity=.9*(1-k); }
     else if(f.kind==='blast'){ const k=1-f.life/f.max; f.m.scale.setScalar(f.radius*(.2+.8*k)); f.m.material.opacity=.7*(1-k); }
     else if(f.kind==='flame'){ f.m.position.addScaledVector(f.vel,dt); const k=1-f.life/f.max; f.m.scale.setScalar(1+k*2.5); f.m.material.opacity=.85*(1-k); f.m.material.color.setHSL(.1-.08*k,1,.55); }
     else f.m.material.opacity=.8*Math.max(0,f.life/f.max); }
-  for(let i=fx.length-1;i>=0;i--) if(fx[i].life<=0){ const f=fx[i]; scene.remove(f.m); f.m.material.dispose(); if(f.kind==='line'||f.kind==='beam') f.m.geometry.dispose(); fx.splice(i,1); }
+  for(let i=fx.length-1;i>=0;i--) if(fx[i].life<=0){ const f=fx[i]; (f.m.parent||scene).remove(f.m); if(f.m.material&&!f.keep) f.m.material.dispose(); if(f.kind==='line'||f.kind==='beam') f.m.geometry.dispose(); fx.splice(i,1); }
 }
 
 /* ---------- Mode switching ---------- */
@@ -819,6 +906,7 @@ function startWave(){ saveGame(); S.wave++; S.toSpawn=2*S.wave-1; S.spawnT=0; sa
 function showWarn(t,sec){ const w=$('warn'); w.textContent=t; w.style.display='block'; clearTimeout(showWarn.t); showWarn.t=setTimeout(()=>w.style.display='none',sec*1000); }
 const FAST_CHANCE=.3, NEW_WAVES=2, NEW_WEIGHT=.2;
 function pickType(){
+  if(S.wave>=ARCHER_WAVE&&Math.random()<ARCHER_CHANCE&&bricks.some(b=>(b.arch||0)<2)){ const b0=pickBase(); return {...b0,name:'Bowman '+b0.name,archer:true,hp:b0.hp*.75}; }
   if(S.wave>=SCREAMER.wave&&Math.random()<.1&&S.zombies.filter(z=>z.screamer).length<2) return {...SCREAMER};
   const t=pickBase();
   if(Math.random()>=FAST_CHANCE*(t.tier>0&&S.wave<t.wave+NEW_WAVES?.5:1)) return t;
@@ -839,7 +927,13 @@ function spawnZombie(boss){
   const m=makeZombie(t);
   const zb={x,z,hp:t.hp,max:t.hp,cash:t.cash,spd:t.spd*(.92+Math.random()*.16),dmg:BASE_DMG*Math.pow(DMG_GROWTH,t.tier),
     atk:0,boss,flash:0,screamer:!!t.screamer,scream:0,screamCd:2.5,screamFired:true,waves:0,buff:0,burn:0,burnT:0,dead:false,kvx:0,kvz:0,stun:0,swing:0,hitDone:true,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,...m};
-  collide(zb,zb.r,bricks); S.zombies.push(zb);
+  zb.y0=0;
+  if(t.archer){
+    const cand=bricks.filter(b=>(b.arch||0)<2), b=cand[Math.floor(Math.random()*cand.length)];
+    if(b){ b.arch=(b.arch||0)+1; zb.brick=b; zb.y0=b.h; zb.spd=0; zb.archer=true; zb.aSt='wait'; zb.aT=0; zb.aCd=1+Math.random()*2; zb.seeT=0; zb.seen=false; zb.dr=0;
+      const mx=Math.max(0,b.w/2-zb.r*1.1), mz=Math.max(0,b.d/2-zb.r*1.1); zb.x=b.x+b.w/2+rnd(-mx,mx); zb.z=b.z+b.d/2+rnd(-mz,mz); }
+  } else collide(zb,zb.r,bricks);
+  S.zombies.push(zb);
 }
 
 /* ---------- Shooting ---------- */
@@ -850,14 +944,15 @@ function hurtZombie(z,base,pos,col,silent){
   if(z.dead) return;
   const dmg=Math.round(base*mult().dmg); z.hp-=dmg; if(!col) z.flash=.1;
   if(S.ls) S.hp=Math.min(S.maxHp,S.hp+dmg*S.ls);
+  if(z.y0&&pos.y<z.y0) pos.y+=z.y0;
   if(!silent) floatText(pos,dmg,col);
-  if(z.hp<=0){ z.dead=true; const c=Math.round(z.cash*mult().cash); S.cash+=c; floatText(new THREE.Vector3(z.x,z.height+.3,z.z),'+$'+c,'#facc15'); }
+  if(z.hp<=0){ z.dead=true; const c=Math.round(z.cash*mult().cash); S.cash+=c; floatText(new THREE.Vector3(z.x,(z.y0||0)+z.height+.3,z.z),'+$'+c,'#facc15'); }
 }
 function fireFlame(w){
   const o=new THREE.Vector3(P.x,EYE,P.z), dir=dirFrom(P.yaw,P.pitch,new THREE.Vector3());
   for(const z of S.zombies){
     if(z.dead) continue;
-    const c=new THREE.Vector3(z.x,Math.min(z.height*.5,EYE),z.z).sub(o), dist=c.length();
+    const c=new THREE.Vector3(z.x,(z.y0||0)+Math.min(z.height*.5,EYE),z.z).sub(o), dist=c.length();
     if(dist-z.r>w.range) continue;
     if(Math.acos(Math.max(-1,Math.min(1,c.dot(dir)/dist)))-Math.atan2(z.r,dist)>w.cone) continue;
     const cd=c.clone().normalize(); let blocked=false;
@@ -903,7 +998,7 @@ function windWave(){
   groundRing(P.x,P.z,WIND_R,0xbfe3ff,.55); groundRing(P.x,P.z,WIND_R*.6,0x7dd3fc,.4);
   for(const z of S.zombies){
     if(z.dead) continue;
-    const dx=z.x-P.x, dz=z.z-P.z, d=Math.hypot(dx,dz)||.01; if(d-z.r>WIND_R) continue;
+    if(z.archer) continue; const dx=z.x-P.x, dz=z.z-P.z, d=Math.hypot(dx,dz)||.01; if(d-z.r>WIND_R) continue;
     const v=WIND_PUSH*(1-.5*d/(WIND_R+z.r))/Math.max(1,z.r/.45);
     z.kvx=dx/d*v; z.kvz=dz/d*v; z.stun=.6;
   }
@@ -918,6 +1013,7 @@ function meleeAttack(){
   for(const z of S.zombies){
     if(z.dead) continue;
     const dx=z.x-P.x, dz=z.z-P.z, dist=Math.hypot(dx,dz);
+    if((z.y0||0)>P.y+2.4) continue;
     if(earth){ if(dist-z.r>EARTH_R) continue; }
     else {
       if(dist-z.r>MELEE_R) continue;
@@ -939,7 +1035,7 @@ function explode(pos,radius,base,color){
   blast(pos,radius,color);
   for(const z of S.zombies){
     if(z.dead) continue;
-    if(Math.hypot(z.x-pos.x,z.z-pos.z)-z.r<=radius&&pos.y<z.height+radius) hurtZombie(z,base,new THREE.Vector3(z.x,z.height*.7,z.z));
+    if(Math.hypot(z.x-pos.x,z.z-pos.z)-z.r<=radius&&pos.y<(z.y0||0)+z.height+radius) hurtZombie(z,base,new THREE.Vector3(z.x,z.height*.7,z.z));
   }
 }
 function fireLaser(w){
@@ -966,10 +1062,16 @@ function launch(w){
 function projHit(p){
   const q=p.pos; if(q.y<=.1||q.x<0||q.x>MAP.w||q.z<0||q.z>MAP.h) return true;
   for(const b of bricks) if(q.x>b.x&&q.x<b.x+b.w&&q.z>b.z&&q.z<b.z+b.d&&q.y<b.h) return true;
-  for(const z of S.zombies) if(!z.dead&&Math.hypot(q.x-z.x,q.z-z.z)<z.r+p.r&&q.y<z.height) return true;
+  if(p.kind==='arrow'){ if(Math.hypot(q.x-P.x,q.z-P.z)<.5&&q.y>P.y-.1&&q.y<P.y+1.85){ p.hitPlayer=true; return true; } return false; }
+  for(const z of S.zombies) if(!z.dead&&Math.hypot(q.x-z.x,q.z-z.z)<z.r+p.r&&q.y>=(z.y0||0)&&q.y<(z.y0||0)+z.height) return true;
   return false;
 }
 function impact(p){
+  if(p.kind==='arrow'){
+    if(p.hitPlayer){ S.hp-=p.dmg; incoming.push(p.dmg); p.dead=true; for(let i=0;i<6;i++){ const sp=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0xb91c1c,transparent:true,depthWrite:false})); sp.scale.setScalar(.1); sp.position.copy(p.pos); gameG.add(sp); fx.push({m:sp,life:.4,max:.4,vel:new THREE.Vector3(rnd(-2,2),rnd(0,2),rnd(-2,2)),kind:'spark'}); } }
+    else { p.dead=true; p.keepMesh=true; fx.push({m:p.mesh,life:5,max:5,kind:'stuck',keep:true}); }
+    return;
+  }
   p.pos.x=Math.max(.2,Math.min(MAP.w-.2,p.pos.x)); p.pos.z=Math.max(.2,Math.min(MAP.h-.2,p.pos.z)); p.pos.y=Math.max(p.pos.y,.1);
   if(p.kind==='lava'){ explode(p.pos,3,250,0xff5500); addPuddle(p.pos.x,p.pos.z); p.dead=true; }
   else if(p.kind==='blaster'){ explode(p.pos,3.5,1000,0x38bdf8); p.dead=true; }
@@ -979,18 +1081,19 @@ function updateProjs(dt){
   for(const p of S.projs){
     if(p.anchor){
       p.t-=dt; p.mesh.scale.setScalar(p.r*(1+(1.5-p.t)*.25)*(1+.08*Math.sin(p.t*24)));
-      for(const z of S.zombies){ if(z.dead) continue; const dx=p.pos.x-z.x, dz=p.pos.z-z.z, d=Math.hypot(dx,dz);
+      for(const z of S.zombies){ if(z.dead||z.archer) continue; const dx=p.pos.x-z.x, dz=p.pos.z-z.z, d=Math.hypot(dx,dz);
         if(d<ORB_PULL&&d>.05){ const m=Math.min(d,9*dt); z.x+=dx/d*m; z.z+=dz/d*m; } }
       if(p.t<=0){ explode(p.pos,ORB_R,5000,0xff2020); p.dead=true; }
       continue;
     }
     p.life-=dt;
+    if(p.kind==='arrow') p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),p.vel.clone().normalize());
     const n=Math.max(1,Math.ceil(p.vel.length()*dt/.4)); let hit=false;
     for(let i=0;i<n&&!hit;i++){ p.vel.y-=p.g*dt/n; p.pos.addScaledVector(p.vel,dt/n); hit=projHit(p); }
     if(p.kind==='lava') flameFx(p.pos.clone(),new THREE.Vector3(0,-.2,0),.7);
     if(hit||p.life<=0) impact(p);
   }
-  S.projs=S.projs.filter(p=>{ if(p.dead){ scene.remove(p.mesh); p.mesh.traverse(o=>{ if(o.material) o.material.dispose(); }); } return !p.dead; });
+  S.projs=S.projs.filter(p=>{ if(p.dead){ if(!p.keepMesh) (p.mesh.parent||scene).remove(p.mesh); if(!p.shared) p.mesh.traverse(o=>{ if(o.material) o.material.dispose(); }); } return !p.dead; });
 }
 function addPuddle(x,z){
   const m=new THREE.Mesh(circGeo,new THREE.MeshBasicMaterial({color:0xff4500,transparent:true,opacity:.85}));
@@ -1082,7 +1185,7 @@ function updateChests(dt){
   S.chests=S.chests.filter(ch=>{ if(ch.opened&&ch.openT>1.4){ gameG.remove(ch.g); return false; } return true; });
 }
 function clearChests(){ for(const ch of S.chests) gameG.remove(ch.g); S.chests=[]; }
-function clearProjs(){ for(const p of S.projs){ scene.remove(p.mesh); p.mesh.traverse(o=>{ if(o.material) o.material.dispose(); }); } S.projs=[]; for(const p of S.puddles){ gameG.remove(p.m); p.m.material.dispose(); } S.puddles=[]; }
+function clearProjs(){ for(const p of S.projs){ (p.mesh.parent||scene).remove(p.mesh); if(!p.shared) p.mesh.traverse(o=>{ if(o.material) o.material.dispose(); }); } S.projs=[]; for(const f of fx){ if(f.kind==='stuck') f.life=0; } for(const p of S.puddles){ gameG.remove(p.m); p.m.material.dispose(); } S.puddles=[]; }
 function shootRay(yaw,pitch,dmgNear,dmgFar,range){
   _o.set(P.x,EYE,P.z); dirFrom(yaw,pitch,_d);
   let tb=80; for(const b of bricks){ const t=rayBox({x:_o.x,y:_o.y,z:_o.z},_d,b,tb); if(t<tb) tb=t; }
@@ -1144,7 +1247,7 @@ function update(dt){
   updateProjs(dt); updatePuddles(dt); updateChests(dt);
   S.saveT-=dt; if(S.saveT<=0){ S.saveT=5; saveGame(); }
   nav.t-=dt; if(nav.t<=0||nav.cell!==cellIdx(P.x,P.z)&&nav.t<.15){ nav.t=.25; computeNav(); }
-  const hurt=[];
+  const hurt=incoming.splice(0);
   for(const z of S.zombies){
     const dx=P.x-z.x, dz=P.z-z.z, d=Math.hypot(dx,dz)||1;
     z.los-=dt; if(z.los<=0){ z.los=.12+Math.random()*.08; z.clear=d<1.8||clearPath(z.x,z.z,z.r+.05); }
@@ -1155,12 +1258,15 @@ function update(dt){
       if(z.scream>0){ z.scream-=dt; screamStep(z,dt); }
       else { z.screamCd-=dt; if(z.screamCd<=0&&S.zombies.some(o=>o!==z&&!o.screamer&&!o.dead&&Math.hypot(o.x-z.x,o.z-z.z)<=SCREAM_R)) startScream(z); }
     }
+    if(z.archer) archerStep(z,dt,d);
     if(z.stun>0) z.stun-=dt;
+    if(!z.archer){
     const mv=(z.swing>0?.2:1)*(z.stun>0?.15:1)*(z.scream>0?0:1); z.x+=tx*z.spd*mv*dt; z.z+=tz*z.spd*mv*dt;
     if(z.kvx||z.kvz){ z.x+=z.kvx*dt; z.z+=z.kvz*dt; const f=Math.max(0,1-5*dt); z.kvx*=f; z.kvz*=f; if(Math.abs(z.kvx)+Math.abs(z.kvz)<.1) z.kvx=z.kvz=0; }
-    for(const o of S.zombies) if(o!==z){ const ox=z.x-o.x, oz=z.z-o.z, od=Math.hypot(ox,oz), m=z.r+o.r;
+    for(const o of S.zombies) if(o!==z&&!o.archer){ const ox=z.x-o.x, oz=z.z-o.z, od=Math.hypot(ox,oz), m=z.r+o.r;
       if(od>0&&od<m){ const p=(m-od)*.5*Math.min(1,dt*8); z.x+=ox/od*p; z.z+=oz/od*p; } }
     collide(z,z.r,bricks);
+    }
     if(z.burn>0){
       z.burn-=dt; z.burnT+=dt;
       while(z.burnT>=.5&&!z.dead){ z.burnT-=.5; hurtZombie(z,50,new THREE.Vector3(z.x,z.height*.6,z.z),'#fb923c'); }
@@ -1168,7 +1274,7 @@ function update(dt){
     }
     z.atk-=dt;
     if(z.swing>0){ z.swing-=dt; if(!z.hitDone&&z.swing<=.3){ z.hitDone=true; if(d<z.r+.4+.7){ S.hp-=Math.round(z.dmg); hurt.push(Math.round(z.dmg)); } } }
-    else if(d<z.r+.4+.4&&z.atk<=0){ z.atk=1; z.swing=.6; z.hitDone=false; }
+    else if(!z.archer&&d<z.r+.4+.4&&z.atk<=0){ z.atk=1; z.swing=.6; z.hitDone=false; }
   }
   if(hurt.length){
     $('hurt').style.opacity=1; setTimeout(()=>$('hurt').style.opacity=0,150);
@@ -1218,11 +1324,11 @@ function render(dt){
       else { gunRoot.rotation.z=-sn*1.3; gunRoot.rotation.y=sn*.5; gunRoot.rotation.x=-sn*.4; gunRoot.position.x-=sn*.4; gunRoot.position.y+=sn*.05; } }
     if(gunSpin){ spinV+=((IN.down&&S.lock<=0?28:0)-spinV)*Math.min(1,dt*6); gunSpin.rotation.z+=spinV*dt; }
     for(const z of S.zombies){
-      z.g.position.set(z.x,0,z.z); z.g.rotation.y=Math.atan2(P.x-z.x,P.z-z.z);
+      z.g.position.set(z.x,z.y0||0,z.z); z.g.rotation.y=Math.atan2(P.x-z.x,P.z-z.z);
       if(!S.shopOpen&&!S.rebirthOpen) z.phase+=dt*z.spd*3.2*(z.swing>0?.3:1); animZombie(z,dt);
       if(z.flash>0){ z.flash-=dt; } z.skin.emissive.setHex(z.flash>0?0xaa0000:(z.burn>0?0x993300:(z.buff>0?0x2a0610:(z.scream>0?0x6b4fa0:0))));
       if(z.glow&&z.buff>0){ const pl=.5+.5*Math.sin(clock*6+z.phase); z.glow.material.opacity=.16+.12*pl; z.glow.scale.set(.85+.05*pl,1.2+.05*pl,.85+.05*pl); }
-      z.bar.position.set(z.x,z.height+.35,z.z); z.bar.quaternion.copy(camera.quaternion);
+      z.bar.position.set(z.x,(z.y0||0)+z.height+.35,z.z); z.bar.quaternion.copy(camera.quaternion);
       const k=Math.max(0,z.hp/z.max); z.fill.scale.x=k; z.fill.position.x=-.5*(1-k);
     }
     updateCorpses(S.shopOpen||S.rebirthOpen?0:dt);
