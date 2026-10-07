@@ -19,9 +19,10 @@
   #cross.hit i{background:#f43f5e}
   #msg{position:absolute;left:0;right:0;top:12%;text-align:center;font-size:44px;font-weight:800;opacity:0;transition:opacity .3s}
   #hint{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:14px;opacity:.7}
-  #heatWrap{position:absolute;left:14px;top:112px;width:170px;height:10px;background:#000a;display:none}
-  #heat{height:100%;width:0}
-  #heatTxt{position:absolute;left:14px;top:126px;font-size:14px;color:#f87171;display:none}
+  #heatWrap{position:absolute;left:50%;transform:translateX(-50%);bottom:44px;width:min(460px,80vw);height:26px;background:#000b;border:2px solid #fff7;border-radius:14px;overflow:hidden;display:none;box-shadow:0 2px 12px #000a}
+  #heat{height:100%;width:0;border-radius:12px;transition:background .1s}
+  #heatLbl{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;font-weight:800;letter-spacing:2px;text-shadow:0 1px 3px #000}
+  #heatTxt{position:absolute;left:0;right:0;bottom:78px;text-align:center;font-size:22px;font-weight:800;color:#f87171;display:none;text-shadow:0 2px 6px #000}
   #hurt{position:fixed;inset:0;background:radial-gradient(transparent 40%,#dc2626cc);opacity:0;pointer-events:none;transition:opacity .25s}
   #fl{position:fixed;inset:0;pointer-events:none;overflow:hidden}
   #fl div{position:absolute;font-weight:800;font-size:16px;text-shadow:0 1px 2px #000;transform:translate(-50%,-50%)}
@@ -89,7 +90,7 @@
   <div class="line" id="cashTxtHud" style="top:46px;color:#facc15"></div>
   <div class="line" id="waveTxt" style="top:72px"></div>
   <div class="line" id="wpnTxt" style="top:94px;font-size:15px"></div>
-  <div id="heatWrap"><div id="heat"></div></div>
+  <div id="heatWrap"><div id="heat"></div><span id="heatLbl"></span></div>
   <div id="heatTxt"></div>
   <div id="cross"><i class="h"></i><i class="v"></i></div>
   <div id="msg"></div>
@@ -903,7 +904,7 @@ function updateHud(){
   const wn=wpn(); $('wpnTxt').textContent=wn.id==='vampire'?BLADE[S.bladeMode].name+' · E: switch mode':wn.id==='railgun'?(S.railMode==='laser'?'Railgun (Laser) · E: switch mode':'Railblaster · E: switch mode'):wn.name;
   const mini=heated(wpn());
   $('heatWrap').style.display=mini?'block':'none'; $('heatTxt').style.display=mini&&S.lock>0?'block':'none';
-  if(mini){ const f=S.lock>0?1-S.lock/MINI_LOCK:S.heat; $('heat').style.width=(f*100)+'%'; $('heat').style.background=S.lock>0?'#6b7280':`hsl(${60-60*S.heat},100%,50%)`; $('heatTxt').textContent='OVERCHARGED – cooling '+S.lock.toFixed(1)+'s'; }
+  if(mini){ const f=S.lock>0?1-S.lock/MINI_LOCK:S.heat; $('heat').style.width=(f*100)+'%'; $('heat').style.background=S.lock>0?'#6b7280':`hsl(${60-60*S.heat},100%,50%)`; $('heatTxt').textContent='OVERCHARGED – cooling '+S.lock.toFixed(1)+'s'; $('heatLbl').textContent=S.lock>0?'COOLING':'OVERCHARGE '+Math.round(S.heat*100)+'%'; }
   if(S.toSpawn===0&&S.zombies.length===0&&S.breakT>0&&S.msgT<=0){ $('msg').textContent='Next wave in '+Math.ceil(S.breakT)+'…'; $('msg').style.opacity=1; $('msg').style.fontSize='28px'; }
   else $('msg').style.fontSize='44px';
 }
