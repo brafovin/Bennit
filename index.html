@@ -106,6 +106,7 @@
   <h2><span>♻ Rebirth</span><button id="rclose">X</button></h2>
   <div id="rbody"></div>
   <button id="rbGo">REBIRTH</button>
+  <div style="margin-top:12px"><a href="#" id="rbReset" style="color:#9ca3af;font-size:12px">Reset all saved progress</a></div>
 </div></div>
 <div id="shop"><div id="panel">
   <div class="sh-head"><h2>🛒 Shop</h2><span class="chip" id="mulChip"></span><span class="chip" id="cashTxt"></span><button id="close">✕</button></div>
@@ -157,6 +158,7 @@ const LAVA_R=4, ORB_PULL=10, ORB_R=6;
 const BLADE={blood:{cd:.66,dmg:6666,name:'Vampire Blade'},wing:{cd:.25,dmg:2500,name:'Wind Blade'},earth:{cd:1.5,dmg:7500,name:'Earth Blade'}};
 const WIND_R=5, WIND_PUSH=13, MELEE_R=3.3, MELEE_ARC=.95, EARTH_R=8, BLADE_ORDER=['blood','wing','earth'];
 const heated=w=>w.id==='minigun'||(w.id==='railgun'&&S.railMode==='laser');
+const WEAPONS_IDS=WEAPONS.map(w=>w.id);
 const REQ=[10,20,30,40,50,99]; // wave to defeat for rebirth 1..6 (6 = special)
 const mult=(n=S.rebirths)=>n<=0?{cash:1,dmg:1,hp:1}:{cash:1+.5*n,dmg:1+.25*n,hp:2*n};
 const hpMax=()=>(100+10*S.hpBuys)*mult().hp;
@@ -188,7 +190,26 @@ const S = {
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
 const P = {x:0,z:0,y:0,vy:0,yaw:0,pitch:0};
-try{ S.rebirths=Math.min(6,Math.max(0,parseInt(localStorage.getItem('zs_rebirths'))||0)); }catch(e){}
+/* ---------- Save / load (browser localStorage) ---------- */
+const SAVE_KEY='zs_save_v1';
+S.savedRun=null; S.saveT=5;
+function runSnapshot(){
+  const busy=S.toSpawn>0||S.zombies.length>0;
+  return {cash:S.cash,owned:S.owned,weapon:S.weapon,hpBuys:S.hpBuys,wave:busy?Math.max(0,S.wave-1):S.wave,cleared:S.cleared,railMode:S.railMode,bladeMode:S.bladeMode};
+}
+function saveGame(){
+  try{ localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,rebirths:S.rebirths,run:S.mode==='game'?runSnapshot():S.savedRun})); }catch(e){}
+}
+function loadGame(){
+  try{
+    const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
+    if(d&&d.v===1){ S.rebirths=Math.min(6,Math.max(0,d.rebirths|0)); const r=d.run;
+      if(r&&r.owned&&r.owned.glock&&WEAPONS_IDS.includes(r.weapon)) S.savedRun={cash:+r.cash||0,owned:r.owned,weapon:r.weapon,hpBuys:r.hpBuys|0,wave:r.wave|0,cleared:r.cleared|0,railMode:r.railMode==='blaster'?'blaster':'laser',bladeMode:['blood','wing','earth'].includes(r.bladeMode)?r.bladeMode:'blood'};
+    } else { S.rebirths=Math.min(6,Math.max(0,parseInt(localStorage.getItem('zs_rebirths'))||0)); } // old save format
+  }catch(e){}
+}
+function resetProgress(){ S.rebirths=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); }catch(e){} }
+addEventListener('pagehide',saveGame); document.addEventListener('visibilitychange',()=>{ if(document.hidden) saveGame(); });
 const IN = {down:false};
 const keys = {};
 let joy = null, lookTouch = null;
@@ -649,14 +670,15 @@ function enterLobby(){
 }
 function startGame(){
   setMode('game');
-  S.cash=0; S.hpBuys=0; S.hp=S.maxHp=hpMax(); S.cleared=0; S.railMode='laser'; S.bladeMode='blood'; P.y=0; P.vy=0; EYE=EYE0; clearChests(); S.chestT=30; S.shake=0; S.swing=0; clearProjs(); S.owned={glock:true}; S.weapon='glock';
-  S.wave=0; S.breakT=2; S.toSpawn=0; S.heat=0; S.lock=0; S.bossSpawned=false; S.fireCd=0;
-  genMap(); P.x=MAP.w/2; P.z=MAP.h/2; buildGun('glock');
-  say('Get ready!',2);
+  const sv=S.savedRun;
+  S.cash=sv?sv.cash:0; S.hpBuys=sv?sv.hpBuys:0; S.cleared=sv?sv.cleared:0; S.railMode=sv?sv.railMode:'laser'; S.bladeMode=sv?sv.bladeMode:'blood'; S.hp=S.maxHp=hpMax(); P.y=0; P.vy=0; EYE=EYE0; clearChests(); S.chestT=30; S.shake=0; S.swing=0; clearProjs(); S.owned=sv?{...sv.owned}:{glock:true}; S.weapon=sv?sv.weapon:'glock';
+  S.wave=sv?sv.wave:0; S.breakT=2; S.toSpawn=0; S.heat=0; S.lock=0; S.bossSpawned=false; S.fireCd=0;
+  genMap(); P.x=MAP.w/2; P.z=MAP.h/2; buildGun(S.weapon);
+  say(sv?`Welcome back! Continuing at wave ${S.wave+1}`:'Get ready!',2.5); S.saveT=5;
 }
 
 /* ---------- Waves ---------- */
-function startWave(){ S.wave++; S.toSpawn=2*S.wave-1; S.spawnT=0; say('Wave '+S.wave,2.5); if(S.wave===SCREAMER.wave) showWarn('⚠ HOWLERS INCOMING ⚠',5); }
+function startWave(){ saveGame(); S.wave++; S.toSpawn=2*S.wave-1; S.spawnT=0; say('Wave '+S.wave,2.5); if(S.wave===SCREAMER.wave) showWarn('⚠ HOWLERS INCOMING ⚠',5); }
 function showWarn(t,sec){ const w=$('warn'); w.textContent=t; w.style.display='block'; clearTimeout(showWarn.t); showWarn.t=setTimeout(()=>w.style.display='none',sec*1000); }
 const FAST_CHANCE=.3, NEW_WAVES=2, NEW_WEIGHT=.2;
 function pickType(){
@@ -983,6 +1005,7 @@ function update(dt){
 
   for(let i=S.zombies.length-1;i>=0;i--) if(S.zombies[i].hp<=0){ killZombie(S.zombies[i]); S.zombies.splice(i,1); }
   updateProjs(dt); updatePuddles(dt); updateChests(dt);
+  S.saveT-=dt; if(S.saveT<=0){ S.saveT=5; saveGame(); }
   nav.t-=dt; if(nav.t<=0||nav.cell!==cellIdx(P.x,P.z)&&nav.t<.15){ nav.t=.25; computeNav(); }
   const hurt=[];
   for(const z of S.zombies){
@@ -1012,7 +1035,7 @@ function update(dt){
   }
   if(hurt.length){
     $('hurt').style.opacity=1; setTimeout(()=>$('hurt').style.opacity=0,150);
-    if(S.hp<=0){ enterLobby(); say('You died! Back to the void…',3); return; }
+    if(S.hp<=0){ S.savedRun=null; enterLobby(); saveGame(); say('You died! Back to the void…',3); return; }
   }
 
   // waves
@@ -1118,13 +1141,13 @@ function buildShop(){
   const u=$('upg'); u.innerHTML=`<div class="card hpcard" id="hpcard"><div class="ctop"><div class="ico">❤️</div><div><div class="nm">Health Upgrade</div><div class="tags"><span class="tag" id="hpLvl"></span></div></div></div>
     <div class="st"><span>Max HP</span><div class="hpbar"><i id="hpFill"></i></div><b id="hpVal"></b></div>
     <div class="note" id="hpNote"></div><button class="buy" id="hpBuy"></button></div>`;
-  $('hpBuy').onclick=()=>{ const c=hpCost(); if(S.cash<c) return; S.cash-=c; S.hpBuys++; const old=S.maxHp; S.maxHp=hpMax(); S.hp+=S.maxHp-old; pop($('hpcard')); updateShop(); };
+  $('hpBuy').onclick=()=>{ const c=hpCost(); if(S.cash<c) return; S.cash-=c; S.hpBuys++; const old=S.maxHp; S.maxHp=hpMax(); S.hp+=S.maxHp-old; pop($('hpcard')); updateShop(); saveGame(); };
 }
 function pop(c){ c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
 function shopAction(w,c){
   if(w.rebirth&&S.rebirths<w.rebirth) return;
   if(S.owned[w.id]){ equip(w.id); }
-  else if(S.cash>=w.cost){ S.cash-=w.cost; S.owned[w.id]=true; equip(w.id); pop(c); }
+  else if(S.cash>=w.cost){ S.cash-=w.cost; S.owned[w.id]=true; equip(w.id); pop(c); saveGame(); }
   updateShop();
 }
 function updateShop(){
@@ -1154,7 +1177,7 @@ const renderShop=updateShop;
 function openShop(){ if(S.mode!=='game') return; closeRebirth(); S.shopOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('shop').classList.add('open'); updateShop(); }
 function closeShop(){ S.shopOpen=false; $('shop').classList.remove('open'); }
 buildShop();
-function equip(id){ S.weapon=id; S.heat=0; S.lock=0; S.fireCd=0; buildGun(id); }
+function equip(id){ S.weapon=id; S.heat=0; S.lock=0; S.fireCd=0; buildGun(id); saveGame(); }
 $('shopBtn').addEventListener('click',()=>S.shopOpen?closeShop():openShop());
 $('close').addEventListener('click',closeShop);
 
@@ -1177,11 +1200,12 @@ function renderRebirth(){
 }
 function doRebirth(){
   if(!canRebirth()) return;
-  S.rebirths++; try{ localStorage.setItem('zs_rebirths',S.rebirths); }catch(e){}
-  closeRebirth(); enterLobby(); const m=mult();
+  S.rebirths++; S.savedRun=null;
+  closeRebirth(); enterLobby(); saveGame(); const m=mult();
   say(`Rebirth ${S.rebirths}! x${m.cash} cash · x${m.dmg} dmg · x${m.hp} health`,4);
 }
 $('rbGo').addEventListener('click',doRebirth);
+$('rbReset').addEventListener('click',e=>{ e.preventDefault(); if(confirm('Delete ALL saved progress (rebirths, weapons, cash)?')){ resetProgress(); closeRebirth(); enterLobby(); say('Progress reset',2.5); } });
 $('rclose').addEventListener('click',closeRebirth);
 $('rbBtn').addEventListener('click',()=>S.rebirthOpen?closeRebirth():openRebirth());
 
@@ -1233,7 +1257,10 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 buildGun('glock'); gunRoot.visible=false;
+loadGame();
 enterLobby();
+if(S.savedRun) say(`Progress restored – wave ${S.savedRun.wave}, $${S.savedRun.cash}. Step on PLAY to continue!`,5);
+else if(S.rebirths) say(`Welcome back! Rebirths: ${S.rebirths}`,4);
 requestAnimationFrame(loop);
 window.__S=S; window.__P=P; window.__IN=IN; // debug hooks
 </script>
