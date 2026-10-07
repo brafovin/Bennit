@@ -1213,7 +1213,7 @@ function dashStep(dt){
   P.x+=d.dx*41*dt; P.z+=d.dz*41*dt; P.x=Math.max(.4,Math.min(MAP.w-.4,P.x)); P.z=Math.max(.4,Math.min(MAP.h-.4,P.z)); collide(P,.4,bricks);
   for(let i=0;i<2;i++){ const sp=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0xb91c1c,transparent:true,depthWrite:false})); sp.scale.setScalar(.35); sp.position.set(P.x,.5+Math.random()*1.2,P.z); scene.add(sp); fx.push({m:sp,life:.5,max:.5,vel:new THREE.Vector3(0,.4,0),kind:'spark'}); }
   S.ls=.05;
-  for(const z of S.zombies){ if(z.dead||d.hit.has(z)||(z.y0||0)>P.y+2.2) continue; if(Math.hypot(z.x-P.x,z.z-P.z)<z.r+1.1){ d.hit.add(z); hurtZombie(z,10000,new THREE.Vector3(z.x,z.height*.6,z.z)); hitMarker(); sfx('slash'); S.shake=Math.max(S.shake,.35); groundRing(z.x,z.z,2,0xef4444,.35); } }
+  for(const z of S.zombies){ if(z.dead||d.hit.has(z)||(z.y0||0)>P.y+(z.archer?4.6:2.2)) continue; if(Math.hypot(z.x-P.x,z.z-P.z)<z.r+1.1+(z.archer?1.6:0)){ d.hit.add(z); hurtZombie(z,10000,new THREE.Vector3(z.x,z.height*.6,z.z)); hitMarker(); sfx('slash'); S.shake=Math.max(S.shake,.35); groundRing(z.x,z.z,2,0xef4444,.35); } }
   S.ls=0;
   if(d.t<=0) S.dash=null;
 }
@@ -1235,7 +1235,7 @@ function abSpikes(){
       const m=new THREE.Mesh(SPIKE_GEO,new THREE.MeshLambertMaterial({color:0x6b6358,emissive:0x1b3d08})); m.position.set(x,-1.2,z); m.rotation.y=Math.random()*6; m.scale.set(1,2.6,1); gameG.add(m);
       const tip=new THREE.Mesh(SPIKE_GEO,new THREE.MeshBasicMaterial({color:0x84cc16})); tip.scale.set(.35,.4,.35); tip.position.y=.5; m.add(tip);
       S.spikes.push({m,t:0,x,z}); sfx('slash',x,z,.5); groundRing(x,z,1.8,0x84cc16,.35);
-      for(const zz of S.zombies){ if(zz.dead||hit.has(zz)) continue; if(Math.hypot(zz.x-x,zz.z-z)<zz.r+1.4){ hit.add(zz); hurtZombie(zz,4000,new THREE.Vector3(zz.x,zz.height*.6,zz.z)); zz.stun=1; } }
+      for(const zz of S.zombies){ if(zz.dead||hit.has(zz)) continue; if(Math.hypot(zz.x-x,zz.z-z)<zz.r+1.4+(zz.archer?1.2:0)){ hit.add(zz); hurtZombie(zz,4000,new THREE.Vector3(zz.x,zz.height*.6,zz.z)); zz.stun=1; } }
     }});
   }
 }
@@ -1248,18 +1248,19 @@ function meleeAttack(){
   S.fireCd=m.cd; S.swing=earth?.3:.22; S.swingMax=S.swing;
   if(earth) sfx('slam'); else sfx('swing',undefined,undefined,1,S.bladeMode==='wing'?1.7:1);
   const o={x:P.x,y:EYE,z:P.z}, hx=-Math.sin(P.yaw), hz=-Math.cos(P.yaw); let any=false;
-  S.ls=U('hook')?.05:.01;
+  S.ls=S.bladeMode==='blood'?(U('hook')?.05:.01):0; // only the Vampire Blade steals life
   for(const z of S.zombies){
     if(z.dead) continue;
+    const arch=!!z.archer; // bow zombies stand on bricks, so every blade gets extra reach against them
     const dx=z.x-P.x, dz=z.z-P.z, dist=Math.hypot(dx,dz);
-    if((z.y0||0)>P.y+2.4) continue;
-    if(earth){ if(dist-z.r>(U('smash')?12:EARTH_R)) continue; }
+    if((z.y0||0)>P.y+(arch?4.6:2.4)) continue;
+    if(earth){ if(dist-z.r>(U('smash')?12:EARTH_R)+(arch?2:0)) continue; }
     else {
-      if(dist-z.r>MELEE_R) continue;
+      if(dist-z.r>MELEE_R+(arch?2.4:0)) continue;
       const ang=dist<.05?0:Math.acos(Math.max(-1,Math.min(1,(dx*hx+dz*hz)/dist)));
-      if(ang-Math.atan2(z.r,dist)>MELEE_ARC) continue;
+      if(ang-Math.atan2(z.r,dist)>MELEE_ARC+(arch?.5:0)) continue;
       const nd={x:dx/dist,y:0,z:dz/dist}; let blocked=false;
-      for(const b of bricks){ if(rayBox(o,nd,{x:b.x,z:b.z,w:b.w,d:b.d,h:10},dist)!==Infinity){blocked=true;break;} }
+      for(const b of bricks){ if(arch&&b===z.brick) continue; if(rayBox(o,nd,{x:b.x,z:b.z,w:b.w,d:b.d,h:10},dist)!==Infinity){blocked=true;break;} }
       if(blocked) continue;
     }
     hurtZombie(z,m.dmg,new THREE.Vector3(z.x,z.height*.7,z.z)); any=true;
