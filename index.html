@@ -265,29 +265,97 @@ flash.visible=false;
 let gunMuzzle=null, gunSpin=null;
 function bm(w,h,d,col,x=0,y=0,z=0){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({color:col})); m.position.set(x,y,z); return m; }
 function box(w,h,d,col,x=0,y=0,z=0){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:col})); m.position.set(x,y,z); return m; }
+const _mc={};
+function mat(col,kind='metal'){ const k=kind+col; return _mc[k]||(_mc[k]=kind==='glow'?new THREE.MeshBasicMaterial({color:col}):kind==='glass'?new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.55,depthWrite:false}):kind==='matte'?new THREE.MeshLambertMaterial({color:col}):new THREE.MeshPhongMaterial({color:col,specular:0x667788,shininess:70})); }
+function bx(w,h,d,col,x,y,z,kind,rx=0){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(col,kind)); m.position.set(x,y,z); m.rotation.x=rx; return m; }
+function cy(r,len,col,x,y,z,kind,r2,seg=12){ const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r2??r,len,seg),mat(col,kind)); m.rotation.x=Math.PI/2; m.position.set(x,y,z); return m; } // axis along z (r = rear radius, r2 = front radius)
+function cyx(r,len,col,x,y,z,kind){ const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,14),mat(col,kind)); m.rotation.z=Math.PI/2; m.position.set(x,y,z); return m; } // axis along x
+function cyv(r,len,col,x,y,z,kind){ const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,12),mat(col,kind)); m.position.set(x,y,z); return m; } // vertical
+function ring(r,t,col,x,y,z,kind){ const m=new THREE.Mesh(new THREE.TorusGeometry(r,t,8,16),mat(col,kind)); m.position.set(x,y,z); return m; }
 function buildGun(id){
   while(gunRoot.children.length){ const c=gunRoot.children.pop(); c.traverse(o=>{ if(o.geometry&&o!==flash) o.geometry.dispose(); }); }
-  gunSpin=null; const g=new THREE.Group(); let tip=0.3;
-  if(id==='glock'){ g.add(box(.06,.07,.3,0x222222,0,0,-.15), box(.05,.12,.07,0x333333,0,-.09,-.03)); tip=.3; }
-  else if(id==='rifle'){ g.add(box(.06,.09,.75,0x3b2f26,0,0,-.35), box(.04,.04,.35,0x111111,0,.03,-.9), box(.05,.14,.07,0x222222,0,-.1,-.2)); tip=1.08; }
-  else if(id==='mg'){ g.add(box(.09,.12,.8,0x2d3a2d,0,0,-.35), box(.05,.05,.4,0x111111,0,.02,-.9), box(.1,.16,.12,0x1a1a1a,0,-.13,-.3)); tip=1.1; }
-  else if(id==='shotgun'){ g.add(box(.05,.05,.8,0x111111,-.03,.03,-.45), box(.05,.05,.8,0x111111,.03,.03,-.45), box(.09,.09,.45,0x5b3a1e,0,-.02,-.05)); tip=.88; }
-  else if(id==='lava'){ g.add(box(.15,.15,.6,0x3a2a22,0,0,-.25), bm(.1,.1,.25,0xf97316,0,.1,-.2), bm(.07,.07,.1,0xff4500,0,0,-.56), box(.08,.14,.07,0x222222,0,-.12,-.1)); tip=.62; }
-  else if(id==='railgun'){ g.add(box(.07,.09,.9,0x1e3a8a,0,0,-.4), bm(.075,.025,.6,0x38bdf8,0,.055,-.45), box(.025,.04,.9,0x1d4ed8,-.05,-.02,-.45), box(.025,.04,.9,0x1d4ed8,.05,-.02,-.45), box(.05,.13,.07,0x172554,0,-.1,-.12));
-    if(S.railMode==='blaster'){ const o=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),new THREE.MeshBasicMaterial({color:0x7dd3fc})); o.position.set(0,0,-.95); g.add(o); tip=1.05; } else tip=.95; }
-  else if(id==='orbital'){ g.scale.setScalar(1.35); g.add(box(.2,.2,.9,0x7f1d1d,0,0,-.35), bm(.16,.05,.6,0xef4444,0,.12,-.4), box(.3,.3,.35,0x450a0a,0,0,-.95), bm(.12,.12,.06,0xff2a2a,0,0,-1.14), box(.08,.16,.08,0x222222,0,-.17,-.1)); tip=1.2; }
-  else if(id==='flame'){ g.add(box(.08,.08,.7,0x7f1d1d,0,0,-.3), box(.14,.14,.25,0x444444,0,-.02,-.08), box(.05,.05,.14,0x111111,0,0,-.72)); tip=.82; }
-  else if(id==='minigun'){
-    g.add(box(.16,.16,.35,0x333333,0,0,-.1));
-    const spin=new THREE.Group(); spin.position.set(0,0,-.6);
-    for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; const c=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.7,6),new THREE.MeshLambertMaterial({color:0x555555})); c.rotation.x=Math.PI/2; c.position.set(Math.cos(a)*.06,Math.sin(a)*.06,0); spin.add(c); }
-    g.add(spin); gunSpin=spin; tip=.98;
+  gunSpin=null; const g=new THREE.Group(); g.scale.setScalar(.8); let tip=0.3; const A=(...p)=>p.forEach(o=>g.add(o));
+  if(id==='glock'){
+    A(bx(.05,.045,.27,0x2b2f36,0,.02,-.15), bx(.052,.008,.27,0x111111,0,.046,-.15), bx(.04,.035,.26,0x15171b,0,-.02,-.14,'matte'),
+      bx(.045,.14,.065,0x1c1e22,0,-.1,-.045,'matte',.22), bx(.047,.012,.07,0x0a0a0a,0,-.17,-.015,'metal',.22),
+      bx(.01,.03,.07,0x0a0a0a,0,-.045,-.1), bx(.012,.012,.1,0x0a0a0a,0,-.058,-.1), cy(.011,.05,0x0a0a0a,0,.025,-.29,'metal'),
+      bx(.012,.014,.012,0xffffff,0,.058,-.03,'glow'), bx(.012,.014,.012,0xffffff,0,.058,-.27,'glow'));
+    for(let i=0;i<4;i++) A(bx(.054,.04,.006,0x111111,0,.02,-.04-i*.014));
+    tip=.31;
+  } else if(id==='rifle'){
+    A(bx(.06,.085,.4,0x2c2f35,0,0,-.2), bx(.062,.02,.4,0x15171a,0,.05,-.2), bx(.055,.06,.38,0x5a3d26,0,-.005,-.55,'matte'), bx(.058,.012,.3,0x3d2817,0,.03,-.55,'matte'),
+      cy(.016,.55,0x15171a,0,.015,-.88), cy(.022,.06,0x0a0a0a,0,.015,-1.16), bx(.04,.1,.14,0x1a1b1e,0,-.09,-.27,'metal',.18),
+      bx(.045,.17,.07,0x2a2118,0,-.12,-.1,'matte',.35), bx(.06,.07,.2,0x5a3d26,0,-.02,.16,'matte'), bx(.058,.1,.12,0x4a3220,0,-.06,.3,'matte',-.2),
+      bx(.03,.03,.1,0x111111,0,.09,-.55), cyv(.002,.02,0x111111,0,0,0), bx(.012,.03,.012,0x222222,0,.07,-1.0));
+    // scope
+    A(cy(.026,.26,0x15171a,0,.12,-.4), cy(.034,.05,0x0a0a0a,0,.12,-.54), cy(.03,.05,0x0a0a0a,0,.12,-.27), cy(.026,.003,0x3b82f6,0,.12,-.555,'glass'), bx(.012,.05,.02,0x15171a,0,.085,-.33), bx(.012,.05,.02,0x15171a,0,.085,-.47));
+    tip=1.2;
+  } else if(id==='mg'){
+    A(bx(.085,.11,.5,0x2b3a2b,0,0,-.2), bx(.087,.022,.5,0x151a15,0,.065,-.2), bx(.075,.09,.3,0x1f2a1f,0,-.01,-.55), cy(.04,.34,0x2a2d2a,0,.0,-.82), cy(.016,.28,0x0d0d0d,0,.0,-1.1), cy(.028,.05,0x0a0a0a,0,.0,-1.27),
+      bx(.05,.16,.075,0x1a1a1a,0,-.14,-.08,'matte',.3), bx(.07,.09,.28,0x2d2d2d,0,-.01,.22,'matte'), bx(.07,.11,.14,0x1f1f1f,0,-.04,.38,'matte',-.15),
+      bx(.03,.04,.14,0x111111,0,.1,-.25), bx(.012,.04,.012,0x222222,0,.08,-1.0));
+    for(let i=0;i<6;i++) A(cy(.044,.012,0x0e0e0e,0,0,-.68-i*.05));
+    A(cyx(.1,.13,0x26331f,-.1,-.12,-.33,'matte'), cyx(.09,.02,0x111111,-.17,-.12,-.33), bx(.016,.1,.05,0x1b1b1b,-.15,-.06,-.33,'metal',.2));
+    // legs + belt
+    A(bx(.012,.012,.18,0x111111,.04,-.07,-.9,'metal'), bx(.012,.012,.18,0x111111,-.04,-.07,-.9,'metal'));
+    for(let i=0;i<7;i++) A(bx(.02,.03,.03,i%2?0xc29b2f:0x8a6a1c,.07,-.07-i*.035,-.32+i*.01,'metal'));
+    tip=1.3;
+  } else if(id==='shotgun'){
+    A(cy(.022,1.0,0x1a1a1d,0,.02,-.7), cy(.018,.8,0x2a2a2e,0,-.03,-.62), cy(.024,.02,0x0a0a0a,0,.02,-1.2), cy(.022,.03,0x777777,0,-.03,-.22),
+      bx(.07,.1,.34,0x222428,0,0,-.08), bx(.072,.02,.2,0x0b0b0b,0,.058,-.12), bx(.05,.04,.1,0x111111,.045,.01,-.08),
+      bx(.06,.055,.3,0x6a4325,0,-.04,-.62,'matte'), bx(.065,.02,.3,0x4a2c15,0,-.01,-.62,'matte'), bx(.066,.07,.12,0x5b381d,0,-.035,.18,'matte'),
+      bx(.07,.11,.25,0x6a4325,0,-.06,.34,'matte',-.12), bx(.075,.14,.04,0x1a1a1a,0,-.07,.47,'matte',-.12), bx(.016,.02,.02,0xffd24a,0,.05,-1.15,'glow'));
+    for(let i=0;i<6;i++) A(bx(.064,.058,.01,0x2c180a,0,-.04,-.5-i*.04,'matte'));
+    tip=1.22;
+  } else if(id==='minigun'){
+    A(bx(.16,.17,.3,0x30343a,0,0,-.02), bx(.12,.04,.2,0x1a1c20,0,.1,-.02), bx(.08,.14,.1,0x23262b,0,-.14,.05,'matte',.15), bx(.14,.1,.2,0x2b3a2b,.0,-.16,-.12,'matte'),
+      cy(.07,.22,0x44484f,0,0,-.26), ring(.075,.012,0xb08d3c,0,0,-.37), bx(.2,.03,.03,0x15171a,0,.13,.02), bx(.025,.1,.025,0x15171a,0,.18,.02,'metal'),
+      bx(.03,.03,.14,0x111111,.0,.13,-.06));
+    for(let i=0;i<8;i++) A(bx(.014,.04,.03,i%2?0xc29b2f:0x8a6a1c,.0,-.1-i*.01,.08-i*.05,'metal'));
+    const spin=new THREE.Group(); spin.position.set(0,0,-.72);
+    for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; spin.add(cy(.014,.78,0x777b82,Math.cos(a)*.052,Math.sin(a)*.052,0)); spin.add(cy(.017,.03,0x15171a,Math.cos(a)*.052,Math.sin(a)*.052,-.4)); }
+    spin.add(cy(.074,.03,0x3a3d44,0,0,.2), cy(.074,.03,0x3a3d44,0,0,-.1), cy(.078,.03,0x2a2d33,0,0,-.37), cy(.02,.8,0x222222,0,0,0));
+    A(spin); gunSpin=spin; tip=1.12;
+  } else if(id==='flame'){
+    A(cy(.034,.7,0x3a3a3f,0,.02,-.36), cy(.026,.2,0x1a1a1a,0,.02,-.77,'metal',.04), cy(.045,.04,0x111111,0,.02,-.88,'metal'), bx(.07,.1,.3,0x44474d,0,0,-.04),
+      bx(.045,.14,.065,0x222222,0,-.12,.0,'matte',.2), bx(.03,.03,.3,0x15171a,0,-.08,-.4),
+      cyx(.1,.12,0xb91c1c,-.1,-.12,-.1), bx(.02,.2,.02,0x111111,-.1,-.12,-.2,'metal'));
+    // fuel tank
+    A(cy(.095,.62,0xb91c1c,.13,-.1,-.15), cy(.098,.03,0x444444,.13,-.1,-.45), cy(.098,.03,0x444444,.13,-.1,.14), cy(.05,.03,0x222222,.13,-.1,.2), cy(.015,.28,0x1a1a1a,.07,-.04,-.28));
+    A(ring(.098,.009,0x222222,.13,-.1,-.28), bx(.07,.03,.08,0x111111,.13,.0,-.15,'metal'));
+    A(new THREE.Mesh(new THREE.SphereGeometry(.018,8,8),mat(0xffb300,'glow')));
+    g.children[g.children.length-1].position.set(0,.02,-.92);
+    A(cy(.015,.05,0x15171a,0,.02,-.2), bx(.02,.02,.02,0x22c55e,.0,.075,-.1,'glow'));
+    tip=.95;
+  } else if(id==='lava'){
+    A(cy(.075,.5,0x2a1f1a,0,0,-.28), cy(.1,.04,0x1a1410,0,0,-.55), cy(.065,.05,0x1a1410,0,0,-.04), cy(.06,.3,0x2a1f1a,0,0,-.72,'metal',.085), cy(.095,.04,0xf97316,0,0,-.88,'glow'), cy(.062,.04,0xff3b00,0,0,-.9,'glow'), cy(.04,.02,0x220800,0,0,-.915),
+      cy(.052,.26,0xff7a00,0,.0,-.3,'glass'), bx(.05,.14,.07,0x1a1410,0,-.12,-.02,'matte',.2), bx(.12,.05,.1,0x3a2c24,0,.09,-.2), bx(.03,.04,.16,0x1a1410,0,-.07,-.34));
+    for(let i=0;i<4;i++){ A(ring(.078,.012,0x4a3426,0,0,-.18-i*.1)); A(bx(.012,.075,.1,0xff6a00,.085*(i%2?1:-1),0,-.22-i*.1,'glow')); }
+    A(cyx(.04,.2,0x1a1410,0,.09,-.18), bx(.02,.02,.02,0xff8a00,0,.12,-.1,'glow'));
+    tip=.95;
+  } else if(id==='railgun'){
+    const blaster=S.railMode==='blaster', C=blaster?0x7dd3fc:0x38bdf8;
+    A(bx(.045,.045,.95,0x1e3a8a,-.04,0,-.5), bx(.045,.045,.95,0x1e3a8a,.04,0,-.5), bx(.01,.05,.95,C,0,0,-.5,'glow'),
+      bx(.14,.1,.3,0x1e3a8a,0,0,-.05), bx(.12,.02,.26,0x0b1e4d,0,.06,-.05), bx(.045,.14,.065,0x172554,0,-.12,.0,'matte',.2),
+      bx(.1,.08,.22,0x172554,0,-.01,.2), bx(.016,.05,.18,C,0,.04,-.05,'glow'), bx(.06,.05,.1,0x0b1e4d,0,.075,-.25));
+    for(let i=0;i<5;i++){ A(bx(.17,.012,.05,0x0b1e4d,0,0,-.3-i*.17,'metal')); A(bx(.19,.006,.012,C,0,0,-.3-i*.17,'glow')); A(bx(.012,.1,.012,C,.095,0,-.3-i*.17,'glow'), bx(.012,.1,.012,C,-.095,0,-.3-i*.17,'glow')); }
+    A(bx(.03,.03,.04,0x1e3a8a,0,.0,-.98), bx(.09,.025,.06,0x0b1e4d,0,.0,-.98));
+    if(blaster){ A(new THREE.Mesh(new THREE.SphereGeometry(.07,12,10),mat(0x7dd3fc,'glow'))); const o=g.children[g.children.length-1]; o.position.set(0,0,-1.05); A(new THREE.Mesh(new THREE.SphereGeometry(.1,12,10),mat(0x38bdf8,'glass'))); g.children[g.children.length-1].position.set(0,0,-1.05); tip=1.15; }
+    else tip=1.0;
+  } else if(id==='orbital'){
+    g.scale.setScalar(.85);
+    A(cy(.11,.8,0x7f1d1d,0,0,-.45), cy(.14,.06,0x450a0a,0,0,-.85), cy(.12,.06,0x450a0a,0,0,-.1), cy(.1,.35,0x991b1b,0,0,-1.05,'metal',.14), cy(.15,.03,0xef4444,0,0,-1.24,'glow'), cy(.1,.04,0x1a0000,0,0,-1.255),
+      cy(.07,.2,0xff3030,0,0,-.2,'glass'), bx(.14,.18,.3,0x450a0a,0,.0,.05), bx(.07,.2,.1,0x1f1f23,0,-.18,-.02,'matte',.2),
+      bx(.1,.12,.3,0x991b1b,0,.05,.32,'matte',-.1), bx(.08,.05,.3,0x2a0a0a,0,.15,-.4), bx(.03,.2,.3,0x7f1d1d,0,0,-.55), bx(.2,.03,.3,0x7f1d1d,0,0,-.55));
+    for(let i=0;i<4;i++){ A(ring(.125,.018,0x2a0a0a,0,0,-.3-i*.2)); A(bx(.04,.012,.08,0xff3030,0,.14,-.3-i*.2,'glow')); }
+    A(bx(.03,.03,.5,0xff4040,.08,.04,-.8,'glow'), bx(.03,.03,.5,0xff4040,-.08,.04,-.8,'glow'));
+    tip=1.3;
   }
   gunMuzzle=new THREE.Object3D(); gunMuzzle.position.set(0,0,-tip); g.add(gunMuzzle);
   flash.position.set(0,0,-tip-.05); g.add(flash);
   gunRoot.add(g);
 }
-gunRoot.position.set(.28,-.24,-.5);
+gunRoot.position.set(.3,-.27,-.78);
 let kick=0, flashT=0, spinV=0;
 
 /* ---------- Zombies ---------- */
@@ -692,7 +760,7 @@ function render(dt){
       if(flashT>0){ flashT-=dt; if(flashT<=0) flash.visible=false; }
     }
     const moving=(keys.w||keys.a||keys.s||keys.d)?1:0, bob=Math.sin(clock*(sprinting?13:9))*.012*moving;
-    gunRoot.position.set(.28,-.24+bob+(sprinting&&moving?-.03:0),-.5+kick);
+    gunRoot.position.set(.3,-.27+bob+(sprinting&&moving?-.03:0),-.78+kick);
     gunRoot.rotation.x=kick*.6;
     if(gunSpin){ spinV+=((IN.down&&S.lock<=0?28:0)-spinV)*Math.min(1,dt*6); gunSpin.rotation.z+=spinV*dt; }
     for(const z of S.zombies){
