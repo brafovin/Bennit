@@ -611,25 +611,32 @@ function buildGun(id,forAvatar){
     for(let i=0;i<6;i++) A(bx(.064,.058,.01,0x2c180a,0,-.04,-.5-i*.04,'matte'));
     tip=1.22;
   } else if(id==='minigun'){
-    A(bx(.16,.17,.3,0x30343a,0,0,-.02), bx(.12,.04,.2,0x1a1c20,0,.1,-.02), bx(.08,.14,.1,0x23262b,0,-.14,.05,'matte',.15), bx(.14,.1,.2,0x2b3a2b,.0,-.16,-.12,'matte'),
-      cy(.07,.22,0x44484f,0,0,-.26), ring(.075,.012,0xb08d3c,0,0,-.37), bx(.2,.03,.03,0x15171a,0,.13,.02), bx(.025,.1,.025,0x15171a,0,.18,.02,'metal'),
-      bx(.03,.03,.14,0x111111,.0,.13,-.06));
-    for(let i=0;i<8;i++) A(bx(.014,.04,.03,i%2?0xc29b2f:0x8a6a1c,.0,-.1-i*.01,.08-i*.05,'metal'));
-    const spin=new THREE.Group(); spin.position.set(0,0,-.72);
-    for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; spin.add(cy(.014,.78,0x777b82,Math.cos(a)*.052,Math.sin(a)*.052,0)); spin.add(cy(.017,.03,0x15171a,Math.cos(a)*.052,Math.sin(a)*.052,-.4)); }
-    spin.add(cy(.074,.03,0x3a3d44,0,0,.2), cy(.074,.03,0x3a3d44,0,0,-.1), cy(.078,.03,0x2a2d33,0,0,-.37), cy(.02,.8,0x222222,0,0,0));
-    A(spin); if(!forAvatar) gunSpin=spin; tip=1.12;
+    g.scale.setScalar(.68); g.position.z=-.1;
+    const olive=0x39402f, steel=0x4a4f58, dk=0x23262c, brass=0xc9a227;
+    A(cy(.1,.34,dk,0,0,.24), cy(.108,.05,steel,0,0,.42), cy(.108,.05,steel,0,0,.07), ring(.1,.012,brass,0,0,.42), ring(.1,.012,brass,0,0,.07));
+    for(let i=0;i<5;i++) A(cy(.114,.012,steel,0,0,.36-i*.065));
+    A(bx(.22,.22,.34,steel,0,0,-.1), bx(.24,.04,.3,dk,0,.12,-.1), bx(.18,.05,.22,dk,0,-.13,-.08), bx(.225,.03,.1,0xb91c1c,0,.0,-.18,'matte'), bm(.02,.02,.02,0x22ff66,.112,.06,.02));
+    A(bx(.025,.14,.025,dk,-.07,.2,-.04), bx(.025,.14,.025,dk,.07,.2,-.04), cyx(.022,.18,steel,0,.28,-.04), bx(.04,.16,.05,dk,0,-.18,.14,'matte',.2), bx(.035,.05,.12,dk,0,-.26,.08,'matte'));
+    A(bx(.25,.2,.3,olive,-.22,-.2,.0,'matte'), bx(.26,.025,.31,dk,-.22,-.1,.0), bx(.05,.03,.05,brass,-.3,-.1,-.1), bx(.02,.12,.02,dk,-.14,-.08,-.1));
+    for(let i=0;i<10;i++){ const t=i/9; A(bx(.032,.032,.022,brass,-.22+t*.18,-.1+t*.08+Math.sin(t*3.1)*.06,-.1,'metal')); }
+    const spin=new THREE.Group(); spin.position.set(0,0,-.28);
+    for(let i=0;i<6;i++){ const a=i/6*Math.PI*2, px=Math.cos(a)*.062, py=Math.sin(a)*.062; spin.add(cy(.017,.78,0x7a7f88,px,py,-.39), cy(.021,.04,0x2a2d33,px,py,-.8), cy(.012,.02,0x0a0a0a,px,py,-.83)); }
+    spin.add(cy(.09,.03,steel,0,0,-.06), cy(.088,.03,steel,0,0,-.38), ring(.09,.012,brass,0,0,-.38), cy(.095,.04,dk,0,0,-.76), ring(.095,.012,brass,0,0,-.79), cy(.03,.8,0x30343b,0,0,-.4));
+    A(spin); if(!forAvatar) gunSpin=spin; tip=1.14;
   } else if(id==='flame'){
-    A(cy(.034,.7,0x3a3a3f,0,.02,-.36), cy(.026,.2,0x1a1a1a,0,.02,-.77,'metal',.04), cy(.045,.04,0x111111,0,.02,-.88,'metal'), bx(.07,.1,.3,0x44474d,0,0,-.04),
-      bx(.045,.14,.065,0x222222,0,-.12,.0,'matte',.2), bx(.03,.03,.3,0x15171a,0,-.08,-.4),
-      cyx(.1,.12,0xb91c1c,-.1,-.12,-.1), bx(.02,.2,.02,0x111111,-.1,-.12,-.2,'metal'));
-    // fuel tank
-    A(cy(.095,.62,0xb91c1c,.13,-.1,-.15), cy(.098,.03,0x444444,.13,-.1,-.45), cy(.098,.03,0x444444,.13,-.1,.14), cy(.05,.03,0x222222,.13,-.1,.2), cy(.015,.28,0x1a1a1a,.07,-.04,-.28));
-    A(ring(.098,.009,0x222222,.13,-.1,-.28), bx(.07,.03,.08,0x111111,.13,.0,-.15,'metal'));
-    A(new THREE.Mesh(new THREE.SphereGeometry(.018,8,8),mat(0xffb300,'glow')));
-    g.children[g.children.length-1].position.set(0,.02,-.92);
-    A(cy(.015,.05,0x15171a,0,.02,-.2), bx(.02,.02,.02,0x22c55e,.0,.075,-.1,'glow'));
-    tip=.95;
+    g.scale.setScalar(.7);
+    const red=0xb91c1c, steel=0x4b5058, dk=0x1d2025, brass=0xb8860b, yel=0xeab308;
+    A(bx(.1,.12,.36,steel,0,0,-.06,'metal'), bx(.105,.03,.3,dk,0,.075,-.06), bx(.11,.1,.1,dk,0,0,.15), cy(.03,.82,dk,0,.02,-.5,'metal'));
+    for(let i=0;i<7;i++) A(cy(.046,.03,steel,0,.02,-.25-i*.1,'metal'));
+    A(cy(.034,.1,dk,0,.02,-.93,'metal',.056), cy(.058,.03,brass,0,.02,-.99,'metal'), cy(.05,.012,0x050505,0,.02,-1.005));
+    { const pil=new THREE.Mesh(new THREE.SphereGeometry(.016,8,6),mat(0xffb300,'glow')); pil.position.set(0,.07,-.98); A(pil); }
+    A(cy(.1,.56,red,-.22,-.12,.02,'metal'), cy(.104,.04,steel,-.22,-.12,-.22,'metal'), cy(.104,.04,steel,-.22,-.12,.02,'metal'), cy(.104,.04,steel,-.22,-.12,.26,'metal'), cy(.07,.03,dk,-.22,-.12,-.28,'metal'));
+    for(let i=0;i<3;i++) A(bx(.11,.02,.03,yel,-.22,-.12+.105,-.22+i*.24,'matte'));
+    A(bx(.04,.05,.04,dk,-.22,-.005,-.02), cyx(.03,.012,brass,-.22,.03,-.02,'metal'), cy(.045,.012,0xe5e7eb,-.22,-.12,-.3,'metal'), ring(.047,.008,brass,-.22,-.12,-.305,'metal'), bm(.004,.035,.004,0xff3030,-.22,-.105,-.31));
+    for(let i=0;i<9;i++){ const t=i/8; A(bx(.026,.026,.026,dk,-.2+t*.16,-.04+Math.sin(t*3.14)*.05,-.28+t*.1,'matte')); }
+    A(bx(.045,.14,.07,dk,0,-.12,.1,'matte',.25), bx(.04,.12,.04,dk,0,-.1,-.32,'matte'), bx(.04,.02,.1,dk,0,-.065,.0,'matte'));
+    A(bx(.11,.02,.04,yel,0,.1,.03,'matte'), bx(.11,.02,.04,dk,0,.1,.07,'matte'));
+    tip=1.02;
   } else if(id==='lava'){
     A(cy(.075,.5,0x2a1f1a,0,0,-.28), cy(.1,.04,0x1a1410,0,0,-.55), cy(.065,.05,0x1a1410,0,0,-.04), cy(.06,.3,0x2a1f1a,0,0,-.72,'metal',.085), cy(.095,.04,0xf97316,0,0,-.88,'glow'), cy(.062,.04,0xff3b00,0,0,-.9,'glow'), cy(.04,.02,0x220800,0,0,-.915),
       cy(.052,.26,0xff7a00,0,.0,-.3,'glass'), bx(.05,.14,.07,0x1a1410,0,-.12,-.02,'matte',.2), bx(.12,.05,.1,0x3a2c24,0,.09,-.2), bx(.03,.04,.16,0x1a1410,0,-.07,-.34));
@@ -637,14 +644,17 @@ function buildGun(id,forAvatar){
     A(cyx(.04,.2,0x1a1410,0,.09,-.18), bx(.02,.02,.02,0xff8a00,0,.12,-.1,'glow'));
     tip=.95;
   } else if(id==='railgun'){
-    const blaster=S.railMode==='blaster', C=blaster?0x7dd3fc:0x38bdf8;
-    A(bx(.045,.045,.95,0x1e3a8a,-.04,0,-.5), bx(.045,.045,.95,0x1e3a8a,.04,0,-.5), bx(.01,.05,.95,C,0,0,-.5,'glow'),
-      bx(.14,.1,.3,0x1e3a8a,0,0,-.05), bx(.12,.02,.26,0x0b1e4d,0,.06,-.05), bx(.045,.14,.065,0x172554,0,-.12,.0,'matte',.2),
-      bx(.1,.08,.22,0x172554,0,-.01,.2), bx(.016,.05,.18,C,0,.04,-.05,'glow'), bx(.06,.05,.1,0x0b1e4d,0,.075,-.25));
-    for(let i=0;i<5;i++){ A(bx(.17,.012,.05,0x0b1e4d,0,0,-.3-i*.17,'metal')); A(bx(.19,.006,.012,C,0,0,-.3-i*.17,'glow')); A(bx(.012,.1,.012,C,.095,0,-.3-i*.17,'glow'), bx(.012,.1,.012,C,-.095,0,-.3-i*.17,'glow')); }
-    A(bx(.03,.03,.04,0x1e3a8a,0,.0,-.98), bx(.09,.025,.06,0x0b1e4d,0,.0,-.98));
-    if(blaster){ A(new THREE.Mesh(new THREE.SphereGeometry(.07,12,10),mat(0x7dd3fc,'glow'))); const o=g.children[g.children.length-1]; o.position.set(0,0,-1.05); A(new THREE.Mesh(new THREE.SphereGeometry(.1,12,10),mat(0x38bdf8,'glass'))); g.children[g.children.length-1].position.set(0,0,-1.05); tip=1.15; }
-    else tip=1.0;
+    const blaster=S.railMode==='blaster', C=blaster?0x7dd3fc:0x38bdf8, nav=0x1e3a8a, dkb=0x0b1e4d, wht=0xe0f2fe;
+    A(bx(.045,.05,1.0,nav,-.06,0,-.5,'metal'), bx(.045,.05,1.0,nav,.06,0,-.5,'metal'), bx(.01,.012,.98,C,-.06,.032,-.5,'glow'), bx(.01,.012,.98,C,.06,.032,-.5,'glow'), bx(.06,.018,.94,C,0,0,-.5,'glow'));
+    for(let i=0;i<7;i++){ const z=-.2-i*.13; A(bx(.19,.085,.03,dkb,0,0,z,'metal'), bx(.2,.012,.034,C,0,.048,z,'glow'), bx(.012,.07,.034,C,.098,0,z,'glow'), bx(.012,.07,.034,C,-.098,0,z,'glow')); }
+    A(bx(.2,.1,.06,nav,0,0,-1.03,'metal'), bx(.14,.04,.07,0x050a18,0,0,-1.05), bx(.03,.14,.05,nav,-.1,0,-1.0,'metal'), bx(.03,.14,.05,nav,.1,0,-1.0,'metal'));
+    A(bx(.17,.14,.34,nav,0,0,.0,'metal'), bx(.12,.03,.3,dkb,0,.085,.0), bx(.01,.05,.2,C,.088,0,-.02,'glow'), bx(.01,.05,.2,C,-.088,0,-.02,'glow'), bx(.16,.03,.1,dkb,0,-.085,-.06,'metal'));
+    for(const x of [-.05,0,.05]) A(cy(.034,.26,C,x,.09,.22,'glass'), cy(.012,.26,wht,x,.09,.22,'glow'));
+    A(bx(.16,.025,.3,dkb,0,.13,.22,'metal'), bx(.16,.025,.3,dkb,0,.05,.22,'metal'), bx(.12,.16,.22,nav,0,-.02,.4,'metal'), bx(.1,.2,.06,dkb,0,-.04,.53,'metal'), bx(.14,.03,.2,C,0,.07,.4,'glow'));
+    A(bx(.045,.15,.07,dkb,0,-.14,.08,'matte',.22), bx(.04,.1,.04,dkb,0,-.1,-.4,'matte'));
+    A(bx(.05,.05,.1,dkb,0,.115,-.05,'metal'), bx(.075,.075,.008,C,0,.18,-.13,'glass'), bm(.01,.01,.01,0xffffff,0,.18,-.125));
+    for(let i=0;i<4;i++) A(bm(.012,.012,.03,i<3?0x7dd3fc:0x1e3a8a,.1,-.04+i*.016,.1));
+    if(blaster){ const o=new THREE.Mesh(new THREE.SphereGeometry(.07,12,10),mat(0x7dd3fc,'glow')); o.position.set(0,0,-1.08); A(o); const h=new THREE.Mesh(new THREE.SphereGeometry(.1,12,10),mat(0x38bdf8,'glass')); h.position.set(0,0,-1.08); A(h); A(ring(.12,.012,C,0,0,-1.08,'glow')); tip=1.16; } else tip=1.08;
   } else if(id==='vampire'){
     const md=S.bladeMode, pal={blood:{body:0x7a0c14,edge:0xff2438,dark:0x1a0508,gold:0xb8860b},wing:{body:0x1e40af,edge:0x60a5fa,dark:0x0a1230,gold:0x93c5fd},earth:{body:0x57534e,edge:0x84cc16,dark:0x1c1917,gold:0xa16207}}[md];
     g.rotation.x=.38;
@@ -664,13 +674,20 @@ function buildGun(id,forAvatar){
     }
     tip=1.25;
   } else if(id==='orbital'){
-    g.scale.setScalar(.85);
-    A(cy(.11,.8,0x7f1d1d,0,0,-.45), cy(.14,.06,0x450a0a,0,0,-.85), cy(.12,.06,0x450a0a,0,0,-.1), cy(.1,.35,0x991b1b,0,0,-1.05,'metal',.14), cy(.15,.03,0xef4444,0,0,-1.24,'glow'), cy(.1,.04,0x1a0000,0,0,-1.255),
-      cy(.07,.2,0xff3030,0,0,-.2,'glass'), bx(.14,.18,.3,0x450a0a,0,.0,.05), bx(.07,.2,.1,0x1f1f23,0,-.18,-.02,'matte',.2),
-      bx(.1,.12,.3,0x991b1b,0,.05,.32,'matte',-.1), bx(.08,.05,.3,0x2a0a0a,0,.15,-.4), bx(.03,.2,.3,0x7f1d1d,0,0,-.55), bx(.2,.03,.3,0x7f1d1d,0,0,-.55));
-    for(let i=0;i<4;i++){ A(ring(.125,.018,0x2a0a0a,0,0,-.3-i*.2)); A(bx(.04,.012,.08,0xff3030,0,.14,-.3-i*.2,'glow')); }
-    A(bx(.03,.03,.5,0xff4040,.08,.04,-.8,'glow'), bx(.03,.03,.5,0xff4040,-.08,.04,-.8,'glow'));
-    tip=1.3;
+    g.scale.setScalar(.68); g.position.z=-.12;
+    const red=0x8f1d1d, dred=0x450a0a, steel=0x2a2c33, glowR=0xff3b3b, orange=0xff7a3b;
+    A(cy(.13,.9,red,0,0,-.55,'metal'));
+    for(let i=0;i<5;i++) A(ring(.138,.025,dred,0,0,-.2-i*.2,'metal'), cy(.142,.03,steel,0,0,-.28-i*.2,'metal'));
+    for(let i=0;i<9;i++) A(bx(.2,.02,.05,steel,0,.15,-.12-i*.085,'matte'));
+    A(cy(.015,.9,glowR,.12,.04,-.55,'glow'), cy(.015,.9,glowR,-.12,.04,-.55,'glow'), cy(.015,.9,orange,.12,-.05,-.55,'glow'), cy(.015,.9,orange,-.12,-.05,-.55,'glow'));
+    A(cy(.13,.12,dred,0,0,-1.03,'metal',.19), cy(.2,.03,steel,0,0,-1.11,'metal'), cy(.17,.02,0x120000,0,0,-1.13), cy(.1,.02,glowR,0,0,-1.14,'glow'), ring(.185,.022,glowR,0,0,-1.1,'glow'));
+    A(cy(.16,.34,dred,0,0,.14,'metal'), cy(.12,.2,glowR,0,0,.14,'glass'), cy(.05,.2,0xffe0e0,0,0,.14,'glow'), ring(.165,.02,steel,0,0,.3,'metal'), ring(.165,.02,steel,0,0,-.02,'metal'));
+    for(let i=0;i<3;i++) A(bx(.24,.02,.07,steel,0,.1-i*.05,.34,'matte'));
+    A(cy(.06,.34,steel,.22,-.04,.12,'metal'), cy(.06,.34,steel,-.22,-.04,.12,'metal'), ring(.062,.01,glowR,.22,-.04,.24,'glow'), ring(.062,.01,glowR,-.22,-.04,.24,'glow'), ring(.062,.01,glowR,.22,-.04,.0,'glow'), ring(.062,.01,glowR,-.22,-.04,.0,'glow'));
+    A(bx(.07,.07,.28,steel,0,.21,.0,'metal'), cy(.04,.04,glowR,0,.21,-.16,'glass'), bx(.05,.04,.06,dred,0,.17,.06,'metal'));
+    A(bx(.3,.16,.14,dred,0,-.05,.4,'metal'), bx(.1,.2,.04,steel,0,-.04,.54,'metal'));
+    A(bx(.06,.2,.08,steel,0,-.22,.1,'matte',.2), bx(.05,.14,.05,steel,0,-.17,-.4,'matte'));
+    tip=1.2;
     if(U('hole')) g.traverse(o=>{ if(o.material&&o.material.color){ o.material=o.material.clone(); o.material.color.lerp(new THREE.Color(0x9333ea),.55); } });
   }
   if(forAvatar) return g;
@@ -1209,11 +1226,11 @@ function useSkip(){
   if(NET.role==='client') netSendHost({t:'skip'});
 }
 function doSkip(){
-  for(const z of S.zombies){
-    for(let i=0;i<4;i++){ const sp=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0xc4b5fd,transparent:true,depthWrite:false})); sp.scale.setScalar(.4); sp.position.set(z.x,(z.y0||0)+z.height*Math.random(),z.z); scene.add(sp); fx.push({m:sp,life:.6,max:.6,vel:new THREE.Vector3(rnd(-1,1),rnd(.5,1.8),rnd(-1,1)),kind:'spark'}); }
-    removeZombie(z); if(NET.role==='host') netBroadcast({t:'dead',id:z.id,by:-1,quiet:1});
-  }
-  S.zombies=[]; S.toSpawn=0; say('Wave skipped!',2); sfx('clear');
+  // the wave counts as done, but the zombies that are still alive stay alive: the next wave starts right away
+  S.cleared=Math.max(S.cleared,S.wave); S.hp=Math.min(S.maxHp,S.hp+Math.ceil(S.maxHp*.2));
+  if(!NET.active&&S.rebirths<6&&S.cleared>=REQ[S.rebirths]) say('Rebirth available! Press G',3.5);
+  if(NET.role==='host') netBroadcast({t:'clear',n:S.wave});
+  S.toSpawn=0; S.bossSpawned=false; S.breakT=0; startWave(); say('Wave skipped!',2); sfx('clear');
 }
 function useAbility(){
   if(S.mode!=='game'||S.downed||S.shopOpen||S.rebirthOpen||S.abCd>0||S.weapon!=='vampire') return;
@@ -1507,9 +1524,9 @@ function moveInput(){
 }
 function update(dt){
   if(S.msgT>0){ S.msgT-=dt; if(S.msgT<=0) $('msg').style.opacity=0; }
-  if(S.mode==='lobby') return updateLobby(dt);
+  if(S.mode==='lobby'){ flameSound(false); return updateLobby(dt); }
   const ui=S.shopOpen||S.rebirthOpen;
-  if(ui&&!NET.active) return;
+  if(ui&&!NET.active){ flameSound(false); return; }
   const inputOff=ui||S.downed;
   const windBlade=S.weapon==='vampire'&&S.bladeMode==='wing';
   if(windBlade&&keys[' ']&&P.y<=0&&!inputOff){ P.vy=JUMP_V; windWave(); }
@@ -1526,6 +1543,7 @@ function update(dt){
   const w=wpn(); S.fireCd-=dt;
   if(S.lock>0){ S.lock-=dt; if(S.lock<=0){S.lock=0;S.heat=0;} }
   const firing=IN.down&&!inputOff;
+  { const fl=firing&&w.id==='flame'; flameSound(fl); if(fl&&Math.random()<dt*14) sfx('crackle'); }
   if(firing) fire();
   if(heated(w)){
     if(firing&&S.lock<=0){ S.heat+=dt/heatTime(w); if(S.heat>=1){S.heat=1;S.lock=MINI_LOCK;say('OVERCHARGED!',1.5);sfx('overheat');} }
@@ -2134,7 +2152,9 @@ const SND={
   mg:{v:.75,gap:40,f:o=>{ noise({dur:.07,vol:.6,ft:'bandpass',f:2000,f2:700,out:o}); tone({f:300,f2:90,dur:.08,type:'square',vol:.28,out:o}); }},
   shotgun:{v:1,gap:40,f:o=>{ noise({dur:.4,vol:1,ft:'lowpass',f:2600,f2:140,out:o}); tone({f:120,f2:35,dur:.3,type:'sawtooth',vol:.5,out:o}); noise({dur:.06,vol:.5,ft:'highpass',f:3000,out:o}); }},
   minigun:{v:.6,gap:45,f:o=>{ noise({dur:.05,vol:.5,ft:'bandpass',f:1500,f2:700,out:o}); tone({f:200,f2:90,dur:.05,type:'square',vol:.2,out:o}); }},
-  flame:{v:.55,gap:70,f:o=>{ noise({dur:.2,vol:.55,ft:'bandpass',f:700,f2:1400,q:.4,att:.02,out:o}); }},
+  flame:{v:0,f:o=>{}},
+  ignite:{v:.9,f:o=>{ noise({dur:.45,vol:.9,ft:'lowpass',f:200,f2:2200,q:.6,att:.04,out:o}); tone({f:60,f2:40,dur:.5,type:'sawtooth',vol:.4,lp:200,out:o}); noise({dur:.12,vol:.4,ft:'highpass',f:3500,out:o}); }},
+  crackle:{v:.45,f:o=>{ noise({dur:.025,vol:.9,ft:'highpass',f:2500+Math.random()*3000,out:o}); tone({f:900+Math.random()*1500,f2:300,dur:.03,type:'square',vol:.12,out:o}); }},
   lava:{v:.9,f:o=>{ tone({f:140,f2:60,dur:.35,type:'sawtooth',vol:.4,lp:900,out:o}); noise({dur:.3,vol:.5,ft:'lowpass',f:900,f2:200,out:o}); }},
   railgun:{v:.55,gap:55,f:o=>{ tone({f:2200,f2:260,dur:.14,type:'sawtooth',vol:.22,lp:5000,out:o}); tone({f:90,dur:.08,vol:.25,out:o}); noise({dur:.08,vol:.2,ft:'highpass',f:3000,out:o}); }},
   blaster:{v:.9,f:o=>{ tone({f:600,f2:120,dur:.3,type:'square',vol:.3,out:o}); noise({dur:.2,vol:.4,ft:'bandpass',f:3000,f2:500,out:o}); }},
@@ -2178,6 +2198,19 @@ const SND={
   skip:{v:.7,f:o=>{ tone({f:200,f2:900,dur:.6,type:'sawtooth',vol:.25,lp:2500,att:.1,out:o}); tone({f:400,f2:1800,dur:.6,type:'triangle',vol:.15,out:o}); }},
   blip:{v:.4,f:o=>{ tone({f:1000,dur:.05,vol:.2,out:o}); }},
 };
+function flameSound(on){
+  const ctx=AUD.ctx; if(!ctx||!!on===!!AUD.flOn) return;
+  if(!AUD.fl){
+    const src=ctx.createBufferSource(); src.buffer=AUD.noise; src.loop=true;
+    const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=950; lp.Q.value=.8; const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=90;
+    const g=ctx.createGain(); g.gain.value=0; src.connect(lp); lp.connect(hp); hp.connect(g); g.connect(AUD.master); src.start();
+    const lfo=ctx.createOscillator(), lg=ctx.createGain(); lfo.frequency.value=6.5; lg.gain.value=320; lfo.connect(lg); lg.connect(lp.frequency); lfo.start();
+    const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=46; const og=ctx.createGain(); og.gain.value=0; const of=ctx.createBiquadFilter(); of.type='lowpass'; of.frequency.value=150; o.connect(of); of.connect(og); og.connect(AUD.master); o.start();
+    AUD.fl={g,og};
+  }
+  const t=ctx.currentTime; AUD.fl.g.gain.setTargetAtTime(on&&!AUD.muted?.55:0,t,on?.05:.14); AUD.fl.og.gain.setTargetAtTime(on&&!AUD.muted?.2:0,t,on?.08:.18);
+  if(on) sfx('ignite'); AUD.flOn=!!on;
+}
 function sfx(name,x,z,vm,p){
   const ctx=AUD.ctx; if(!ctx||AUD.muted||ctx.state!=='running') return;
   const def=SND[name]; if(!def) return; const now=performance.now();
