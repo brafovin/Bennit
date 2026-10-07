@@ -142,7 +142,7 @@ const WEAPONS = [
   {id:'rifle',  name:'Rifle',      cost:100,  dmg:34, cd:0.5,  desc:'34 dmg / 0.5s'},
   {id:'mg',     name:'Machine Gun',cost:500,  dmg:20, cd:0.15, desc:'20 dmg / 0.15s'},
   {id:'shotgun',name:'Shotgun',    cost:1500, dmg:20, cd:0.75,  pellets:9, spread:0.07, far:10, range:8, desc:'9 pellets, 20 dmg close → 10 far / 1s'},
-  {id:'minigun',name:'Minigun',    cost:3000, dmg:15, cd:0.05, desc:'15 dmg / 0.05s, overheats after ~4s (3s lockout)'},
+  {id:'minigun',name:'Minigun',    cost:3000, dmg:15, cd:0.05, desc:'15 dmg / 0.05s, overheats after 6s (3s lockout)'},
   {id:'flame', name:'Flamethrower',cost:5000,dmg:50, cd:0.1,  range:7, cone:0.3, burn:3, rebirth:1, desc:'50 dmg / 0.1s in a cone, sets enemies on fire (50 dmg / 0.5s)'},
   {id:'lava',   name:'Lava Blaster',cost:10000,dmg:250,cd:1.0,  rebirth:2, desc:'Lava balls: 250 explosion dmg, leave a giant lava puddle (10 dmg / 0.1s + burning)'},
   {id:'railgun',name:'Railgun',    cost:25000,dmg:75, cd:0.5,  rebirth:3, desc:'75 dmg / 0.5s piercing laser, overheats. Press E: Railblaster (1000 dmg explosive balls / 1s)'},
@@ -156,7 +156,7 @@ const heated=w=>w.id==='minigun'||(w.id==='railgun'&&S.railMode==='laser');
 const REQ=[10,20,30,40,50,99]; // wave to defeat for rebirth 1..6 (6 = special)
 const mult=(n=S.rebirths)=>n<=0?{cash:1,dmg:1,hp:1}:{cash:1+.5*n,dmg:1+.25*n,hp:2*n};
 const hpMax=()=>(100+10*S.hpBuys)*mult().hp;
-const MINI_HEAT_TIME = 4, MINI_LOCK = 3;
+const MINI_HEAT_TIME = 6, RAIL_HEAT_TIME = 4, MINI_LOCK = 3;
 // speed in m/s, size = scale of the humanoid model
 const ZTYPES = [
   {name:'Walker', wave:1,  hp:100,   cash:10,   spd:1.1, col:0x4ade80, size:1.0},
@@ -756,7 +756,7 @@ function update(dt){
   if(S.lock>0){ S.lock-=dt; if(S.lock<=0){S.lock=0;S.heat=0;} }
   if(IN.down) fire();
   if(heated(w)){
-    if(IN.down&&S.lock<=0){ S.heat+=dt/MINI_HEAT_TIME; if(S.heat>=1){S.heat=1;S.lock=MINI_LOCK;say('OVERCHARGED!',1.5);} }
+    if(IN.down&&S.lock<=0){ S.heat+=dt/(w.id==='minigun'?MINI_HEAT_TIME:RAIL_HEAT_TIME); if(S.heat>=1){S.heat=1;S.lock=MINI_LOCK;say('OVERCHARGED!',1.5);} }
     else if(S.lock<=0) S.heat=Math.max(0,S.heat-dt/2.5);
     if(S.lock>0&&Math.random()<dt*45){ gunMuzzle.getWorldPosition(_m); _m.x+=(Math.random()-.5)*.05; smoke(_m); }
   } else S.heat=0;
@@ -862,7 +862,7 @@ const WINFO={
   rifle:{ico:'🎯',tags:['Accurate'],note:'Hard-hitting rifle, solid all-rounder.'},
   mg:{ico:'⚙️',tags:['Full-auto'],note:'Fast and steady fire.'},
   shotgun:{ico:'💥',tags:['9 pellets','Spread','Falloff'],note:'Devastating up close: 20 dmg per pellet, dropping to 10 at 8 m.'},
-  minigun:{ico:'🌀',tags:['Full-auto','Overheats'],note:'Overcharges after ~4 s of fire, then 3 s lockout (smokes).'},
+  minigun:{ico:'🌀',tags:['Full-auto','Overheats'],note:'Overcharges after 6 s of fire, then 3 s lockout (smokes).'},
   flame:{ico:'🔥',tags:['Cone','Burn'],note:'Ignites enemies: +50 dmg every 0.5 s for 3 s.'},
   lava:{ico:'🌋',tags:['Explosion','Lava pool','Burn'],note:'Lobbed lava balls explode (3 m) and leave a pool: 10 dmg / 0.1 s + burning.'},
   railgun:{ico:'⚡',tags:['Pierces all','Overheats','E: Railblaster'],note:'Blue laser pierces everything. E = Railblaster: 1000 dmg explosive balls / 1 s.'},
