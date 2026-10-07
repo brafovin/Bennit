@@ -17,6 +17,8 @@
   #cross .h{width:14px;height:2px;left:-7px;top:-1px;-webkit-mask:linear-gradient(90deg,#000 35%,transparent 35%,transparent 65%,#000 65%);mask:linear-gradient(90deg,#000 35%,transparent 35%,transparent 65%,#000 65%)}
   #cross .v{width:2px;height:14px;top:-7px;left:-1px;-webkit-mask:linear-gradient(0deg,#000 35%,transparent 35%,transparent 65%,#000 65%);mask:linear-gradient(0deg,#000 35%,transparent 35%,transparent 65%,#000 65%)}
   #cross.hit i{background:#f43f5e}
+  #warn{position:absolute;left:0;right:0;top:calc(12% + 62px);text-align:center;font-size:34px;font-weight:900;letter-spacing:3px;color:#ff3b4e;text-shadow:0 0 18px #ff0033,0 2px 4px #000;display:none;animation:warnp .5s infinite alternate}
+  @keyframes warnp{from{opacity:.55;transform:scale(1)}to{opacity:1;transform:scale(1.06)}}
   #msg{position:absolute;left:0;right:0;top:12%;text-align:center;font-size:44px;font-weight:800;opacity:0;transition:opacity .3s}
   #hint{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:14px;opacity:.7}
   #heatWrap{position:absolute;left:50%;transform:translateX(-50%);bottom:44px;width:min(460px,80vw);height:26px;background:#000b;border:2px solid #fff7;border-radius:14px;overflow:hidden;display:none;box-shadow:0 2px 12px #000a}
@@ -94,6 +96,7 @@
   <div id="heatTxt"></div>
   <div id="cross"><i class="h"></i><i class="v"></i></div>
   <div id="msg"></div>
+  <div id="warn"></div>
   <div id="hint"></div>
 </div>
 <button id="shopBtn" title="Shop (B)">🛒</button>
@@ -169,7 +172,7 @@ const ZTYPES = [
   {name:'Titan',  wave:50, hp:10000, cash:1000, spd:2.55,col:0x38bdf8, size:1.7},
 ];
 const BOSS = {name:'BOSS', wave:99, hp:100000, cash:10000, spd:1.9, col:0x991b1b, size:3.4, tier:7};
-const SCREAMER={name:'Screamer',wave:8,hp:500,cash:75,spd:1.7,col:0xf8fafc,size:1.1,tier:2,screamer:true};
+const SCREAMER={name:'Howler',wave:15,hp:500,cash:75,spd:1.7,col:0xf8fafc,size:1.45,tier:2,screamer:true};
 const SCREAM_R=10, SCREAM_CD=12, SCREAM_T=1.6, BUFF_T=12;
 const BASE_DMG = 10, DMG_GROWTH = 1.15;
 const WALK = 3.6, SPRINT = 6.0, EYE0 = 1.6, JUMP_V = 6.8, GRAV = 17;
@@ -494,7 +497,7 @@ function animZombie(z,dt,run){
   }
   A[0].sh.rotation.x=a; A[1].sh.rotation.x=b; A[0].el.rotation.x=el; A[1].el.rotation.x=el;
 }
-function removeZombie(z){ gameG.remove(z.g,z.bar); z.skin.dispose(); z.cloth.dispose(); }
+function removeZombie(z){ gameG.remove(z.g,z.bar); z.skin.dispose(); z.cloth.dispose(); if(z.glow) z.glow.material.dispose(); }
 function killZombie(z){ gameG.remove(z.bar); z.dyingT=0; z.swing=0; S.corpses.push(z); }
 function updateCorpses(dt){
   for(const z of S.corpses){ z.dyingT+=dt; const t=z.dyingT, k=Math.min(1,t/.45), e=1-(1-k)*(1-k);
@@ -653,7 +656,8 @@ function startGame(){
 }
 
 /* ---------- Waves ---------- */
-function startWave(){ S.wave++; S.toSpawn=2*S.wave-1; S.spawnT=0; say('Wave '+S.wave,2.5); }
+function startWave(){ S.wave++; S.toSpawn=2*S.wave-1; S.spawnT=0; say('Wave '+S.wave,2.5); if(S.wave===SCREAMER.wave) showWarn('⚠ HOWLERS INCOMING ⚠',5); }
+function showWarn(t,sec){ const w=$('warn'); w.textContent=t; w.style.display='block'; clearTimeout(showWarn.t); showWarn.t=setTimeout(()=>w.style.display='none',sec*1000); }
 const FAST_CHANCE=.3, NEW_WAVES=2, NEW_WEIGHT=.2;
 function pickType(){
   if(S.wave>=SCREAMER.wave&&Math.random()<.1&&S.zombies.filter(z=>z.screamer).length<2) return {...SCREAMER};
@@ -722,8 +726,10 @@ function vRing(pos,yaw,color,life=.6,radius=4,speed=7){
 function buffZombie(o){
   if(o.buff<=0){ o.max*=1.25; o.hp*=1.25; o.spd*=1.25; o.dmg*=1.5; }
   o.buff=BUFF_T;
+  if(!o.glow){ const gl=new THREE.Mesh(sphGeo,new THREE.MeshBasicMaterial({color:0xff1a2e,transparent:true,opacity:.22,depthWrite:false,blending:THREE.AdditiveBlending})); gl.scale.set(.85,1.2,.85); gl.position.y=1.0; o.g.add(gl); o.glow=gl; }
+  o.glow.visible=true;
 }
-function endBuff(o){ o.max/=1.25; o.hp/=1.25; o.spd/=1.25; o.dmg/=1.5; }
+function endBuff(o){ o.max/=1.25; o.hp/=1.25; o.spd/=1.25; o.dmg/=1.5; if(o.glow) o.glow.visible=false; }
 function startScream(z){ z.scream=SCREAM_T; z.screamCd=SCREAM_CD; z.screamFired=false; z.waves=0; }
 function screamStep(z,dt){
   const u=1-z.scream/SCREAM_T, yaw=Math.atan2(P.x-z.x,P.z-z.z), mouth=new THREE.Vector3(z.x+Math.sin(yaw)*.3*z.g.scale.x,z.height*.88,z.z+Math.cos(yaw)*.3*z.g.scale.x);
@@ -1054,7 +1060,8 @@ function render(dt){
     for(const z of S.zombies){
       z.g.position.set(z.x,0,z.z); z.g.rotation.y=Math.atan2(P.x-z.x,P.z-z.z);
       if(!S.shopOpen&&!S.rebirthOpen) z.phase+=dt*z.spd*3.2*(z.swing>0?.3:1); animZombie(z,dt);
-      if(z.flash>0){ z.flash-=dt; } z.skin.emissive.setHex(z.flash>0?0xaa0000:(z.burn>0?0x993300:(z.buff>0?(Math.sin(clock*8)>0?0x5a0f28:0x3a0a1a):(z.scream>0?0x6b4fa0:0))));
+      if(z.flash>0){ z.flash-=dt; } z.skin.emissive.setHex(z.flash>0?0xaa0000:(z.burn>0?0x993300:(z.buff>0?0x2a0610:(z.scream>0?0x6b4fa0:0))));
+      if(z.glow&&z.buff>0){ const pl=.5+.5*Math.sin(clock*6+z.phase); z.glow.material.opacity=.16+.12*pl; z.glow.scale.set(.85+.05*pl,1.2+.05*pl,.85+.05*pl); }
       z.bar.position.set(z.x,z.height+.35,z.z); z.bar.quaternion.copy(camera.quaternion);
       const k=Math.max(0,z.hp/z.max); z.fill.scale.x=k; z.fill.position.x=-.5*(1-k);
     }
