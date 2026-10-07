@@ -176,7 +176,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], rebirths:0, cleared:0, rebirthOpen:false,
+  railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -385,25 +385,75 @@ let kick=0, flashT=0, spinV=0;
 const GEO = {leg:new THREE.BoxGeometry(.22,.8,.25), torso:new THREE.BoxGeometry(.6,.8,.3), head:new THREE.BoxGeometry(.38,.38,.38), arm:new THREE.BoxGeometry(.16,.16,.7), eye:new THREE.BoxGeometry(.07,.05,.02)};
 const eyeMat = new THREE.MeshBasicMaterial({color:0xff2200});
 const barGeo = new THREE.PlaneGeometry(1,.1), barBg = new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.6}), barFill = new THREE.MeshBasicMaterial({color:0x22c55e});
+const GC={}, boneMat=new THREE.MeshLambertMaterial({color:0xd8d0b4}), bloodMat=new THREE.MeshLambertMaterial({color:0x6e0f12}), darkMat=new THREE.MeshLambertMaterial({color:0x1a1a1a}), hornMat=new THREE.MeshLambertMaterial({color:0x3a3029});
+function zbox(w,h,d,m,x,y,z){ const k=w+','+h+','+d; const me=new THREE.Mesh(GC[k]||(GC[k]=new THREE.BoxGeometry(w,h,d)),m); me.position.set(x,y,z); return me; }
+function pivot(x,y,z,parent){ const p=new THREE.Group(); p.position.set(x,y,z); parent.add(p); return p; }
 function makeZombie(t){
-  const s=t.size, skin=new THREE.MeshLambertMaterial({color:t.col}), cloth=new THREE.MeshLambertMaterial({color:new THREE.Color(t.col).multiplyScalar(.35)});
-  const g=new THREE.Group();
-  const legL=new THREE.Mesh(GEO.leg,cloth), legR=new THREE.Mesh(GEO.leg,cloth);
-  legL.position.set(-.15,.4,0); legR.position.set(.15,.4,0);
-  const pl=new THREE.Group(), pr=new THREE.Group(); pl.position.set(-.15,.8,0); pr.position.set(.15,.8,0);
-  legL.position.set(0,-.4,0); legR.position.set(0,-.4,0); pl.add(legL); pr.add(legR);
-  const torso=new THREE.Mesh(GEO.torso,cloth); torso.position.y=1.2;
-  const head=new THREE.Mesh(GEO.head,skin); head.position.y=1.8;
-  const e1=new THREE.Mesh(GEO.eye,eyeMat), e2=new THREE.Mesh(GEO.eye,eyeMat); e1.position.set(-.09,1.83,.19); e2.position.set(.09,1.83,.19);
-  const a1=new THREE.Mesh(GEO.arm,skin), a2=new THREE.Mesh(GEO.arm,skin); a1.position.set(-.38,1.45,.35); a2.position.set(.38,1.45,.35);
-  g.add(pl,pr,torso,head,e1,e2,a1,a2); g.scale.setScalar(s);
+  const s=t.size, tier=t.tier||0;
+  const skin=new THREE.MeshLambertMaterial({color:t.col}), cloth=new THREE.MeshLambertMaterial({color:new THREE.Color(t.col).multiplyScalar(.3)});
+  const g=new THREE.Group(); g.rotation.order='YXZ'; const body=pivot(0,0,0,g);
+  // legs (hip -> knee)
+  const legs=[-1,1].map(sd=>{ const hip=pivot(sd*.14,.86,0,body), knee=pivot(0,-.42,0,hip);
+    hip.add(zbox(.19,.44,.21,cloth,0,-.2,0)); knee.add(zbox(.16,.4,.18,cloth,0,-.2,0), zbox(.18,.07,.3,darkMat,0,-.41,.05)); knee.add(zbox(.17,.1,.19,skin,0,-.28,0));
+    return {hip,knee}; });
+  // torso (pivot at waist)
+  const torso=pivot(0,.86,0,body);
+  torso.add(zbox(.46,.1,.26,darkMat,0,.04,0), zbox(.54,.66,.28,cloth,0,.4,0), zbox(.3,.2,.02,boneMat,0,.5,.15), zbox(.4,.05,.02,bloodMat,0,.4,.15), zbox(.2,.22,.02,bloodMat,-.13,.2,.15),
+    zbox(.06,.34,.3,darkMat,.18,.4,0), zbox(.12,.22,.03,cloth,-.12,-.1,.12), zbox(.14,.26,.03,cloth,.12,-.12,.12), zbox(.5,.08,.3,cloth,0,.78,0));
+  // head
+  const neck=pivot(0,.78,.02,torso);
+  neck.add(zbox(.1,.1,.1,skin,0,.04,0));
+  const head=pivot(0,.1,0,neck);
+  head.add(zbox(.3,.27,.3,skin,0,.16,0), zbox(.31,.07,.31,darkMat,0,.3,-.02), zbox(.1,.05,.02,bloodMat,.07,.3,.16));
+  const eyeL=zbox(.07,.045,.02,eyeMat,-.07,.2,.155), eyeR=zbox(.07,.045,.02,eyeMat,.07,.2,.155);
+  const jaw=pivot(0,.05,-.12,head); jaw.add(zbox(.24,.07,.26,skin,0,0,.13), zbox(.2,.02,.02,boneMat,0,.04,.26));
+  head.add(eyeL,eyeR,zbox(.2,.02,.02,boneMat,0,.06,.155));
+  if(tier>=3) head.add(zbox(.05,.14,.05,hornMat,-.12,.37,0), zbox(.05,.14,.05,hornMat,.12,.37,0));
+  // arms (shoulder -> elbow)
+  const arms=[-1,1].map(sd=>{ const sh=pivot(sd*.36,.66,0,torso), el=pivot(0,-.3,0,sh);
+    sh.add(zbox(.15,.32,.15,skin,0,-.14,0)); el.add(zbox(.13,.3,.13,skin,0,-.14,0), zbox(.14,.11,.15,skin,0,-.33,0), zbox(.03,.08,.03,boneMat,-.04,-.42,.03), zbox(.03,.08,.03,boneMat,0,-.43,.03), zbox(.03,.08,.03,boneMat,.04,-.42,.03));
+    if(tier>=5) sh.add(zbox(.07,.2,.07,hornMat,sd*.1,.1,0));
+    return {sh,el}; });
+  if(t.name==='BOSS'){ torso.add(zbox(.2,.2,.04,eyeMat,0,.45,.16)); head.add(zbox(.34,.08,.34,hornMat,0,.34,0), zbox(.06,.16,.06,hornMat,-.14,.44,0), zbox(.06,.2,.06,hornMat,0,.46,0), zbox(.06,.16,.06,hornMat,.14,.44,0)); }
+  g.scale.setScalar(s);
   const bar=new THREE.Group(); const bg=new THREE.Mesh(barGeo,barBg), fill=new THREE.Mesh(barGeo,barFill);
   bg.renderOrder=10; fill.renderOrder=11; fill.position.z=.001; bar.add(bg,fill);
   const w=Math.max(.8,s*.8); bar.scale.set(w,1,1);
   gameG.add(g,bar);
-  return {g,pl,pr,skin,cloth,bar,fill,height:2.05*s,r:.42*s};
+  return {g,body,legs,torso,head,jaw,arms,skin,cloth,bar,fill,height:2.05*s,r:.42*s,fastLean:t.fast?.3:.12};
+}
+function animZombie(z,dt,run){
+  const ph=z.phase, sw=Math.sin(ph), swinging=z.swing>0, L=z.legs, A=z.arms;
+  const stride=swinging?.15:1;
+  L[0].hip.rotation.x=sw*.7*stride; L[1].hip.rotation.x=-sw*.7*stride;
+  L[0].knee.rotation.x=Math.max(0,-sw)*.9*stride; L[1].knee.rotation.x=Math.max(0,sw)*.9*stride;
+  z.body.position.y=Math.abs(Math.cos(ph))*.05*stride; z.body.position.z=0;
+  z.torso.rotation.set(z.fastLean+Math.sin(ph*2)*.03,0,Math.sin(ph)*.07);
+  z.head.rotation.set(Math.sin(ph*2)*.06-.05,Math.sin(ph*.5)*.18,Math.sin(ph*.5)*.12); z.jaw.rotation.x=.1+.08*Math.sin(ph*3);
+  const aw=Math.sin(ph*.5)*.18;
+  let a=-1.45+aw, b=-1.45-aw, el=-.35+Math.sin(ph)*.1;
+  A[0].sh.rotation.z=-.1; A[1].sh.rotation.z=.1;
+  if(swinging){
+    const u=1-z.swing/.6; let lean, jaw;
+    if(u<.5){ const k=u/.5, e=k*k*(3-2*k); a=b=-1.45-1.25*e; lean=.12-.45*e; jaw=.1+.55*e; el=-.2; }
+    else if(u<.7){ const k=(u-.5)/.2; a=b=-2.7+2.25*k; lean=-.33+.85*k; jaw=.65-.55*k; el=-.2-.2*k; }
+    else { const k=(u-.7)/.3; a=b=-.45-1.0*k; lean=.52-.38*k; jaw=.1; el=-.4+.05*k; }
+    z.torso.rotation.x=lean; z.jaw.rotation.x=jaw;
+    if(u>.35&&u<.8) z.body.position.z=.32*Math.sin((u-.35)/.45*Math.PI);
+    z.head.rotation.x=-lean*.5;
+  }
+  A[0].sh.rotation.x=a; A[1].sh.rotation.x=b; A[0].el.rotation.x=el; A[1].el.rotation.x=el;
 }
 function removeZombie(z){ gameG.remove(z.g,z.bar); z.skin.dispose(); z.cloth.dispose(); }
+function killZombie(z){ gameG.remove(z.bar); z.dyingT=0; z.swing=0; S.corpses.push(z); }
+function updateCorpses(dt){
+  for(const z of S.corpses){ z.dyingT+=dt; const t=z.dyingT, k=Math.min(1,t/.45), e=1-(1-k)*(1-k);
+    z.g.rotation.x=-1.5*e; z.body.position.y=0; z.body.position.z=0;
+    z.legs[0].hip.rotation.x=.3*e; z.legs[1].hip.rotation.x=-.2*e; z.arms[0].sh.rotation.x=-1.45+(-1.2)*e; z.arms[1].sh.rotation.x=-1.45+(-.6)*e; z.jaw.rotation.x=.7*e;
+    z.g.position.set(z.x,Math.min(0,-(t-.9)*.8)-.02+.28*Math.sin(k*Math.PI)*0,z.z);
+    z.skin.emissive.setHex(0); }
+  S.corpses=S.corpses.filter(z=>{ if(z.dyingT>1.5){ removeZombie(z); return false; } return true; });
+}
 
 /* ---------- Helpers ---------- */
 const hpCost=()=>Math.round(100*Math.pow(1.05,S.hpBuys));
@@ -537,7 +587,7 @@ function setMode(m){
 }
 function enterLobby(){
   closeRebirth(); clearProjs();
-  for(const z of S.zombies) removeZombie(z); S.zombies=[];
+  for(const z of S.zombies) removeZombie(z); S.zombies=[]; for(const z of S.corpses) removeZombie(z); S.corpses=[];
   setMode('lobby'); P.x=-6; P.z=0; P.yaw=-Math.PI/2; P.pitch=0; closeShop();
   $('heatWrap').style.display=$('heatTxt').style.display='none';
 }
@@ -571,7 +621,7 @@ function spawnZombie(boss){
   }while(Math.hypot(x-P.x,z-P.z)<14&&n++<20);
   const m=makeZombie(t);
   const zb={x,z,hp:t.hp,max:t.hp,cash:t.cash,spd:t.spd*(.92+Math.random()*.16),dmg:BASE_DMG*Math.pow(DMG_GROWTH,t.tier),
-    atk:0,boss,flash:0,burn:0,burnT:0,dead:false,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,...m};
+    atk:0,boss,flash:0,burn:0,burnT:0,dead:false,swing:0,hitDone:true,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,...m};
   collide(zb,zb.r,bricks); S.zombies.push(zb);
 }
 
@@ -761,7 +811,7 @@ function update(dt){
     if(S.lock>0&&Math.random()<dt*45){ gunMuzzle.getWorldPosition(_m); _m.x+=(Math.random()-.5)*.05; smoke(_m); }
   } else S.heat=0;
 
-  for(let i=S.zombies.length-1;i>=0;i--) if(S.zombies[i].hp<=0){ removeZombie(S.zombies[i]); S.zombies.splice(i,1); }
+  for(let i=S.zombies.length-1;i>=0;i--) if(S.zombies[i].hp<=0){ killZombie(S.zombies[i]); S.zombies.splice(i,1); }
   updateProjs(dt); updatePuddles(dt);
   nav.t-=dt; if(nav.t<=0||nav.cell!==cellIdx(P.x,P.z)&&nav.t<.15){ nav.t=.25; computeNav(); }
   const hurt=[];
@@ -770,7 +820,7 @@ function update(dt){
     z.los-=dt; if(z.los<=0){ z.los=.12+Math.random()*.08; z.clear=d<1.8||clearPath(z.x,z.z,z.r+.05); }
     let tx=dx/d, tz=dz/d;
     if(!z.clear){ const w=navTarget(z); if(w){ const wx=w.x-z.x, wz=w.z-z.z, wl=Math.hypot(wx,wz)||1; tx=wx/wl; tz=wz/wl; } }
-    z.x+=tx*z.spd*dt; z.z+=tz*z.spd*dt;
+    const mv=z.swing>0?.2:1; z.x+=tx*z.spd*mv*dt; z.z+=tz*z.spd*mv*dt;
     for(const o of S.zombies) if(o!==z){ const ox=z.x-o.x, oz=z.z-o.z, od=Math.hypot(ox,oz), m=z.r+o.r;
       if(od>0&&od<m){ const p=(m-od)*.5*Math.min(1,dt*8); z.x+=ox/od*p; z.z+=oz/od*p; } }
     collide(z,z.r,bricks);
@@ -780,7 +830,8 @@ function update(dt){
       if(Math.random()<dt*14) flameFx(new THREE.Vector3(z.x+(Math.random()-.5)*z.r,z.height*Math.random(),z.z+(Math.random()-.5)*z.r),new THREE.Vector3(0,1.2,0),.4);
     }
     z.atk-=dt;
-    if(d<z.r+.4+.35&&z.atk<=0){ z.atk=1; S.hp-=Math.round(z.dmg); hurt.push(Math.round(z.dmg)); }
+    if(z.swing>0){ z.swing-=dt; if(!z.hitDone&&z.swing<=.3){ z.hitDone=true; if(d<z.r+.4+.7){ S.hp-=Math.round(z.dmg); hurt.push(Math.round(z.dmg)); } } }
+    else if(d<z.r+.4+.4&&z.atk<=0){ z.atk=1; z.swing=.6; z.hitDone=false; }
   }
   if(hurt.length){
     $('hurt').style.opacity=1; setTimeout(()=>$('hurt').style.opacity=0,150);
@@ -831,11 +882,12 @@ function render(dt){
     if(gunSpin){ spinV+=((IN.down&&S.lock<=0?28:0)-spinV)*Math.min(1,dt*6); gunSpin.rotation.z+=spinV*dt; }
     for(const z of S.zombies){
       z.g.position.set(z.x,0,z.z); z.g.rotation.y=Math.atan2(P.x-z.x,P.z-z.z);
-      z.phase+=dt*z.spd*3.2; z.pl.rotation.x=Math.sin(z.phase)*.7; z.pr.rotation.x=-Math.sin(z.phase)*.7;
+      if(!S.shopOpen&&!S.rebirthOpen) z.phase+=dt*z.spd*3.2*(z.swing>0?.3:1); animZombie(z,dt);
       if(z.flash>0){ z.flash-=dt; } z.skin.emissive.setHex(z.flash>0?0xaa0000:(z.burn>0?0x993300:0));
       z.bar.position.set(z.x,z.height+.35,z.z); z.bar.quaternion.copy(camera.quaternion);
       const k=Math.max(0,z.hp/z.max); z.fill.scale.x=k; z.fill.position.x=-.5*(1-k);
     }
+    updateCorpses(S.shopOpen||S.rebirthOpen?0:dt);
     updateHud();
   }
   updateFx(dt); updateFloaters(dt);
