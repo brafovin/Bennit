@@ -105,6 +105,9 @@
   .ucard{background:#1f1a10;border:1px solid #3a2e16;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;transition:transform .15s,border-color .15s,box-shadow .15s}
   .ucard:hover{transform:translateY(-3px);border-color:#f59e0b99;box-shadow:0 8px 24px #0008}
   .ucard.owned{border-color:#22c55e99;background:#14200f}
+  #cashCard{margin-top:10px;flex-direction:row;align-items:center;gap:14px;flex-wrap:wrap;border-color:#facc1566}
+  #cashCard .big{font-size:30px;font-weight:900;color:#facc15} #cashCard .info{flex:1;min-width:200px} #cashCard .btns{display:flex;gap:8px;flex-wrap:wrap}
+  #cashCard button{margin-top:0;padding:10px 14px}
   .ucard .ctop{display:flex;align-items:center;gap:10px} .ucard .ico{font-size:28px;width:44px;height:44px;border-radius:12px;background:#0f0b05;display:grid;place-items:center;flex:none}
   .ucard .wn{font-size:11px;letter-spacing:1.5px;color:#fbbf24;text-transform:uppercase;font-weight:800} .ucard .un{font-weight:800;font-size:17px}
   .ucard .ud{font-size:12.5px;color:#cbd5e1;line-height:1.45;min-height:54px}
@@ -172,8 +175,9 @@
 </div></div>
 <div id="up"><div id="upPanel">
   <div class="sh-head"><h2>🛠 Weapon Upgrade Shop</h2><span class="chip" id="upChip">Permanent upgrades · free for now</span><button id="upClose">✕</button></div>
+  <div id="cashCard" class="ucard"></div>
   <div id="upGrid"></div>
-  <div style="margin-top:12px;font-size:12px;color:#9ca3af"><a href="#" id="upReset" style="color:#9ca3af">Remove all upgrades</a></div>
+  <div style="margin-top:12px;font-size:12px;color:#9ca3af"><a href="#" id="upReset" style="color:#9ca3af">Remove all upgrades & boosts</a></div>
 </div></div>
 <div id="shop"><div id="panel">
   <div class="sh-head"><h2>🛒 Shop</h2><span class="chip" id="mulChip"></span><span class="chip" id="cashTxt"></span><button id="close">✕</button></div>
@@ -253,6 +257,8 @@ const UPG=[
   {id:'smash',w:'vampire',mode:'Earth mode',name:'Strong Smash',desc:'Bigger smash explosion. Press Q: Earth Spikes erupt in front of you (10 spikes).'},
 ];
 const U=id=>!!S.up[id];
+const CASH_MAX=100, cashBoost=()=>1+.05*S.cashLv;
+const cashMul=()=>mult().cash*cashBoost();
 const REQ=[10,20,30,40,50,99]; // wave to defeat for rebirth 1..6 (6 = special)
 const mult=(n=S.rebirths)=>n<=0?{cash:1,dmg:1,hp:1}:{cash:1+.5*n,dmg:1+.25*n,hp:2*n};
 const hpMax=()=>(100+10*S.hpBuys)*mult().hp;
@@ -292,7 +298,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -305,7 +311,7 @@ function runSnapshot(){
   const busy=S.toSpawn>0||S.zombies.length>0;
   return {cash:S.cash,owned:S.owned,weapon:S.weapon,hpBuys:S.hpBuys,wave:busy?Math.max(0,S.wave-1):S.wave,cleared:S.cleared,railMode:S.railMode,bladeMode:S.bladeMode};
 }
-function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,run:(S.mode==='game'&&!NET.active)?runSnapshot():S.savedRun}; }
+function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,cl:S.cashLv,run:(S.mode==='game'&&!NET.active)?runSnapshot():S.savedRun}; }
 function saveGame(){
   const js=JSON.stringify(savePayload()); let ok=false;
   try{ localStorage.setItem(SAVE_KEY,js); ok=localStorage.getItem(SAVE_KEY)===js; }catch(e){}
@@ -315,7 +321,7 @@ function saveGame(){
 }
 function parseSave(js){ try{ const d=JSON.parse(js); return d&&d.v===1?d:null; }catch(e){ return null; } }
 function applySave(d){
-  S.rebirths=Math.min(6,Math.max(0,d.rebirths|0)); S.savedRun=null; const r=d.run; S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true;
+  S.rebirths=Math.min(6,Math.max(0,d.rebirths|0)); S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true;
   if(r&&r.owned&&r.owned.glock&&WEAPONS_IDS.includes(r.weapon)) S.savedRun={cash:+r.cash||0,owned:r.owned,weapon:r.weapon,hpBuys:r.hpBuys|0,wave:r.wave|0,cleared:r.cleared|0,railMode:r.railMode==='blaster'?'blaster':'laser',bladeMode:['blood','wing','earth'].includes(r.bladeMode)?r.bladeMode:'blood'};
 }
 function loadGame(){
@@ -328,7 +334,7 @@ function loadGame(){
   else { try{ S.rebirths=Math.min(6,Math.max(0,parseInt(localStorage.getItem('zs_rebirths'))||0)); }catch(e){} } // very old save format
   saveGame(); // write everything back (also tests whether saving works)
 }
-function resetProgress(){ S.rebirths=0; S.up={}; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
+function resetProgress(){ S.rebirths=0; S.up={}; S.cashLv=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
 function exportCode(){ return btoa(unescape(encodeURIComponent(JSON.stringify(savePayload())))); }
 function importCode(txt){
   txt=(txt||'').trim(); if(!txt) return false;
@@ -1114,7 +1120,7 @@ function applyDamage(z,dmg,by){ // solo / host: authoritative damage
   if(z.dead) return; z.hp-=dmg;
   if(z.hp<=0){
     z.dead=true;
-    if(by===NET.pid){ const c=Math.round(z.cash*mult().cash); S.cash+=c; floatText(new THREE.Vector3(z.x,(z.y0||0)+z.height+.3,z.z),'+$'+c,'#facc15'); }
+    if(by===NET.pid){ const c=Math.round(z.cash*cashMul()); S.cash+=c; floatText(new THREE.Vector3(z.x,(z.y0||0)+z.height+.3,z.z),'+$'+c,'#facc15'); }
     if(NET.role==='host') netBroadcast({t:'dead',id:z.id,by});
   }
 }
@@ -1417,7 +1423,7 @@ function addChest(id,type,x,z){
 function lootChest(ch,by){
   if(by===undefined) by=NET.pid;
   const c=CHESTS[ch.type]; ch.opened=true; ch.openT=0; sfx('chestopen',ch.x,ch.z,1,['wood','silver','gold','diamond','hyper'].indexOf(ch.type));
-  if(by===NET.pid){ const amt=Math.round(c.val*mult().cash); S.cash+=amt; floatText(new THREE.Vector3(ch.x,1.4,ch.z),'+$'+amt,'#facc15'); }
+  if(by===NET.pid){ const amt=Math.round(c.val*cashMul()); S.cash+=amt; floatText(new THREE.Vector3(ch.x,1.4,ch.z),'+$'+amt,'#facc15'); }
   for(let i=0;i<18;i++){ const m=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:i%3?c.spark:0xfacc15,transparent:true,depthWrite:false})); m.scale.setScalar(.6);
     m.position.set(ch.x,.7,ch.z); scene.add(m); fx.push({m,life:.9,max:.9,vel:new THREE.Vector3((Math.random()-.5)*3,3+Math.random()*3,(Math.random()-.5)*3),kind:'spark'}); }
 }
@@ -1690,7 +1696,7 @@ function shopAction(w,c){
 function updateShop(){
   const m=mult(), r=x=>Math.round(x*m.dmg);
   $('cashTxt').textContent='$ '+S.cash.toLocaleString();
-  $('mulChip').textContent=S.rebirths?`♻ ${S.rebirths} · x${m.dmg} dmg · x${m.cash} cash · x${m.hp} HP`:'♻ No rebirth bonus yet';
+  $('mulChip').textContent=S.rebirths||S.cashLv?`${S.rebirths?'♻ '+S.rebirths+' · ':''}x${m.dmg} dmg · x${+(m.cash*cashBoost()).toFixed(2)} cash · x${m.hp} HP`:'♻ No bonuses yet';
   for(const w of WEAPONS){
     const c=$('card-'+w.id), locked=w.rebirth&&S.rebirths<w.rebirth, owned=S.owned[w.id], eq=S.weapon===w.id, b=c.querySelector('button.buy');
     c.classList.toggle('locked',!!locked); c.classList.toggle('eq',eq&&!locked);
@@ -1990,7 +1996,7 @@ function clientSnapshot(m){
 function clientDead(m){
   const z=NET.ghosts[m.id]; if(!z) return; delete NET.ghosts[m.id]; const i=S.zombies.indexOf(z); if(i>=0) S.zombies.splice(i,1);
   z.dead=true; z.hp=0;
-  if(m.by===NET.pid){ const c=Math.round(z.cash*mult().cash); S.cash+=c; floatText(new THREE.Vector3(z.x,(z.y0||0)+z.height+.3,z.z),'+$'+c,'#facc15'); }
+  if(m.by===NET.pid){ const c=Math.round(z.cash*cashMul()); S.cash+=c; floatText(new THREE.Vector3(z.x,(z.y0||0)+z.height+.3,z.z),'+$'+c,'#facc15'); }
   killZombie(z);
 }
 function clientTick(dt){
@@ -2187,14 +2193,24 @@ function buildUpgrades(){
     g.appendChild(c);
   }
 }
+function updateCash(){
+  const c=$('cashCard'), lv=S.cashLv;
+  c.innerHTML=`<div class="ico" style="font-size:34px;width:56px;height:56px;border-radius:14px;background:#0f0b05;display:grid;place-items:center">💰</div>
+    <div class="info"><div class="wn">Cash Boost</div><div class="un">Level ${lv}${lv>=CASH_MAX?' (max)':''} · <span class="big">x${cashBoost().toFixed(2)}</span> cash</div>
+    <div class="ud" style="min-height:0">Each level gives +0.05x cash on everything you earn (level 1 = 1.05x, level 2 = 1.10x, level 3 = 1.15x …). Next level: x${(1+.05*Math.min(CASH_MAX,lv+1)).toFixed(2)}. Permanent, free for now.</div></div>
+    <div class="btns"><button id="cb1">+1 level</button><button id="cb10">+10 levels</button><button id="cbm" style="background:#3a2e16;color:#fcd34d">-1</button></div>`;
+  const set=n=>{ S.cashLv=Math.max(0,Math.min(CASH_MAX,S.cashLv+n)); if(n>0) sfx('buy'); saveGame(); updateCash(); };
+  $('cb1').onclick=()=>set(1); $('cb10').onclick=()=>set(10); $('cbm').onclick=()=>set(-1);
+}
 function updateUpgrades(){
+  updateCash();
   for(const u of UPG){ const c=$('u-'+u.id), own=U(u.id); c.classList.toggle('owned',own); c.querySelector('button').textContent=own?'Owned ✓ (click to remove)':'Get upgrade — FREE'; }
   const n=UPG.filter(u=>U(u.id)).length; $('upChip').textContent=`Permanent upgrades · free for now · ${n}/${UPG.length} owned`;
 }
 function openUpgrades(){ if(S.mode!=='lobby') return; sfx('open'); S.upOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('up').style.display='flex'; requestAnimationFrame(()=>$('up').classList.add('open')); updateUpgrades(); }
 function closeUpgrades(){ S.upOpen=false; $('up').classList.remove('open'); setTimeout(()=>{ if(!S.upOpen) $('up').style.display='none'; },200); const pu=LOBBY.pads.up; P.x=pu.x-4.2; P.z=pu.z; }
 $('upClose').addEventListener('click',closeUpgrades);
-$('upReset').addEventListener('click',e=>{ e.preventDefault(); S.up={}; saveGame(); updateUpgrades(); });
+$('upReset').addEventListener('click',e=>{ e.preventDefault(); S.up={}; S.cashLv=0; saveGame(); updateUpgrades(); });
 buildUpgrades();
 
 /* ---------- Loop ---------- */
