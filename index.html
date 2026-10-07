@@ -105,7 +105,7 @@
 </div></div>
 <div id="shop"><div id="panel">
   <div class="sh-head"><h2>🛒 Shop</h2><span class="chip" id="mulChip"></span><span class="chip" id="cashTxt"></span><button id="close">✕</button></div>
-  <div class="sh-sub">Weapons <span style="letter-spacing:0;text-transform:none;font-weight:600">· press 1-9 in game to switch</span></div>
+  <div class="sh-sub">Weapons <span style="letter-spacing:0;text-transform:none;font-weight:600">· press 1-9 / 0 in game to switch</span></div>
   <div id="wgrid"></div>
   <div class="sh-sub">Upgrades</div>
   <div id="upg"></div>
@@ -147,8 +147,11 @@ const WEAPONS = [
   {id:'lava',   name:'Lava Blaster',cost:10000,dmg:250,cd:1.0,  rebirth:2, desc:'Lava balls: 250 explosion dmg, leave a giant lava puddle (10 dmg / 0.1s + burning)'},
   {id:'railgun',name:'Railgun',    cost:25000,dmg:75, cd:0.5,  rebirth:3, desc:'75 dmg / 0.5s piercing laser, overheats. Press E: Railblaster (1000 dmg explosive balls / 1s)'},
   {id:'orbital',name:'Orbital Cannon',cost:50000,dmg:5000,cd:2.0,rebirth:4, desc:'Giant red ball sucks enemies in, explodes after 1.5s for 5000 dmg / 2s'},
+  {id:'vampire',name:'Vampire Blade',cost:66666,dmg:6666,cd:0.66,rebirth:5, desc:'Melee blade, 6666 dmg, heals 1% of damage dealt. E: Wing Blade / Earth Blade'},
 ];
 const LAVA_R=4, ORB_PULL=10, ORB_R=6;
+const BLADE={blood:{cd:.66,dmg:6666,name:'Vampire Blade'},wing:{cd:.25,dmg:2500,name:'Wing Blade'},earth:{cd:1.5,dmg:7500,name:'Earth Blade'}};
+const MELEE_R=3.3, MELEE_ARC=.95, EARTH_R=8, BLADE_ORDER=['blood','wing','earth'];
 const heated=w=>w.id==='minigun'||(w.id==='railgun'&&S.railMode==='laser');
 const REQ=[10,20,30,40,50,99]; // wave to defeat for rebirth 1..6 (6 = special)
 const mult=(n=S.rebirths)=>n<=0?{cash:1,dmg:1,hp:1}:{cash:1+.5*n,dmg:1+.25*n,hp:2*n};
@@ -173,7 +176,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  railMode:'laser', projs:[], puddles:[], rebirths:0, cleared:0, rebirthOpen:false,
+  railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -265,6 +268,7 @@ flash.visible=false;
 let gunMuzzle=null, gunSpin=null;
 function bm(w,h,d,col,x=0,y=0,z=0){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({color:col})); m.position.set(x,y,z); return m; }
 function box(w,h,d,col,x=0,y=0,z=0){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:col})); m.position.set(x,y,z); return m; }
+const bladeLight=new THREE.PointLight(0xff2020,0,5); bladeLight.position.set(.3,-.1,-1.1); camera.add(bladeLight);
 const _mc={};
 function mat(col,kind='metal'){ const k=kind+col; return _mc[k]||(_mc[k]=kind==='glow'?new THREE.MeshBasicMaterial({color:col}):kind==='glass'?new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.55,depthWrite:false}):kind==='matte'?new THREE.MeshLambertMaterial({color:col}):new THREE.MeshPhongMaterial({color:col,specular:0x667788,shininess:70})); }
 function bx(w,h,d,col,x,y,z,kind,rx=0){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(col,kind)); m.position.set(x,y,z); m.rotation.x=rx; return m; }
@@ -342,6 +346,24 @@ function buildGun(id){
     A(bx(.03,.03,.04,0x1e3a8a,0,.0,-.98), bx(.09,.025,.06,0x0b1e4d,0,.0,-.98));
     if(blaster){ A(new THREE.Mesh(new THREE.SphereGeometry(.07,12,10),mat(0x7dd3fc,'glow'))); const o=g.children[g.children.length-1]; o.position.set(0,0,-1.05); A(new THREE.Mesh(new THREE.SphereGeometry(.1,12,10),mat(0x38bdf8,'glass'))); g.children[g.children.length-1].position.set(0,0,-1.05); tip=1.15; }
     else tip=1.0;
+  } else if(id==='vampire'){
+    const md=S.bladeMode, pal={blood:{body:0x7a0c14,edge:0xff2438,dark:0x1a0508,gold:0xb8860b},wing:{body:0x1e40af,edge:0x60a5fa,dark:0x0a1230,gold:0x93c5fd},earth:{body:0x57534e,edge:0x84cc16,dark:0x1c1917,gold:0xa16207}}[md];
+    g.rotation.x=.38;
+    A(cy(.02,.3,pal.dark,0,0,.1,'matte'), ring(.024,.006,pal.gold,0,0,.02), ring(.024,.006,pal.gold,0,0,.1), ring(.024,.006,pal.gold,0,0,.18),
+      new THREE.Mesh(new THREE.SphereGeometry(.035,12,10),mat(pal.edge,'glow')), bx(.26,.03,.045,pal.dark,0,0,-.06), bx(.05,.04,.05,pal.gold,.13,.0,-.06), bx(.05,.04,.05,pal.gold,-.13,.0,-.06),
+      bx(.04,.045,.05,pal.edge,0,0,-.09,'glow'));
+    g.children[4].position.set(0,0,.27);
+    if(md==='earth'){
+      A(bx(.1,.03,.9,pal.body,0,0,-.55), bx(.015,.035,.86,pal.edge,0,0,-.55,'glow'));
+      for(let i=0;i<7;i++){ const sd=i%2?1:-1; A(bx(.05,.04,.1,pal.body,sd*.075,0,-.25-i*.12,'matte',0), bx(.018,.05,.05,pal.edge,sd*.1,.02,-.28-i*.12,'glow')); }
+      A(bx(.1,.035,.14,pal.body,0,0,-1.05,'metal'));
+    } else {
+      A(bx(.085,.014,.95,pal.body,0,0,-.58), bx(.01,.018,.9,pal.edge,0,0,-.58,'glow'), bx(.1,.012,.08,pal.body,0,0,-.1), bx(.015,.016,.2,pal.edge,0,0,-.2,'glow'));
+      const tipm=new THREE.Mesh(new THREE.ConeGeometry(.043,.2,4),mat(pal.body)); tipm.rotation.x=-Math.PI/2; tipm.rotation.y=Math.PI/4; tipm.scale.set(1,1,.28); tipm.position.set(0,0,-1.16); A(tipm);
+      if(md==='blood'){ for(let i=0;i<3;i++) A(bx(.012,.016,.012,pal.edge,.05*(i-1),-.02,-.4-i*.25,'glow')); }
+      else { for(const sd of [-1,1]) for(let i=0;i<3;i++) A(bx(.16-i*.03,.008,.07,pal.edge,sd*(.15+i*.02),.0,-.05-i*.05,'glow',0)); }
+    }
+    tip=1.25;
   } else if(id==='orbital'){
     g.scale.setScalar(.85);
     A(cy(.11,.8,0x7f1d1d,0,0,-.45), cy(.14,.06,0x450a0a,0,0,-.85), cy(.12,.06,0x450a0a,0,0,-.1), cy(.1,.35,0x991b1b,0,0,-1.05,'metal',.14), cy(.15,.03,0xef4444,0,0,-1.24,'glow'), cy(.1,.04,0x1a0000,0,0,-1.255),
@@ -351,6 +373,7 @@ function buildGun(id){
     A(bx(.03,.03,.5,0xff4040,.08,.04,-.8,'glow'), bx(.03,.03,.5,0xff4040,-.08,.04,-.8,'glow'));
     tip=1.3;
   }
+  if(id==='vampire'){ bladeLight.color.setHex({blood:0xff2020,wing:0x4a90ff,earth:0x9be32a}[S.bladeMode]); bladeLight.intensity=.9; } else bladeLight.intensity=0;
   gunMuzzle=new THREE.Object3D(); gunMuzzle.position.set(0,0,-tip); g.add(gunMuzzle);
   flash.position.set(0,0,-tip-.05); g.add(flash);
   gunRoot.add(g);
@@ -494,6 +517,7 @@ function tracer(a,b){
 function updateFx(dt){
   for(const f of fx){ f.life-=dt;
     if(f.kind==='smoke'){ f.m.position.addScaledVector(f.vel,dt); const k=1-f.life/f.max; f.m.scale.setScalar(1+k*4); f.m.material.opacity=.6*(1-k); }
+    else if(f.kind==='ring'){ const k=1-f.life/f.max; f.m.scale.setScalar(f.radius*(.15+.85*k)); f.m.material.opacity=.9*(1-k); }
     else if(f.kind==='blast'){ const k=1-f.life/f.max; f.m.scale.setScalar(f.radius*(.2+.8*k)); f.m.material.opacity=.7*(1-k); }
     else if(f.kind==='flame'){ f.m.position.addScaledVector(f.vel,dt); const k=1-f.life/f.max; f.m.scale.setScalar(1+k*2.5); f.m.material.opacity=.85*(1-k); f.m.material.color.setHSL(.1-.08*k,1,.55); }
     else f.m.material.opacity=.8*Math.max(0,f.life/f.max); }
@@ -519,7 +543,7 @@ function enterLobby(){
 }
 function startGame(){
   setMode('game');
-  S.cash=0; S.hpBuys=0; S.hp=S.maxHp=hpMax(); S.cleared=0; S.railMode='laser'; clearProjs(); S.owned={glock:true}; S.weapon='glock';
+  S.cash=0; S.hpBuys=0; S.hp=S.maxHp=hpMax(); S.cleared=0; S.railMode='laser'; S.bladeMode='blood'; S.shake=0; S.swing=0; clearProjs(); S.owned={glock:true}; S.weapon='glock';
   S.wave=0; S.breakT=2; S.toSpawn=0; S.heat=0; S.lock=0; S.bossSpawned=false; S.fireCd=0;
   genMap(); P.x=MAP.w/2; P.z=MAP.h/2; buildGun('glock');
   say('Get ready!',2);
@@ -558,6 +582,7 @@ function hitMarker(){ $('cross').classList.add('hit'); setTimeout(()=>$('cross')
 function hurtZombie(z,base,pos,col,silent){
   if(z.dead) return;
   const dmg=Math.round(base*mult().dmg); z.hp-=dmg; if(!col) z.flash=.1;
+  if(S.ls) S.hp=Math.min(S.maxHp,S.hp+dmg*S.ls);
   if(!silent) floatText(pos,dmg,col);
   if(z.hp<=0){ z.dead=true; const c=Math.round(z.cash*mult().cash); S.cash+=c; floatText(new THREE.Vector3(z.x,z.height+.3,z.z),'+$'+c,'#facc15'); }
 }
@@ -579,6 +604,36 @@ function fireFlame(w){
     const d=dirFrom(P.yaw+(Math.random()-.5)*w.cone*1.6,P.pitch+(Math.random()-.5)*w.cone*1.6,new THREE.Vector3());
     flameFx(_m.clone(),d.multiplyScalar(w.range/.35*(.6+Math.random()*.4)),.3+Math.random()*.1);
   }
+}
+const ringGeo=new THREE.RingGeometry(.9,1,56);
+function groundRing(x,z,radius,color,life=.55){
+  const m=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending}));
+  m.rotation.x=-Math.PI/2; m.position.set(x,.08,z); m.scale.setScalar(.3); scene.add(m); fx.push({m,life,max:life,radius,kind:'ring'});
+}
+function meleeAttack(){
+  const m=BLADE[S.bladeMode], earth=S.bladeMode==='earth';
+  S.fireCd=m.cd; S.swing=earth?.3:.22; S.swingMax=S.swing;
+  const o={x:P.x,y:EYE,z:P.z}, hx=-Math.sin(P.yaw), hz=-Math.cos(P.yaw); let any=false;
+  S.ls=.01;
+  for(const z of S.zombies){
+    if(z.dead) continue;
+    const dx=z.x-P.x, dz=z.z-P.z, dist=Math.hypot(dx,dz);
+    if(earth){ if(dist-z.r>EARTH_R) continue; }
+    else {
+      if(dist-z.r>MELEE_R) continue;
+      const ang=dist<.05?0:Math.acos(Math.max(-1,Math.min(1,(dx*hx+dz*hz)/dist)));
+      if(ang-Math.atan2(z.r,dist)>MELEE_ARC) continue;
+      const nd={x:dx/dist,y:0,z:dz/dist}; let blocked=false;
+      for(const b of bricks){ if(rayBox(o,nd,{x:b.x,z:b.z,w:b.w,d:b.d,h:10},dist)!==Infinity){blocked=true;break;} }
+      if(blocked) continue;
+    }
+    hurtZombie(z,m.dmg,new THREE.Vector3(z.x,z.height*.7,z.z)); any=true;
+  }
+  S.ls=0;
+  if(any) hitMarker();
+  if(earth){ S.shake=.9; groundRing(P.x,P.z,EARTH_R,0x84cc16); groundRing(P.x,P.z,EARTH_R*.65,0xa16207,.4); blast(new THREE.Vector3(P.x,.3,P.z),2.2,0x84cc16,.3); }
+  else if(S.bladeMode==='wing') groundRing(P.x+hx*1.6,P.z+hz*1.6,1.3,0x60a5fa,.25);
+  else groundRing(P.x+hx*1.6,P.z+hz*1.6,1.3,0xef4444,.25);
 }
 function explode(pos,radius,base,color){
   blast(pos,radius,color);
@@ -669,6 +724,7 @@ function shootRay(yaw,pitch,dmgNear,dmgFar,range){
 function fire(){
   const w=wpn();
   if(S.fireCd>0||(heated(w)&&S.lock>0)) return;
+  if(w.id==='vampire'){ meleeAttack(); return; }
   S.fireCd=(w.id==='railgun'&&S.railMode==='blaster')?1:w.cd;
   if(w.id==='lava'||w.id==='orbital'||(w.id==='railgun'&&S.railMode==='blaster')){ launch(w); kick=Math.min(.25,kick+.2); flashT=.06; flash.visible=true; return; }
   if(w.id==='railgun'){ fireLaser(w); kick=Math.min(.25,kick+.12); flashT=.06; flash.visible=true; return; }
@@ -689,7 +745,7 @@ function update(dt){
   if(S.msgT>0){ S.msgT-=dt; if(S.msgT<=0) $('msg').style.opacity=0; }
   if(S.mode==='lobby') return updateLobby(dt);
   if(S.shopOpen||S.rebirthOpen) return;
-  const {mx,my,sprint}=moveInput(), sp=sprint?SPRINT:WALK;
+  const {mx,my,sprint}=moveInput(), sp=(sprint?SPRINT:WALK)*(S.weapon==='vampire'&&S.bladeMode==='wing'?1.5:1);
   const fx_=-Math.sin(P.yaw), fz_=-Math.cos(P.yaw), rx=Math.cos(P.yaw), rz=-Math.sin(P.yaw);
   P.x+=(fx_*my+rx*mx)*sp*dt; P.z+=(fz_*my+rz*mx)*sp*dt;
   P.x=Math.max(.4,Math.min(MAP.w-.4,P.x)); P.z=Math.max(.4,Math.min(MAP.h-.4,P.z));
@@ -758,16 +814,20 @@ function render(dt){
   clock+=dt;
   camera.position.set(P.x,EYE,P.z);
   camera.rotation.set(P.pitch,P.yaw,0);
+  if(S.shake>0){ const a=S.shake; S.shake=Math.max(0,S.shake-dt*1.8); camera.position.x+=(Math.random()-.5)*a*.3; camera.position.y+=(Math.random()-.5)*a*.3; camera.rotation.z=(Math.random()-.5)*a*.07; }
   const sprinting=(keys.shift||(joy&&joy.len>.95));
   const tf=sprinting?82:75; camera.fov+=(tf-camera.fov)*Math.min(1,dt*8); camera.updateProjectionMatrix();
   if(S.mode==='game'){
     if(!S.shopOpen&&!S.rebirthOpen){
-      kick=Math.max(0,kick-dt*1.2);
+      kick=Math.max(0,kick-dt*1.2); if(S.swing>0) S.swing=Math.max(0,S.swing-dt);
       if(flashT>0){ flashT-=dt; if(flashT<=0) flash.visible=false; }
     }
     const moving=(keys.w||keys.a||keys.s||keys.d)?1:0, bob=Math.sin(clock*(sprinting?13:9))*.012*moving;
     gunRoot.position.set(.3,-.27+bob+(sprinting&&moving?-.03:0),-.78+kick);
-    gunRoot.rotation.x=kick*.6;
+    gunRoot.rotation.x=kick*.6; gunRoot.rotation.y=0; gunRoot.rotation.z=0;
+    if(S.swing>0){ const k=1-S.swing/S.swingMax, sn=Math.sin(k*Math.PI);
+      if(S.bladeMode==='earth'&&S.weapon==='vampire'){ gunRoot.rotation.x=(k<.45?-(k/.45)*.9:-.9+((k-.45)/.55)*1.5); gunRoot.position.y+=(k<.45?k/.45*.15:.15-(k-.45)/.55*.3); }
+      else { gunRoot.rotation.z=-sn*1.3; gunRoot.rotation.y=sn*.5; gunRoot.rotation.x=-sn*.4; gunRoot.position.x-=sn*.4; gunRoot.position.y+=sn*.05; } }
     if(gunSpin){ spinV+=((IN.down&&S.lock<=0?28:0)-spinV)*Math.min(1,dt*6); gunSpin.rotation.z+=spinV*dt; }
     for(const z of S.zombies){
       z.g.position.set(z.x,0,z.z); z.g.rotation.y=Math.atan2(P.x-z.x,P.z-z.z);
@@ -788,7 +848,7 @@ function updateHud(){
   $('hpBar').style.width=Math.max(0,S.hp/S.maxHp*100)+'%'; $('hpTxt').textContent=Math.max(0,Math.ceil(S.hp))+' / '+S.maxHp;
   $('cashTxtHud').textContent='$ '+S.cash;
   $('waveTxt').textContent=`Wave ${S.wave} · Zombies: ${S.zombies.length+S.toSpawn}`+(S.rebirths?` · Rebirth ${S.rebirths}`:'');
-  const wn=wpn(); $('wpnTxt').textContent=wn.id==='railgun'?(S.railMode==='laser'?'Railgun (Laser) · E: switch mode':'Railblaster · E: switch mode'):wn.name;
+  const wn=wpn(); $('wpnTxt').textContent=wn.id==='vampire'?BLADE[S.bladeMode].name+' · E: switch mode':wn.id==='railgun'?(S.railMode==='laser'?'Railgun (Laser) · E: switch mode':'Railblaster · E: switch mode'):wn.name;
   const mini=heated(wpn());
   $('heatWrap').style.display=mini?'block':'none'; $('heatTxt').style.display=mini&&S.lock>0?'block':'none';
   if(mini){ const f=S.lock>0?1-S.lock/MINI_LOCK:S.heat; $('heat').style.width=(f*100)+'%'; $('heat').style.background=S.lock>0?'#6b7280':`hsl(${60-60*S.heat},100%,50%)`; $('heatTxt').textContent='OVERCHARGED – cooling '+S.lock.toFixed(1)+'s'; }
@@ -806,6 +866,7 @@ const WINFO={
   flame:{ico:'🔥',tags:['Cone','Burn'],note:'Ignites enemies: +50 dmg every 0.5 s for 3 s.'},
   lava:{ico:'🌋',tags:['Explosion','Lava pool','Burn'],note:'Lobbed lava balls explode (3 m) and leave a pool: 10 dmg / 0.1 s + burning.'},
   railgun:{ico:'⚡',tags:['Pierces all','Overheats','E: Railblaster'],note:'Blue laser pierces everything. E = Railblaster: 1000 dmg explosive balls / 1 s.'},
+  vampire:{ico:'🗡️',tags:['Melee','Lifesteal','E: 3 modes'],note:'Blood: 6666 dmg / 0.66 s, heals 1% of damage. Wing (E): 2500 / 0.25 s, +50% speed. Earth (E): 7500 / 1.5 s, 360° shockwave.'},
   orbital:{ico:'🔴',tags:['Black hole','Huge blast'],note:'Giant sphere sucks enemies in, then explodes after 1.5 s (6 m radius).'},
 };
 const lg=(v,m)=>Math.min(100,Math.log(v+1)/Math.log(m+1)*100);
@@ -816,7 +877,7 @@ function buildShop(){
   const g=$('wgrid'); g.innerHTML='';
   WEAPONS.forEach((w,i)=>{
     const f=WINFO[w.id], c=document.createElement('div'); c.className='card'; c.id='card-'+w.id;
-    c.innerHTML=`<div class="ctop"><div class="ico">${f.ico}</div><div><div class="nm">${w.name}</div><div class="tags">${f.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div><span class="key">${i+1}</span></div>
+    c.innerHTML=`<div class="ctop"><div class="ico">${f.ico}</div><div><div class="nm">${w.name}</div><div class="tags">${f.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div><span class="key">${(i+1)%10}</span></div>
       <div class="st d"><span>Damage</span><div class="bar"><i style="width:${lg(w.dmg,MAXD)}%"></i></div><b class="vd"></b></div>
       <div class="st r"><span>Fire rate</span><div class="bar"><i style="width:${lg(1/w.cd,MAXR)}%"></i></div><b class="vr"></b></div>
       <div class="st p"><span>DPS</span><div class="bar"><i style="width:${lg(wDps(w),MAXP)}%"></i></div><b class="vp"></b></div>
@@ -878,7 +939,7 @@ function renderRebirth(){
     const nm=mult(n+1), req=REQ[n];
     h+=`<br>${n===5?'<b>SPECIAL REBIRTH</b><br>Defeat <b>wave 99</b> and the final boss':'Defeat <b>wave '+req+'</b>'} to rebirth.<br>Best this run: <b>wave ${S.mode==='game'?S.cleared:0}</b> defeated<br>`;
     h+=`<br>Next rebirth: ${fmt(nm.cash)} cash · ${fmt(nm.dmg)} damage · ${fmt(nm.hp)} health`;
-    const UNLOCK=['Flamethrower','Lava Blaster','Railgun','Orbital Cannon']; if(UNLOCK[n]) h+=`<br>Unlocks the <b>${UNLOCK[n]}</b> in the shop`;
+    const UNLOCK=['Flamethrower','Lava Blaster','Railgun','Orbital Cannon','Vampire Blade']; if(UNLOCK[n]) h+=`<br>Unlocks the <b>${UNLOCK[n]}</b> in the shop`;
     h+=`<br><small>Rebirthing resets your cash, weapons and upgrades and sends you back to the void.</small>`;
   } else h+=`<br><b>MAX REBIRTH reached!</b>`;
   $('rbody').innerHTML=h;
@@ -898,7 +959,8 @@ $('rbBtn').addEventListener('click',()=>S.rebirthOpen?closeRebirth():openRebirth
 addEventListener('keydown',e=>{
   const k=e.key.toLowerCase(); keys[k]=true; if(e.shiftKey) keys.shift=true;
   if(k==='b'&&!e.repeat) S.shopOpen?closeShop():openShop();
-  if(/^[1-9]$/.test(k)&&S.mode==='game'&&!S.rebirthOpen){ const w=WEAPONS[+k-1]; if(w&&S.owned[w.id]&&!(w.rebirth&&S.rebirths<w.rebirth)){ equip(w.id); if(S.shopOpen) updateShop(); } }
+  if(/^[0-9]$/.test(k)&&S.mode==='game'&&!S.rebirthOpen){ const w=WEAPONS[k==='0'?9:+k-1]; if(w&&S.owned[w.id]&&!(w.rebirth&&S.rebirths<w.rebirth)){ equip(w.id); if(S.shopOpen) updateShop(); } }
+  if(k==='e'&&!e.repeat&&S.mode==='game'&&!S.shopOpen&&!S.rebirthOpen&&S.weapon==='vampire'){ S.bladeMode=BLADE_ORDER[(BLADE_ORDER.indexOf(S.bladeMode)+1)%3]; buildGun('vampire'); S.fireCd=Math.max(S.fireCd,.3); say(BLADE[S.bladeMode].name,1.2); }
   if(k==='e'&&!e.repeat&&S.mode==='game'&&!S.shopOpen&&!S.rebirthOpen&&S.weapon==='railgun'){ S.railMode=S.railMode==='laser'?'blaster':'laser'; buildGun('railgun'); S.fireCd=Math.max(S.fireCd,.3); say(S.railMode==='laser'?'Railgun – laser mode':'Railblaster mode',1.2); }
   if(k==='g'&&!e.repeat) S.rebirthOpen?closeRebirth():openRebirth();
   if(k==='escape'){ closeShop(); closeRebirth(); }
