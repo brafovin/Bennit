@@ -431,7 +431,7 @@ function updateLobby(dt){
   const {mx,my,sprint}=moveInput(), sp=sprint?SPRINT:WALK;
   const fx_=-Math.sin(P.yaw), fz_=-Math.cos(P.yaw), rx=Math.cos(P.yaw), rz=-Math.sin(P.yaw);
   const nx=P.x+(fx_*my+rx*mx)*sp*dt, nz=P.z+(fz_*my+rz*mx)*sp*dt;
-  const ok=(x,z)=>LOBBY.rects.some(r=>x>r.x0+.2&&x<r.x1-.2&&z>r.z0+.2&&z<r.z1-.2);
+  const ok=(x,z)=>LOBBY.rects.some(r=>x>=r.x0&&x<=r.x1&&z>=r.z0&&z<=r.z1);
   if(ok(nx,P.z)) P.x=nx; if(ok(P.x,nz)) P.z=nz;
   const p=LOBBY.play; if(P.x>p.x0&&P.x<p.x1&&P.z>p.z0&&P.z<p.z1) startGame();
 }
