@@ -152,21 +152,21 @@ groundTex.repeat.set(MAP.w/4,MAP.h/4);
 }
 // lobby geometry (meters)
 const LOBBY = {
-  rects:[{x0:-5,x1:5,z0:-4,z1:4},{x0:5,x1:12,z0:-1,z1:1},{x0:12,x1:16,z0:-2.5,z1:2.5}],
-  play:{x0:12.2,x1:16,z0:-2.5,z1:2.5}
+  rects:[{x0:-12,x1:12,z0:-10,z1:10}],
+  play:{x0:6,x1:10,z0:-2.5,z1:2.5}
 };
 function slab(x0,x1,z0,z1,color,y=-0.3,t=0.6,emissive=0x000000){
   const m=new THREE.Mesh(new THREE.BoxGeometry(x1-x0,t,z1-z0),new THREE.MeshLambertMaterial({color,emissive}));
   m.position.set((x0+x1)/2,y,(z0+z1)/2); return m;
 }
-lobbyG.add(slab(-5,5,-4,4,0x374151), slab(5,12,-1,1,0x4b5563), slab(12,16,-2.5,2.5,0x16a34a,-0.3,0.6,0x0b5a26));
+lobbyG.add(slab(-12,12,-10,10,0x374151), slab(6,10,-2.5,2.5,0x16a34a,0.03,0.06,0x0b5a26));
 {
   const t=canvasTex(512,256,(g,w,h)=>{ g.fillStyle='#16a34a'; g.fillRect(0,0,w,h); g.fillStyle='#fff'; g.font='bold 170px system-ui'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('PLAY',w/2,h/2+8); });
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(3.6,2.4),new THREE.MeshBasicMaterial({map:t}));
-  floor.rotation.x=-Math.PI/2; floor.rotation.z=-Math.PI/2; floor.position.set(14.2,0.02,0); lobbyG.add(floor);
+  floor.rotation.x=-Math.PI/2; floor.rotation.z=-Math.PI/2; floor.position.set(8,0.07,0); lobbyG.add(floor);
   const sign=new THREE.Mesh(new THREE.PlaneGeometry(4,2),new THREE.MeshBasicMaterial({map:t,transparent:true}));
-  sign.position.set(15.7,2.6,0); sign.rotation.y=-Math.PI/2; lobbyG.add(sign);
-  const glow=new THREE.PointLight(0x22ff66,1.2,12); glow.position.set(14,2,0); lobbyG.add(glow);
+  sign.position.set(10.5,2.6,0); sign.rotation.y=-Math.PI/2; lobbyG.add(sign);
+  const glow=new THREE.PointLight(0x22ff66,1.2,12); glow.position.set(8,2,0); lobbyG.add(glow);
 }
 // game geometry
 {
@@ -313,7 +313,7 @@ function setMode(m){
 }
 function enterLobby(){
   for(const z of S.zombies) removeZombie(z); S.zombies=[];
-  setMode('lobby'); P.x=-2; P.z=0; P.yaw=-Math.PI/2; P.pitch=0; closeShop();
+  setMode('lobby'); P.x=-6; P.z=0; P.yaw=-Math.PI/2; P.pitch=0; closeShop();
   $('heatWrap').style.display=$('heatTxt').style.display='none';
 }
 function startGame(){
