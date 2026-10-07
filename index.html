@@ -135,6 +135,7 @@
   <div class="line" id="cashTxtHud" style="top:46px;color:#facc15"></div>
   <div class="line" id="waveTxt" style="top:72px"></div>
   <div class="line" id="wpnTxt" style="top:94px;font-size:15px"></div>
+  <div class="line" id="skipTxt" style="top:190px;font-size:14px;color:#c4b5fd;display:none"></div>
   <div class="line" id="abTxt" style="top:170px;font-size:14px;color:#fca5a5;display:none"></div>
   <div id="heatWrap"><div id="heat"></div><span id="heatLbl"></span></div>
   <div id="heatTxt"></div>
@@ -298,7 +299,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -1050,7 +1051,7 @@ function setMode(m){
   $('cross').style.display=m==='game'?'block':'none';
 }
 function enterLobby(){
-  mpCleanupGame(); S.downed=false; S.pulls=[]; S.delayed=[]; S.dash=null; S.abCd=0; for(const sp of S.spikes){ gameG.remove(sp.m); } S.spikes=[];
+  mpCleanupGame(); S.downed=false; S.pulls=[]; S.delayed=[]; S.dash=null; S.abCd=0; S.skipT=-1; S.skipCd=0; for(const sp of S.spikes){ gameG.remove(sp.m); } S.spikes=[];
   P.y=0; P.vy=0; EYE=EYE0;
   closeRebirth(); clearProjs(); clearChests();
   for(const z of S.zombies) removeZombie(z); S.zombies=[]; for(const z of S.corpses) removeZombie(z); S.corpses=[];
@@ -1200,6 +1201,19 @@ function windPush(px,pz,R,PU){
     const v=PU*(1-.5*d/(R+z.r))/Math.max(1,z.r/.45);
     z.kvx=dx/d*v; z.kvz=dz/d*v; z.stun=.6;
   }
+}
+function useSkip(){
+  if(S.mode!=='game'||S.downed||S.rebirths<2||S.skipCd>0||S.skipT>=0) return;
+  if(S.wave<=0||(S.zombies.length===0&&S.toSpawn===0)){ say('No wave to skip right now',1.5); return; }
+  S.skipT=4; S.skipCd=10; say('Skipping this wave in 4 seconds…',3.5); sfx('skip');
+  if(NET.role==='client') netSendHost({t:'skip'});
+}
+function doSkip(){
+  for(const z of S.zombies){
+    for(let i=0;i<4;i++){ const sp=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0xc4b5fd,transparent:true,depthWrite:false})); sp.scale.setScalar(.4); sp.position.set(z.x,(z.y0||0)+z.height*Math.random(),z.z); scene.add(sp); fx.push({m:sp,life:.6,max:.6,vel:new THREE.Vector3(rnd(-1,1),rnd(.5,1.8),rnd(-1,1)),kind:'spark'}); }
+    removeZombie(z); if(NET.role==='host') netBroadcast({t:'dead',id:z.id,by:-1,quiet:1});
+  }
+  S.zombies=[]; S.toSpawn=0; say('Wave skipped!',2); sfx('clear');
 }
 function useAbility(){
   if(S.mode!=='game'||S.downed||S.shopOpen||S.rebirthOpen||S.abCd>0||S.weapon!=='vampire') return;
@@ -1522,7 +1536,8 @@ function update(dt){
   if(NET.role!=='client') for(let i=S.zombies.length-1;i>=0;i--) if(S.zombies[i].hp<=0){ killZombie(S.zombies[i]); S.zombies.splice(i,1); }
   updateProjs(dt); updatePuddles(dt); updateChests(dt); updateCbeam(dt); updateSpikes(dt);
   for(const d of S.delayed) d.t-=dt; { const due=S.delayed.filter(d=>d.t<=0); if(due.length){ S.delayed=S.delayed.filter(d=>d.t>0); for(const d of due) d.fn(); } }
-  S.abCd=Math.max(0,S.abCd-dt);
+  S.abCd=Math.max(0,S.abCd-dt); S.skipCd=Math.max(0,S.skipCd-dt);
+  if(S.skipT>=0){ S.skipT-=dt; if(S.skipT<0){ S.skipT=-1; if(NET.role!=='client') doSkip(); } }
   if(NET.role==='client'){ clientTick(dt); return; }
   for(const pl of S.pulls){ pl.t-=dt; for(const z of S.zombies){ if(z.dead||z.archer) continue; const dx=pl.x-z.x, dz=pl.z-z.z, d=Math.hypot(dx,dz); if(d<(pl.r||ORB_PULL)&&d>.05){ const m=Math.min(d,9*dt); z.x+=dx/d*m; z.z+=dz/d*m; } } } S.pulls=S.pulls.filter(p=>p.t>0);
   S.saveT-=dt; if(S.saveT<=0){ S.saveT=5; if(!NET.active) saveGame(); }
@@ -1645,6 +1660,7 @@ function updateHud(){
   $('waveTxt').textContent=`Wave ${S.wave} · Zombies: ${S.zombies.length+S.toSpawn}`+(S.rebirths?` · Rebirth ${S.rebirths}`:'');
   const wn=wpn(); $('wpnTxt').textContent=wn.id==='vampire'?BLADE[S.bladeMode].name+' · E: switch mode'+(S.bladeMode==='wing'?' · SPACE: jump':''):wn.id==='railgun'?(S.railMode==='laser'?'Railgun (Laser) · E: switch mode':'Railblaster · E: switch mode'):wn.name;
   { const ab=S.weapon==='vampire'&&((S.bladeMode==='blood'&&U('hook')&&'Blood Hook')||(S.bladeMode==='wing'&&U('wind')&&'Strong Wind')||(S.bladeMode==='earth'&&U('smash')&&'Earth Spikes')); const el=$('abTxt'); if(ab){ el.style.display='block'; el.textContent='Q · '+ab+' · '+(S.abCd>0?S.abCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; }
+  { const el=$('skipTxt'); if(S.rebirths>=2&&S.mode==='game'){ el.style.display='block'; el.textContent=S.skipT>=0?'⏩ Skipping wave in '+S.skipT.toFixed(1)+'s…':'T · Skip Wave · '+(S.skipCd>0?S.skipCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; }
   const mini=heated(wpn());
   if(NET.active) updateTeamHud(); else if($('team').innerHTML) $('team').innerHTML='';
   $('heatWrap').style.display=mini?'block':'none'; $('heatTxt').style.display=mini&&S.lock>0?'block':'none';
@@ -1736,7 +1752,7 @@ function renderRebirth(){
     const nm=mult(n+1), req=REQ[n];
     h+=`<br>${n===5?'<b>SPECIAL REBIRTH</b><br>Defeat <b>wave 99</b> and the final boss':'Defeat <b>wave '+req+'</b>'} to rebirth.<br>Best this run: <b>wave ${S.mode==='game'?S.cleared:0}</b> defeated<br>`;
     h+=`<br>Next rebirth: ${fmt(nm.cash)} cash · ${fmt(nm.dmg)} damage · ${fmt(nm.hp)} health`;
-    const UNLOCK=['Flamethrower','Lava Blaster','Railgun','Orbital Cannon','Vampire Blade']; if(UNLOCK[n]) h+=`<br>Unlocks the <b>${UNLOCK[n]}</b> in the shop`;
+    const UNLOCK=['Flamethrower','Lava Blaster','Railgun','Orbital Cannon','Vampire Blade']; if(UNLOCK[n]) h+=`<br>Unlocks the <b>${UNLOCK[n]}</b> in the shop`+(n===1?` and the <b>Skip Wave</b> ability (press T)`:'');
     h+=`<br><small>Rebirthing resets your cash, weapons and upgrades and sends you back to the void.</small>`;
   } else h+=`<br><b>MAX REBIRTH reached!</b>`;
   $('rbody').innerHTML=h;
@@ -1765,6 +1781,7 @@ addEventListener('keydown',e=>{
   if(k==='e'&&!e.repeat&&S.mode==='game'&&!S.shopOpen&&!S.rebirthOpen&&S.weapon==='railgun'){ S.railMode=S.railMode==='laser'?'blaster':'laser'; buildGun('railgun'); S.fireCd=Math.max(S.fireCd,.3); say(S.railMode==='laser'?'Railgun – laser mode':'Railblaster mode',1.2); }
   if(k==='m'&&!e.repeat) setMuted(!AUD.muted);
   if(k==='q'&&!e.repeat) useAbility();
+  if(k==='t'&&!e.repeat) useSkip();
   if(k==='g'&&!e.repeat) S.rebirthOpen?closeRebirth():openRebirth();
   if(k==='escape'){ closeShop(); closeRebirth(); if(S.mpOpen) closeMultiplayer(); if(S.upOpen) closeUpgrades(); }
   if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
@@ -1918,6 +1935,7 @@ function mpHostMsg(pid,m){
     case 'wind': windPush(m.x,m.z,Math.min(20,m.r||0)||undefined,Math.min(32,m.p||0)||undefined); break;
     case 'pull': S.pulls.push({x:m.x,z:m.z,t:1.5,r:Math.min(20,m.r||ORB_PULL)}); break;
     case 'need': NET.known[pid]={}; break;
+    case 'skip': if(S.skipT<0&&(S.zombies.length||S.toSpawn)) S.skipT=4; break;
   }
 }
 function mpHostStart(){
@@ -1996,6 +2014,7 @@ function clientSnapshot(m){
 }
 function clientDead(m){
   const z=NET.ghosts[m.id]; if(!z) return; delete NET.ghosts[m.id]; const i=S.zombies.indexOf(z); if(i>=0) S.zombies.splice(i,1);
+  if(m.quiet){ removeZombie(z); return; }
   z.dead=true; z.hp=0;
   if(m.by===NET.pid){ const c=Math.round(z.cash*cashMul()); S.cash+=c; floatText(new THREE.Vector3(z.x,(z.y0||0)+z.height+.3,z.z),'+$'+c,'#facc15'); }
   killZombie(z);
@@ -2156,6 +2175,7 @@ const SND={
   start:{v:.7,f:o=>{ noise({dur:.7,vol:.5,ft:'bandpass',f:300,f2:3000,q:1.5,att:.2,out:o}); tone({f:200,f2:600,dur:.6,type:'triangle',vol:.25,out:o}); }},
   join:{v:.6,f:o=>{ tone({f:880,dur:.2,vol:.25,type:'triangle',out:o}); tone({f:1175,dur:.25,vol:.25,type:'triangle',delay:.1,out:o}); }},
   sizzle:{v:.5,range:40,f:o=>{ noise({dur:.9,vol:.35,ft:'highpass',f:2500,att:.05,out:o}); }},
+  skip:{v:.7,f:o=>{ tone({f:200,f2:900,dur:.6,type:'sawtooth',vol:.25,lp:2500,att:.1,out:o}); tone({f:400,f2:1800,dur:.6,type:'triangle',vol:.15,out:o}); }},
   blip:{v:.4,f:o=>{ tone({f:1000,dur:.05,vol:.2,out:o}); }},
 };
 function sfx(name,x,z,vm,p){
