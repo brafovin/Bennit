@@ -177,7 +177,7 @@
   <div class="sh-head"><h2>🛠 Weapon Upgrade Shop</h2><span class="chip" id="upChip">Permanent upgrades · free for now</span><button id="upClose">✕</button></div>
   <div id="cashCard" class="ucard"></div>
   <div id="upGrid"></div>
-  <div style="margin-top:12px;font-size:12px;color:#9ca3af"><a href="#" id="upReset" style="color:#9ca3af">Remove all upgrades & boosts</a></div>
+  <div style="margin-top:12px;font-size:12px;color:#9ca3af"><a href="#" id="upExport" style="color:#9ca3af">Copy save code</a> · <a href="#" id="upImport" style="color:#9ca3af">Load save code</a> · <a href="#" id="upReset" style="color:#9ca3af">Remove all upgrades & boosts</a><div style="margin-top:4px">The save code includes your rebirths, weapon upgrades and cash boosts.</div></div>
 </div></div>
 <div id="shop"><div id="panel">
   <div class="sh-head"><h2>🛒 Shop</h2><span class="chip" id="mulChip"></span><span class="chip" id="cashTxt"></span><button id="close">✕</button></div>
@@ -2210,6 +2210,8 @@ function updateUpgrades(){
 function openUpgrades(){ if(S.mode!=='lobby') return; sfx('open'); S.upOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('up').style.display='flex'; requestAnimationFrame(()=>$('up').classList.add('open')); updateUpgrades(); }
 function closeUpgrades(){ S.upOpen=false; $('up').classList.remove('open'); setTimeout(()=>{ if(!S.upOpen) $('up').style.display='none'; },200); const pu=LOBBY.pads.up; P.x=pu.x-4.2; P.z=pu.z; }
 $('upClose').addEventListener('click',closeUpgrades);
+$('upExport').addEventListener('click',e=>{ e.preventDefault(); const c=exportCode(); if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(c).catch(()=>{}); prompt('Your save code (copied if possible). It includes rebirths, upgrades and cash boosts:',c); });
+$('upImport').addEventListener('click',e=>{ e.preventDefault(); const t=prompt('Paste your save code here:'); if(t===null) return; if(importCode(t)){ saveGame(); updateUpgrades(); say('Save loaded',2.5); } else alert('That save code is not valid.'); });
 $('upReset').addEventListener('click',e=>{ e.preventDefault(); S.up={}; S.cashLv=0; saveGame(); updateUpgrades(); });
 buildUpgrades();
 
