@@ -282,6 +282,7 @@ function hitPlayer(pid,dmg){
   else { const p=NET.players[pid]; if(p){ p.hp-=dmg; netSend(NET.conns[pid],{t:'dmg',n:dmg}); } }
 }
 const SCREAM_R=10, SCREAM_CD=12, SCREAM_T=1.6, BUFF_T=12;
+const FAR_DIST=22; // zombies further away than this from their target run at 2x speed
 const BASE_DMG = 10, DMG_GROWTH = 1.15;
 const WALK = 3.6, SPRINT = 6.0, EYE0 = 1.6, JUMP_V = 6.8, GRAV = 17;
 let EYE = EYE0; // eye height (follows jumps)
@@ -1536,7 +1537,7 @@ function update(dt){
     if(z.archer) archerStep(z,dt,d);
     if(z.stun>0) z.stun-=dt;
     if(!z.archer){
-    const mv=(z.swing>0?.2:1)*(z.stun>0?.15:1)*(z.scream>0?0:1); z.x+=tx*z.spd*mv*dt; z.z+=tz*z.spd*mv*dt;
+    z.spdMul=d>FAR_DIST?2:1; const mv=(z.swing>0?.2:1)*(z.stun>0?.15:1)*(z.scream>0?0:1)*z.spdMul; z.x+=tx*z.spd*mv*dt; z.z+=tz*z.spd*mv*dt;
     if(z.kvx||z.kvz){ z.x+=z.kvx*dt; z.z+=z.kvz*dt; const f=Math.max(0,1-5*dt); z.kvx*=f; z.kvz*=f; if(Math.abs(z.kvx)+Math.abs(z.kvz)<.1) z.kvx=z.kvz=0; }
     for(const o of S.zombies) if(o!==z&&!o.archer){ const ox=z.x-o.x, oz=z.z-o.z, od=Math.hypot(ox,oz), m=z.r+o.r;
       if(od>0&&od<m){ const p=(m-od)*.5*Math.min(1,dt*8); z.x+=ox/od*p; z.z+=oz/od*p; } }
@@ -1614,7 +1615,7 @@ function render(dt){
       z.g.position.set(z.x,z.y0||0,z.z); z.g.rotation.y=z.face!==undefined?z.face:Math.atan2(P.x-z.x,P.z-z.z);
       if(!isPaused()){ z.snd=(z.snd===undefined?rnd(.5,5):z.snd)-dt; if(z.snd<=0){ z.snd=rnd(2.5,6.5); if(!z.archer) sfx('zgroan',z.x,z.z,1,zPitch(z)); }
         if(z.brute&&z.spd>.3){ z.stepAcc=(z.stepAcc||0)+dt*z.spd; if(z.stepAcc>=1.5){ z.stepAcc=0; sfx('bstep',z.x,z.z); const dd=Math.hypot(P.x-z.x,P.z-z.z); if(dd<12) S.shake=Math.max(S.shake,.07*(1-dd/12)); } } }
-      if(!isPaused()) z.phase+=dt*z.spd*3.2*(z.swing>0?.3:1); animZombie(z,dt);
+      if(!isPaused()) z.phase+=dt*z.spd*(z.spdMul||1)*3.2*(z.swing>0?.3:1); animZombie(z,dt);
       if(z.flash>0){ z.flash-=dt; } z.skin.emissive.setHex(z.flash>0?0xaa0000:(z.burn>0?0x993300:(z.buff>0?0x2a0610:(z.scream>0?0x6b4fa0:0))));
       if(z.glow&&z.buff>0){ const pl=.5+.5*Math.sin(clock*6+z.phase); z.glow.material.opacity=.16+.12*pl; z.glow.scale.set(.85+.05*pl,1.2+.05*pl,.85+.05*pl); }
       z.bar.position.set(z.x,(z.y0||0)+z.height+.35,z.z); z.bar.quaternion.copy(camera.quaternion);
