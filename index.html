@@ -386,7 +386,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, sec:{}, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -399,7 +399,7 @@ function runSnapshot(){
   const busy=S.toSpawn>0||S.zombies.length>0;
   return {re:S.runEarned,rt:S.runTok,cash:S.cash,owned:S.owned,weapon:S.weapon,hpBuys:S.hpBuys,wave:busy?Math.max(0,S.wave-1):S.wave,cleared:S.cleared,railMode:S.railMode,bladeMode:S.bladeMode};
 }
-function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,cl:S.cashLv,tk:S.tokens,wu:S.wu,sec:S.sec,kills:S.kills,run:(S.mode==='game'&&!NET.active&&!S.hc&&!S.vc)?runSnapshot():S.savedRun}; }
+function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,cl:S.cashLv,tk:S.tokens,wu:S.wu,sec:S.sec,se:S.secEq,kills:S.kills,run:(S.mode==='game'&&!NET.active&&!S.hc&&!S.vc)?runSnapshot():S.savedRun}; }
 function saveGame(){
   const js=JSON.stringify(savePayload()); let ok=false;
   try{ localStorage.setItem(SAVE_KEY,js); ok=localStorage.getItem(SAVE_KEY)===js; }catch(e){}
@@ -409,7 +409,7 @@ function saveGame(){
 }
 function parseSave(js){ try{ const d=JSON.parse(js); return d&&d.v===1?d:null; }catch(e){ return null; } }
 function applySave(d){
-  S.rebirths=Math.min(6,Math.max(0,d.rebirths|0)); S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.sec={}; if(d.sec&&typeof d.sec==='object') for(const o of SECONDARIES) if(d.sec[o.id]) S.sec[o.id]=true; S.kills={}; if(d.kills&&typeof d.kills==='object') for(const k in d.kills) S.kills[k]=Math.max(0,Math.min(1e7,d.kills[k]|0)); S.wu={}; if(d.wu&&typeof d.wu==='object') for(const w of WEAPONS) if(w.tokens&&d.wu[w.id]) S.wu[w.id]=true; buildShop(); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true;
+  S.rebirths=Math.min(6,Math.max(0,d.rebirths|0)); S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.sec={}; if(d.sec&&typeof d.sec==='object') for(const o of SECONDARIES) if(d.sec[o.id]) S.sec[o.id]=true; S.secEq=(d.se&&S.sec[d.se])?d.se:null; S.kills={}; if(d.kills&&typeof d.kills==='object') for(const k in d.kills) S.kills[k]=Math.max(0,Math.min(1e7,d.kills[k]|0)); S.wu={}; if(d.wu&&typeof d.wu==='object') for(const w of WEAPONS) if(w.tokens&&d.wu[w.id]) S.wu[w.id]=true; buildShop(); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true;
   if(r&&r.owned&&r.owned.glock&&WEAPONS_IDS.includes(r.weapon)) S.savedRun={re:+r.re||0,rt:r.rt|0,cash:+r.cash||0,owned:r.owned,weapon:r.weapon,hpBuys:r.hpBuys|0,wave:r.wave|0,cleared:r.cleared|0,railMode:r.railMode==='blaster'?'blaster':'laser',bladeMode:['blood','wing','earth'].includes(r.bladeMode)?r.bladeMode:'blood'};
 }
 function loadGame(){
@@ -422,7 +422,7 @@ function loadGame(){
   else { try{ S.rebirths=Math.min(6,Math.max(0,parseInt(localStorage.getItem('zs_rebirths'))||0)); }catch(e){} } // very old save format
   saveGame(); // write everything back (also tests whether saving works)
 }
-function resetProgress(){ S.sec={}; S.kills={}; S.rebirths=0; S.wu={}; S.up={}; S.cashLv=0; S.tokens=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
+function resetProgress(){ S.sec={}; S.secEq=null; S.kills={}; S.rebirths=0; S.wu={}; S.up={}; S.cashLv=0; S.tokens=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
 function exportCode(){ return btoa(unescape(encodeURIComponent(JSON.stringify(savePayload())))); }
 function importCode(txt){
   txt=(txt||'').trim(); if(!txt) return false;
@@ -2104,7 +2104,7 @@ function colossusStep(z,dt,d){
   else { z.smCd-=dt; if(z.smCd<=0&&d<16){ z.smN=3; z.smT=SM_T; sfx('roar',z.x,z.z); } }
 }
 function throwGrenade(){
-  if(S.mode!=='game'||!S.sec.grenade||S.downed||S.shopOpen||S.rebirthOpen||S.pauseOpen||S.grCd>0) return;
+  if(S.mode!=='game'||S.secEq!=='grenade'||S.downed||S.shopOpen||S.rebirthOpen||S.pauseOpen||S.grCd>0) return;
   S.grCd=SECONDARIES[0].cd; _o.set(P.x,EYE,P.z); dirFrom(P.yaw,P.pitch,_d);
   const o=[_o.x+_d.x*.6,_o.y-.2+_d.y*.6,_o.z+_d.z*.6], v=[_d.x*17,_d.y*17+4,_d.z*17];
   spawnGrenade(o,v,false); netShot({k:'gr',o,v}); sfx('swing',undefined,undefined,.6,1.3);
@@ -2562,7 +2562,7 @@ function updateHud(){
       L.push('E · Release Souls · '+(S.ghoul>0?'GHOUL '+S.ghoul.toFixed(0)+'s':(S.souls>=SOULS_NEED?'READY':S.souls+'/'+SOULS_NEED+' souls')));
       if(U('throw')) L.push('C · Scythe Throw · '+(S.thrown?'flying…':(S.throwCd>0?S.throwCd.toFixed(1)+'s':'READY'))); }
     else { const ab=S.weapon==='vampire'&&((S.bladeMode==='blood'&&U('hook')&&'Blood Hook')||(S.bladeMode==='wing'&&U('wind')&&'Strong Wind')||(S.bladeMode==='earth'&&U('smash')&&'Earth Spikes')); if(ab) L.push('Q · '+ab+' · '+(S.abCd>0?S.abCd.toFixed(1)+'s':'READY')); }
-    if(S.sec.grenade) L.push('X · Grenade · '+(S.grCd>0?S.grCd.toFixed(1)+'s':'READY'));
+    if(S.secEq==='grenade') L.push('X · Grenade · '+(S.grCd>0?S.grCd.toFixed(1)+'s':'READY'));
     if(L.length){ el.style.display='block'; el.textContent=L.join('\n'); } else el.style.display='none'; }
   { const el=$('skipTxt'); if(S.rebirths>=2&&S.mode==='game'){ el.style.display='block'; el.textContent=S.skipT>=0?'⏩ Skipping wave in '+S.skipT.toFixed(1)+'s…':'T · Skip Wave · '+(S.skipCd>0?S.skipCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; }
   { const bz=S.zombies.find(z=>(z.vmaster||z.colossus||z.hboss)&&!z.dead), bb=$('bossBar'); if(bz){ bb.style.display='block'; $('bossName').textContent=bz.vmaster?'VOID MASTER':(bz.hboss?'HOWLER OVERLORD':'COLOSSUS'); $('bossFill').style.background=bz.vmaster?'linear-gradient(90deg,#7e22ce,#d946ef)':'linear-gradient(90deg,#991b1b,#f97316)'; $('bossFill').style.width=Math.max(0,bz.hp/bz.max*100)+'%'; } else bb.style.display='none'; }
@@ -3207,17 +3207,17 @@ function buildWs(){
     c.querySelector('button').onclick=()=>{ if(S.wu[w.id]||S.tokens<w.tokens) return; S.tokens-=w.tokens; S.wu[w.id]=true; sfx('buy'); pop(c); buildShop(); saveGame(); updateWs(); };
     g.appendChild(c);
   } }
-  { const hd=document.createElement('div'); hd.style.cssText='grid-column:1/-1;font-size:13px;letter-spacing:3px;color:#fbbf24;font-weight:800;margin-top:8px;border-bottom:1px solid #3a2e16;padding-bottom:4px'; hd.textContent='SECONDARY – used together with any weapon'; g.appendChild(hd);
+  { const hd=document.createElement('div'); hd.style.cssText='grid-column:1/-1;font-size:13px;letter-spacing:3px;color:#fbbf24;font-weight:800;margin-top:8px;border-bottom:1px solid #3a2e16;padding-bottom:4px'; hd.textContent='SECONDARY – equip 1 in the lobby, used together with any weapon'; g.appendChild(hd);
     for(const o of SECONDARIES){ const c=document.createElement('div'); c.className='ucard'; c.id='wsec-'+o.id;
       c.innerHTML=`<div class="ctop"><div class="ico">${o.ico}</div><div><div class="wn">Press ${o.key} · ${o.cd} s cooldown</div><div class="un">${o.name}</div></div></div><div class="ud">${o.desc}</div><button></button>`;
-      c.querySelector('button').onclick=()=>{ if(S.sec[o.id]||S.tokens<o.tokens) return; S.tokens-=o.tokens; S.sec[o.id]=true; sfx('buy'); pop(c); saveGame(); updateWs(); };
+      c.querySelector('button').onclick=()=>{ if(S.sec[o.id]){ S.secEq=(S.secEq===o.id)?null:o.id; sfx('equip'); saveGame(); updateWs(); return; } if(S.tokens<o.tokens) return; S.tokens-=o.tokens; S.sec[o.id]=true; if(!S.secEq) S.secEq=o.id; sfx('buy'); pop(c); saveGame(); updateWs(); };
       g.appendChild(c); } }
 }
 function updateWs(){
   $('wsChip').textContent=`🪙 ${S.tokens} tokens`;
   for(const w of WEAPONS.filter(x=>x.tokens)){ const c=$('ws-'+w.id), b=c.querySelector('button'), own=!!S.wu[w.id]; c.classList.toggle('owned',own);
     b.textContent=own?'Owned ✓ (in your weapon shop)':'Buy — '+w.tokens+' 🪙 tokens'; b.disabled=!own&&S.tokens<w.tokens; b.style.opacity=b.disabled&&!own?.5:1; }
-  for(const o of SECONDARIES){ const c=$('wsec-'+o.id), b=c.querySelector('button'), own=!!S.sec[o.id]; c.classList.toggle('owned',own); b.textContent=own?'Owned ✓ (press '+o.key+' in a run)':'Buy — '+o.tokens+' 🪙 tokens'; b.disabled=!own&&S.tokens<o.tokens; b.style.opacity=b.disabled&&!own?.5:1; }
+  for(const o of SECONDARIES){ const c=$('wsec-'+o.id), b=c.querySelector('button'), own=!!S.sec[o.id]; c.classList.toggle('owned',S.secEq===o.id); b.textContent=own?(S.secEq===o.id?'Equipped ✓ (click to unequip) – press '+o.key+' in a run':'Equip – only 1 secondary at a time'):'Buy — '+o.tokens+' 🪙 tokens'; b.disabled=!own&&S.tokens<o.tokens; b.style.opacity=b.disabled&&!own?.5:1; }
 }
 function openWs(){ if(S.mode!=='lobby') return; sfx('open'); S.upOpen=true; S.wsOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('ws').style.display='flex'; requestAnimationFrame(()=>$('ws').classList.add('open')); updateWs(); }
 function closeWs(){ S.upOpen=false; S.wsOpen=false; $('ws').classList.remove('open'); setTimeout(()=>{ if(!S.upOpen) $('ws').style.display='none'; },200); const pw=LOBBY.pads.ws; P.x=pw.x; P.z=pw.z+4.6; }
