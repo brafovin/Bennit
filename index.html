@@ -264,6 +264,7 @@ const WEAPONS = [
   {id:'lava',   name:'Lava Blaster',cost:10000,dmg:250,cd:1.0,  rebirth:2, desc:'Lava balls: 250 explosion dmg, leave a giant lava puddle (10 dmg / 0.1s + burning)'},
   {id:'railgun',name:'Railgun',    cost:17500,dmg:75, cd:0.05,  rebirth:3, desc:'75 dmg / 0.05s piercing laser, overheats. Press E: Railblaster (1000 dmg explosive balls / 1s)'},
   {id:'orbital',name:'Orbital Cannon',cost:35000,dmg:5000,cd:2.0,rebirth:4, desc:'Giant red ball sucks enemies in, explodes after 1.5s for 5000 dmg / 2s'},
+  {id:'ostrike',name:'Orbital Strike',cost:100000,dmg:100,cd:0.01,rebirth:6, desc:'Giant white laser, 100 dmg / 0.01s. One click = it fires 5s and cannot be cancelled, then 10s cooldown'},
   {id:'vampire',name:'Vampire Blade',cost:50000,dmg:6666,cd:0.66,rebirth:5, desc:'Melee blade, 6666 dmg, heals 1% of damage dealt. E: Wind Blade / Earth Blade'},
 ];
 const LAVA_R=4, ORB_PULL=10, ORB_R=6;
@@ -282,6 +283,7 @@ const UPG=[
   {id:'lava',w:'lava',name:'More Lava',desc:'Bigger explosion and pool, the pool stays 3s longer and the lava deals 2x damage.'},
   {id:'laser',w:'railgun',mode:'Laser mode',name:'Stronger Laser',desc:'A wider, real continuous laser beam instead of many single shots.'},
   {id:'balls',w:'railgun',mode:'Railblaster mode',name:'Stronger Laserballs',desc:'Bigger balls with a bigger explosion.'},
+  {id:'hyper',w:'ostrike',name:'Hypercharge',desc:'After its 5 seconds the beam turns purple-red for 2 more seconds and deals 200 damage every 0.01s. The cooldown afterwards grows to 15 seconds.'},
   {id:'hole',w:'orbital',name:'Black Hole',desc:'Red-purple theme, colour-changing ball, longer pull range and a second explosion (2000 dmg) 0.5s later.'},
   {id:'hook',w:'vampire',mode:'Blood mode',name:'Blood Hook',desc:'Press Q: dash forward and stab enemies for 10000 damage each. Lifesteal 5% (was 1%).'},
   {id:'wind',w:'vampire',mode:'Wind mode',name:'Strong Wind',desc:'Press Q: a giant wind wave deals 5000 damage and pushes every enemy around you away.'},
@@ -337,7 +339,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -873,6 +875,14 @@ function buildGun(id,forAvatar){
     A(cyv(.075,.075,0x1a1c20,0,-.12,-.18,'metal'), cyv(.08,.014,0xea580c,0,-.085,-.18,'metal'), cyv(.08,.014,0xea580c,0,-.155,-.18,'metal'));
     for(let i=0;i<4;i++) A(bx(.066,.056,.012,0x0e0e10,0,-.12,-.24+i*.03,'matte'));
     tip=1.04;
+  } else if(id==='ostrike'){
+    g.scale.setScalar(.6); g.position.z=-.05;
+    const wh=0xe5e7eb, dk=0x1c2030, gl=0x67e8f9;
+    A(cy(.055,1.1,wh,0,0,-.55,'metal'), cy(.09,.22,dk,0,0,-1.08,'metal'), cy(.045,.03,0xffffff,0,0,-1.2,'glow'), ring(.1,.014,gl,0,0,-1.17,'glow'),
+      bx(.13,.17,.5,dk,0,-.01,.05,'metal'), bx(.1,.03,.3,gl,0,.1,.05,'glow'), bx(.02,.16,.5,wh,.075,0,-.35,'metal'), bx(.02,.16,.5,wh,-.075,0,-.35,'metal'),
+      bx(.05,.16,.07,dk,0,-.14,.12,'matte',.2), bx(.07,.12,.22,dk,0,-.04,.38,'matte',-.1), cy(.08,.3,0x8b95a7,0,.0,-.12,'metal'));
+    for(const z0 of [-.3,-.55,-.8]) A(ring(.065,.01,0xffffff,0,0,z0,'glow'));
+    tip=1.22;
   } else if(id==='minigun'){
     g.scale.setScalar(.68); g.position.z=-.1;
     const olive=0x39402f, steel=0x4a4f58, dk=0x23262c, brass=0xc9a227;
@@ -1436,7 +1446,7 @@ function leaveRun(){
 }
 $('leaveBtn').addEventListener('click',e=>{ e.stopPropagation(); if($('leaveBtn').textContent.startsWith('Really')) leaveRun(); else leaveArm(true); });
 function enterLobby(){
-  mpCleanupGame(); S.downed=false; S.pulls=[]; S.delayed=[]; S.dash=null; S.abCd=0; S.skipT=-1; S.skipCd=0; for(const sp of S.spikes){ gameG.remove(sp.m); } S.spikes=[];
+  resetOS(); mpCleanupGame(); S.downed=false; S.pulls=[]; S.delayed=[]; S.dash=null; S.abCd=0; S.skipT=-1; S.skipCd=0; for(const sp of S.spikes){ gameG.remove(sp.m); } S.spikes=[];
   P.y=0; P.vy=0; EYE=EYE0;
   closeRebirth(); clearProjs(); clearChests();
   for(const z of S.zombies) removeZombie(z); S.zombies=[]; for(const z of S.corpses) removeZombie(z); S.corpses=[];
@@ -1451,7 +1461,7 @@ function startGame(opts){
   S.hc=hc; S.vc=vc; setArena(hc,vc);
   setMode('game');
   const sv=(mp||hc||vc)?null:S.savedRun;
-  S.runEarned=sv?(sv.re||0):0; S.runTok=sv?(sv.rt||0):0; S.tokGain=0;
+  resetOS(); S.runEarned=sv?(sv.re||0):0; S.runTok=sv?(sv.rt||0):0; S.tokGain=0;
   S.cash=sv?sv.cash:0; S.hpBuys=sv?sv.hpBuys:0; S.cleared=sv?sv.cleared:0; S.railMode=sv?sv.railMode:'laser'; S.bladeMode=sv?sv.bladeMode:'blood'; S.hp=S.maxHp=hpMax(); P.y=0; P.vy=0; EYE=EYE0; clearChests(); S.chestT=30; S.shake=0; S.swing=0; clearProjs(); S.owned=sv?{...sv.owned}:{glock:true}; S.weapon=sv?sv.weapon:'glock';
   S.wave=sv?sv.wave:0; S.breakT=2; S.toSpawn=0; S.heat=0; S.lock=0; S.bossSpawned=false; S.fireCd=0;
   if(opts&&opts.bricks) buildMap(opts.bricks); else genMap();
@@ -1708,6 +1718,40 @@ function contBeam(a,b){
   const wob=1+Math.sin(clock*60)*.12; cb.outer.scale.set(.2*wob,len,.2*wob); cb.inner.scale.set(.07,len,.07); cb.t=.09;
 }
 function updateCbeam(dt){ const cb=S.cbeam; if(cb){ cb.t-=dt; if(cb.t<=0){ scene.remove(cb.g); cb.outer.material.dispose(); cb.inner.material.dispose(); S.cbeam=null; } } }
+const OS_FIRE=5, OS_HYPER=2, OS_COOL=10, OS_COOL_H=15;
+function resetOS(){ S.os={ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}; if(S.osbeam){ scene.remove(S.osbeam.g); S.osbeam.o.material.dispose(); S.osbeam.i.material.dispose(); S.osbeam=null; } }
+function startOS(){ S.os={ph:'fire',t:OS_FIRE,acc:0,ft:.3,nt:0,hm:0}; sfx('osfire'); say('ORBITAL STRIKE!',1.2); }
+function osBeam(a,b,hy){
+  let ob=S.osbeam;
+  if(!ob){ const g=new THREE.Group(), mk=(c,o)=>new THREE.Mesh(beamGeo,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,depthWrite:false,blending:THREE.AdditiveBlending})); const o=mk(0xffffff,.45), i=mk(0xffffff,1); g.add(o,i); scene.add(g); ob=S.osbeam={g,o,i}; }
+  const dir=b.clone().sub(a), len=dir.length(); dir.normalize();
+  ob.g.position.copy(a).addScaledVector(dir,len/2); ob.g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
+  const wob=1+Math.sin(clock*70)*.1; ob.o.scale.set(1.5*wob,len,1.5*wob); ob.i.scale.set(.55,len,.55);
+  ob.o.material.color.setHex(hy?0xa21caf:0xbfe9ff); ob.i.material.color.setHex(hy?0xff3b6b:0xffffff);
+}
+function updateOS(dt){
+  const o=S.os; if(o.ph==='idle'){ return; }
+  o.t-=dt;
+  if(o.ph==='fire'||o.ph==='hyper'){
+    const hy=o.ph==='hyper', dmg=hy?200:100;
+    _o.set(P.x,EYE,P.z); dirFrom(P.yaw,P.pitch,_d); gunMuzzle.getWorldPosition(_m); const _b=_o.clone().addScaledVector(_d,90);
+    osBeam(_m,_b,hy);
+    o.acc+=dt; let n=Math.floor(o.acc/.01); o.acc-=n*.01; n=Math.min(n,8);
+    if(n>0){ let any=false;
+      for(const z of S.zombies){ if(z.dead||z.hp<=0) continue; const t=rayZombie(_o,_d,z,.9);
+        if(t<=120){ const pos=new THREE.Vector3(_o.x+_d.x*t,_o.y+_d.y*t,_o.z+_d.z*t); hurtZombie(z,dmg*n,pos,null,true); z.osSum=(z.osSum||0)+Math.round(dmg*n*mult().dmg); z.osPos=pos; any=true; } }
+      o.hm-=dt; if(any&&o.hm<=0){ o.hm=.15; hitMarker(); } }
+    o.ft-=dt; if(o.ft<=0){ o.ft=.35; for(const z of S.zombies) if(z.osSum){ floatText(z.osPos||new THREE.Vector3(z.x,z.height,z.z),fmtN(z.osSum),hy?'#f43f5e':'#ffffff'); z.osSum=0; } }
+    o.nt-=dt; if(o.nt<=0){ o.nt=.07; netShot({k:'b',big:1,hy:hy?1:0,a:[_m.x,_m.y,_m.z],b:[_b.x,_b.y,_b.z]}); }
+    S.shake=Math.max(S.shake,hy?.25:.12);
+  }
+  if(o.t<=0){
+    if(o.ph==='fire'){ if(U('hyper')){ o.ph='hyper'; o.t=OS_HYPER; sfx('osfire'); say('HYPERCHARGE!',1.2); } else { o.ph='cool'; o.t=OS_COOL; } }
+    else if(o.ph==='hyper'){ o.ph='cool'; o.t=OS_COOL_H; }
+    else { o.ph='idle'; }
+    if(o.ph==='cool'){ sfx('oscool'); if(S.osbeam){ scene.remove(S.osbeam.g); S.osbeam.o.material.dispose(); S.osbeam.i.material.dispose(); S.osbeam=null; } say('Orbital Strike overcharged – cooling',1.5); }
+  }
+}
 function fireLaser(w){
   _o.set(P.x,EYE,P.z); dirFrom(P.yaw,P.pitch,_d); let any=false; const up=U('laser'), ex=up?.4:0;
   for(const z of S.zombies){ if(z.dead) continue; const t=rayZombie(_o,_d,z,ex);
@@ -1897,6 +1941,7 @@ function fire(){
   const w=ew(wpn());
   if(S.fireCd>0||(heated(w)&&S.lock>0)) return;
   if(w.id==='vampire'){ meleeAttack(); return; }
+  if(w.id==='ostrike'){ if(S.os.ph==='idle') startOS(); return; }
   S.fireCd=(w.id==='railgun'&&S.railMode==='blaster')?1:w.cd;
   fireSfx(w);
   if(w.id==='lava'||w.id==='orbital'||(w.id==='railgun'&&S.railMode==='blaster')){ launch(w); kick=Math.min(.25,kick+.2); flashT=.06; flash.visible=true; return; }
@@ -1943,6 +1988,7 @@ function update(dt){
     if(S.lock>0&&Math.random()<dt*45){ gunMuzzle.getWorldPosition(_m); _m.x+=(Math.random()-.5)*.05; smoke(_m); }
   } else S.heat=0;
 
+  updateOS(dt);
   if(NET.role!=='client') for(let i=S.zombies.length-1;i>=0;i--) if(S.zombies[i].hp<=0){ killZombie(S.zombies[i]); S.zombies.splice(i,1); }
   updateProjs(dt); updatePuddles(dt); updateChests(dt); updateCbeam(dt); updateSpikes(dt);
   for(const d of S.delayed) d.t-=dt; { const due=S.delayed.filter(d=>d.t<=0); if(due.length){ S.delayed=S.delayed.filter(d=>d.t>0); for(const d of due) d.fn(); } }
@@ -2079,9 +2125,10 @@ function updateHud(){
   const wn=wpn(); $('wpnTxt').textContent=wn.id==='vampire'?BLADE[S.bladeMode].name+' · E: switch mode'+(S.bladeMode==='wing'?' · SPACE: jump':''):wn.id==='railgun'?(S.railMode==='laser'?'Railgun (Laser) · E: switch mode':'Railblaster · E: switch mode'):wn.name;
   { const ab=S.weapon==='vampire'&&((S.bladeMode==='blood'&&U('hook')&&'Blood Hook')||(S.bladeMode==='wing'&&U('wind')&&'Strong Wind')||(S.bladeMode==='earth'&&U('smash')&&'Earth Spikes')); const el=$('abTxt'); if(ab){ el.style.display='block'; el.textContent='Q · '+ab+' · '+(S.abCd>0?S.abCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; }
   { const el=$('skipTxt'); if(S.rebirths>=2&&S.mode==='game'){ el.style.display='block'; el.textContent=S.skipT>=0?'⏩ Skipping wave in '+S.skipT.toFixed(1)+'s…':'T · Skip Wave · '+(S.skipCd>0?S.skipCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; }
-  const mini=heated(wpn());
+  const mini=heated(wpn()), osw=wpn().id==='ostrike';
   if(NET.active) updateTeamHud(); else if($('team').innerHTML) $('team').innerHTML='';
-  $('heatWrap').style.display=mini?'block':'none'; $('heatTxt').style.display=mini&&S.lock>0?'block':'none';
+  $('heatWrap').style.display=(mini||osw)?'block':'none'; $('heatTxt').style.display=((mini&&S.lock>0)||(osw&&S.os.ph==='cool'))?'block':'none';
+  if(osw){ const o=S.os, hy=o.ph==='hyper'; let f=1, col='#22d3ee', lb='READY – click to fire (cannot be cancelled)'; if(o.ph==='fire'){ f=o.t/OS_FIRE; col='#f8fafc'; lb='FIRING '+o.t.toFixed(1)+'s'; } else if(hy){ f=o.t/OS_HYPER; col='#f43f5e'; lb='HYPERCHARGE '+o.t.toFixed(1)+'s'; } else if(o.ph==='cool'){ f=1-o.t/(U('hyper')?OS_COOL_H:OS_COOL); col='#6b7280'; lb='COOLING'; $('heatTxt').textContent='OVERCHARGED – cooling '+o.t.toFixed(1)+'s'; } $('heat').style.width=(f*100)+'%'; $('heat').style.background=col; $('heatLbl').textContent=lb; }
   if(mini){ const f=S.lock>0?1-S.lock/MINI_LOCK:S.heat; $('heat').style.width=(f*100)+'%'; $('heat').style.background=S.lock>0?'#6b7280':`hsl(${60-60*S.heat},100%,50%)`; $('heatTxt').textContent='OVERCHARGED – cooling '+S.lock.toFixed(1)+'s'; $('heatLbl').textContent=S.lock>0?'COOLING':'OVERCHARGE '+Math.round(S.heat*100)+'%'; }
   if(S.toSpawn===0&&S.zombies.length===0&&S.breakT>0&&S.msgT<=0){ $('msg').textContent='Next wave in '+Math.ceil(S.breakT)+'…'; $('msg').style.opacity=1; $('msg').style.fontSize='28px'; }
   else $('msg').style.fontSize='44px';
@@ -2099,6 +2146,7 @@ const WINFO={
   lava:{ico:'🌋',tags:['Explosion','Lava pool','Burn'],note:'Lobbed lava balls explode (3 m) and leave a pool: 10 dmg / 0.1 s + burning.'},
   railgun:{ico:'⚡',tags:['Pierces all','Overheats','E: Railblaster'],note:'Blue laser pierces everything. E = Railblaster: 1000 dmg explosive balls / 1 s.'},
   vampire:{ico:'🗡️',tags:['Melee','Lifesteal','E: 3 modes'],note:'Blood: 6666 dmg / 0.66 s, heals 1% of damage. Wind (E): 2500 / 0.25 s, +50% speed, SPACE = high jump + wind wave. Earth (E): 7500 / 1.5 s, 360° shockwave.'},
+  ostrike:{ico:'☄️',tags:['Pierces all','Can\'t cancel','Giant laser'],note:'One click fires a giant white laser for 5 s (100 dmg / 0.01 s, pierces everything). It cannot be stopped, then it cools down for 10 s.'},
   orbital:{ico:'🔴',tags:['Black hole','Huge blast'],note:'Giant sphere sucks enemies in, then explodes after 1.5 s (6 m radius).'},
 };
 const lg=(v,m)=>Math.min(100,Math.log(v+1)/Math.log(m+1)*100);
@@ -2156,7 +2204,7 @@ const renderShop=updateShop;
 function openShop(){ if(S.mode!=='game') return; sfx('open'); closeRebirth(); S.shopOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('shop').classList.add('open'); updateShop(); }
 function closeShop(){ S.shopOpen=false; $('shop').classList.remove('open'); }
 buildShop();
-function equip(id){ S.weapon=id; S.heat=0; S.lock=0; S.fireCd=0; buildGun(id); saveGame(); }
+function equip(id){ if(S.weapon==='ostrike'&&(S.os.ph==='fire'||S.os.ph==='hyper')) return; S.weapon=id; S.heat=0; S.lock=0; S.fireCd=0; buildGun(id); saveGame(); }
 $('shopBtn').addEventListener('click',()=>S.shopOpen?closeShop():openShop());
 $('close').addEventListener('click',closeShop);
 
@@ -2464,9 +2512,9 @@ function clientTick(dt){
   }
 }
 function handleShot(m){
-  { const w=(NET.players[m.by]||{}).w||'glock'; if(m.k==='t') sfx(WSOUND[w]||'glock',m.a[0],m.a[2],.8); else if(m.k==='b') sfx('railgun',m.a[0],m.a[2]); else if(m.k==='p') sfx(m.kind==='lava'?'lava':m.kind==='blaster'?'blaster':'orbital',m.o[0],m.o[2]); }
+  { const w=(NET.players[m.by]||{}).w||'glock'; if(m.k==='t') sfx(WSOUND[w]||'glock',m.a[0],m.a[2],.8); else if(m.k==='b'&&!m.big) sfx('railgun',m.a[0],m.a[2]); else if(m.k==='p') sfx(m.kind==='lava'?'lava':m.kind==='blaster'?'blaster':'orbital',m.o[0],m.o[2]); }
   if(m.k==='t') tracer(new THREE.Vector3(...m.a),new THREE.Vector3(...m.b));
-  else if(m.k==='b') beam(new THREE.Vector3(...m.a),new THREE.Vector3(...m.b),0x38bdf8,.04);
+  else if(m.k==='b') m.big?(beam(new THREE.Vector3(...m.a),new THREE.Vector3(...m.b),m.hy?0xff3b6b:0xffffff,.4)):beam(new THREE.Vector3(...m.a),new THREE.Vector3(...m.b),0x38bdf8,.04);
   else if(m.k==='p'){
     const c=PROJ[m.kind]; if(!c) return;
     const mesh=new THREE.Mesh(sphGeo,new THREE.MeshBasicMaterial({color:c.col})); mesh.scale.setScalar(c.r); mesh.position.set(...m.o);
@@ -2581,6 +2629,8 @@ const SND={
   zatk:{v:.7,gap:60,range:26,f:(o,p)=>{ p=p||1; noise({dur:.25,vol:.4,ft:'bandpass',f:400,f2:1200,out:o}); tone({f:130*p,f2:70*p,dur:.3,type:'sawtooth',vol:.4,lp:700,out:o}); }},
   zdie:{v:.8,gap:50,range:34,f:(o,p)=>{ p=p||1; tone({f:150*p,f2:40,dur:.5,type:'sawtooth',vol:.4,lp:600,out:o}); noise({dur:.25,vol:.4,ft:'lowpass',f:900,f2:200,out:o}); }},
   roar:{v:1,range:80,f:o=>{ tone({f:55,f2:35,dur:1.4,type:'sawtooth',vol:.8,lp:420,att:.2,out:o}); noise({dur:1.3,vol:.5,ft:'lowpass',f:600,f2:150,out:o}); }},
+  osfire:{v:1,range:90,f:o=>{ tone({f:90,f2:520,dur:1.2,type:'sawtooth',vol:.4,lp:2500,att:.05,out:o}); tone({f:900,f2:2600,dur:1.0,type:'square',vol:.12,att:.1,out:o}); noise({dur:1.0,vol:.35,ft:'bandpass',f:1500,f2:5000,out:o}); }},
+  oscool:{v:.8,range:60,f:o=>{ noise({dur:1.1,vol:.4,ft:'highpass',f:3000,f2:800,out:o}); tone({f:700,f2:120,dur:.9,type:'sine',vol:.25,out:o}); }},
   shbreak:{v:.8,range:55,f:o=>{ noise({dur:.45,vol:.5,ft:'highpass',f:1800,f2:600,out:o}); tone({f:900,f2:180,dur:.35,type:'square',vol:.22,lp:3000,out:o}); tone({f:2400,f2:900,dur:.2,type:'triangle',vol:.2,out:o}); }},
   crier:{v:1,range:95,f:o=>{ tone({f:520,f2:2300,dur:1.4,type:'sawtooth',vol:.45,lp:4500,att:.05,out:o}); tone({f:260,f2:1150,dur:1.4,type:'square',vol:.2,att:.05,out:o}); noise({dur:1.4,vol:.4,ft:'bandpass',f:3200,f2:2000,out:o}); }},
   scream:{v:.9,range:70,f:o=>{ tone({f:700,f2:1700,dur:1.2,type:'sawtooth',vol:.4,lp:3500,att:.1,out:o}); tone({f:1050,f2:2500,dur:1.2,type:'square',vol:.12,att:.1,out:o}); noise({dur:1.2,vol:.35,ft:'bandpass',f:2500,f2:1800,out:o}); }},
@@ -2644,7 +2694,7 @@ function audAmbience(){
   AUD.amb={lg,gg}; audAmbMode(S.mode);
 }
 function audAmbMode(m){ if(!AUD.amb) return; const t=AUD.ctx.currentTime; AUD.amb.lg.gain.setTargetAtTime(m==='lobby'?.6:0,t,.5); AUD.amb.gg.gain.setTargetAtTime(m==='game'?.12:0,t,.5); }
-const WSOUND={glock:'glock',rifle:'rifle',mg:'mg',shotgun:'shotgun',autoshot:'shotgun',minigun:'minigun',flame:'flame'};
+const WSOUND={ostrike:'railgun',glock:'glock',rifle:'rifle',mg:'mg',shotgun:'shotgun',autoshot:'shotgun',minigun:'minigun',flame:'flame'};
 function zPitch(z){ const s=z.desc?z.desc.s:1; let p=1.25/Math.pow(Math.max(.6,s),.6); if(z.desc&&z.desc.n&&z.desc.n.indexOf('Fast')===0) p*=1.35; if(z.brute) p*=.72; return p; }
 
 
