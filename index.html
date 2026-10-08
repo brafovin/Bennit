@@ -1797,7 +1797,7 @@ function doSkip(){
 }
 function useAbility(){
   if(S.mode!=='game'||S.downed||S.shopOpen||S.rebirthOpen||S.abCd>0||(S.weapon!=='vampire'&&S.weapon!=='reaper')) return;
-  if(S.weapon==='reaper'){ reaperSpin(); return; }
+  if(S.weapon==='reaper'){ if(!S.thrown) reaperSpin(); return; }
   if(S.bladeMode==='blood'&&U('hook')) abHook(); else if(S.bladeMode==='wing'&&U('wind')) abWind(); else if(S.bladeMode==='earth'&&U('smash')) abSpikes();
 }
 function abHook(){
@@ -2258,7 +2258,7 @@ function fire(){
   const w=ew(wpn());
   if(S.fireCd>0||(heated(w)&&S.lock>0)) return;
   if(w.id==='vampire'){ meleeAttack(); return; }
-  if(w.id==='reaper'){ reaperSlash(); return; }
+  if(w.id==='reaper'){ if(!S.thrown) reaperSlash(); return; }
   if(w.id==='chainsaw') return;
   if(w.id==='ostrike'){ if(S.os.ph==='idle') startOS(); return; }
   S.fireCd=(w.id==='railgun'&&S.railMode==='blaster')?1:w.cd;
@@ -2448,8 +2448,13 @@ function updateHud(){
   $('hpBar').style.width=Math.max(0,S.hp/S.maxHp*100)+'%'; $('hpTxt').textContent=Math.max(0,Math.ceil(S.hp))+' / '+S.maxHp;
   $('cashTxtHud').textContent='$ '+S.cash;
   $('waveTxt').textContent=`Wave ${S.wave} · Zombies: ${S.zombies.length+S.toSpawn}`+(S.rebirths?` · Rebirth ${S.rebirths}`:'')+(S.hc?' · ☠ HARDCORE':'')+(S.vc?' · 🌀 VOIDCORE MODE':'');
-  const wn=wpn(); $('wpnTxt').textContent=wn.id==='vampire'?BLADE[S.bladeMode].name+' · E: switch mode'+(S.bladeMode==='wing'?' · SPACE: jump':''):wn.id==='reaper'?('Soul Reaper · Souls '+S.souls+'/10'+(S.ghoul>0?' · 👻 GHOUL '+S.ghoul.toFixed(0)+'s':(S.souls>=10?' · E: release souls':''))+(U('throw')?' · C: throw'+(S.thrown?' …':(S.throwCd>0?' '+S.throwCd.toFixed(0)+'s':'')):'')):wn.id==='railgun'?(S.railMode==='laser'?'Railgun (Laser) · E: switch mode':'Railblaster · E: switch mode'):wn.name;
-  { const ab=S.weapon==='reaper'?'Spin Slash':S.weapon==='vampire'&&((S.bladeMode==='blood'&&U('hook')&&'Blood Hook')||(S.bladeMode==='wing'&&U('wind')&&'Strong Wind')||(S.bladeMode==='earth'&&U('smash')&&'Earth Spikes')); const el=$('abTxt'); if(ab){ el.style.display='block'; el.textContent='Q · '+ab+' · '+(S.abCd>0?S.abCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; }
+  const wn=wpn(); $('wpnTxt').textContent=wn.id==='vampire'?BLADE[S.bladeMode].name+' · E: switch mode'+(S.bladeMode==='wing'?' · SPACE: jump':''):wn.id==='reaper'?('Soul Reaper · Souls '+S.souls+'/10'+(S.ghoul>0?' · 👻 GHOUL':'')):wn.id==='railgun'?(S.railMode==='laser'?'Railgun (Laser) · E: switch mode':'Railblaster · E: switch mode'):wn.name;
+  { const el=$('abTxt'); el.style.whiteSpace='pre-line';
+    if(S.weapon==='reaper'){ const L=[]; L.push('Q · Spin Slash · '+(S.abCd>0?S.abCd.toFixed(1)+'s':(S.thrown?'scythe is away':'READY')));
+      L.push('E · Release Souls · '+(S.ghoul>0?'GHOUL '+S.ghoul.toFixed(0)+'s':(S.souls>=10?'READY':S.souls+'/10 souls')));
+      if(U('throw')) L.push('C · Scythe Throw · '+(S.thrown?'flying…':(S.throwCd>0?S.throwCd.toFixed(1)+'s':'READY')));
+      el.style.display='block'; el.textContent=L.join('\n'); }
+    else { const ab=S.weapon==='vampire'&&((S.bladeMode==='blood'&&U('hook')&&'Blood Hook')||(S.bladeMode==='wing'&&U('wind')&&'Strong Wind')||(S.bladeMode==='earth'&&U('smash')&&'Earth Spikes')); if(ab){ el.style.display='block'; el.textContent='Q · '+ab+' · '+(S.abCd>0?S.abCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; } }
   { const el=$('skipTxt'); if(S.rebirths>=2&&S.mode==='game'){ el.style.display='block'; el.textContent=S.skipT>=0?'⏩ Skipping wave in '+S.skipT.toFixed(1)+'s…':'T · Skip Wave · '+(S.skipCd>0?S.skipCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; }
   { const bz=S.zombies.find(z=>(z.vmaster||z.colossus||z.hboss)&&!z.dead), bb=$('bossBar'); if(bz){ bb.style.display='block'; $('bossName').textContent=bz.vmaster?'VOID MASTER':(bz.hboss?'HOWLER OVERLORD':'COLOSSUS'); $('bossFill').style.background=bz.vmaster?'linear-gradient(90deg,#7e22ce,#d946ef)':'linear-gradient(90deg,#991b1b,#f97316)'; $('bossFill').style.width=Math.max(0,bz.hp/bz.max*100)+'%'; } else bb.style.display='none'; }
   const mini=heated(wpn()), osw=wpn().id==='ostrike';
