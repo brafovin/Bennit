@@ -1635,9 +1635,9 @@ function pickType(){
   if(S.wave>=8&&Math.random()<.09&&S.zombies.filter(z=>z.crawler).length<5){ const b0=pickBase(); return {...b0,name:'Crawler '+b0.name,crawler:true,hp:b0.hp*.8,cash:b0.cash*1.2,spd:b0.spd*.65,size:b0.size*.95}; }
   if(vc&&Math.random()<.06){ const b0=pickBase(); return {...b0,name:'Void '+b0.name,voidz:true,hp:b0.hp*2,cash:b0.cash*2,col:0x2e1658}; }
   if(S.wave>=(vc?5:11)&&Math.random()<.14&&S.zombies.filter(z=>z.shielder).length<(vc?10:6)){ const b0=pickBase(); return {...b0,name:'Shielder '+b0.name,shielder:true}; }
-  if(!hc&&!vc&&S.wave>15&&Math.random()<.015&&!S.zombies.some(z=>z.colossus)) return {name:'Colossus',colossus:true,miniBoss:true,hp:5000,cash:3000,spd:1.3,col:0x6b2a1e,size:2.4,tier:5,base:'Boss'};
-  if(vc&&S.wave>15&&Math.random()<.02&&!S.zombies.some(z=>z.vmaster)) return {name:'Void Master',vmaster:true,miniBoss:true,hp:2500*100,cash:20000,spd:1.5,col:0x1a0b33,size:2.6,tier:4,base:'Boss'};
-  if(hc&&S.wave>15&&Math.random()<.01&&!S.zombies.some(z=>z.miniBoss)) return {...SCREAMER,name:'Howler Overlord',base:'Howler',hboss:true,miniBoss:true,hp:20000,cash:8000,spd:1.7,size:2.5,col:0x8c8499,tier:4};
+  if(!hc&&!vc&&S.wave>15&&Math.random()<.003&&!S.zombies.some(z=>z.colossus)) return {name:'Colossus',colossus:true,miniBoss:true,hp:5000,cash:3000,spd:1.3,col:0x6b2a1e,size:2.4,tier:5,base:'Boss'};
+  if(vc&&S.wave>15&&Math.random()<.004&&!S.zombies.some(z=>z.vmaster)) return {name:'Void Master',vmaster:true,miniBoss:true,hp:2500*100,cash:20000,spd:1.5,col:0x1a0b33,size:2.6,tier:4,base:'Boss'};
+  if(hc&&S.wave>15&&Math.random()<.002&&!S.zombies.some(z=>z.miniBoss)) return {...SCREAMER,name:'Howler Overlord',base:'Howler',hboss:true,miniBoss:true,hp:20000,cash:8000,spd:1.7,size:2.5,col:0x8c8499,tier:4};
   if(S.wave>=ARCHER_WAVE&&Math.random()<(hc?ARCHER_CHANCE*3:ARCHER_CHANCE)&&bricks.some(b=>(b.arch||0)<2)){ const b0=pickBase(); return {...b0,name:'Bowman '+b0.name,archer:true,hp:b0.hp*.75}; }
   if(S.wave>=SCREAMER.wave&&Math.random()<(hc?.25:.1)&&S.zombies.filter(z=>z.screamer).length<(hc?5:2)) return {...SCREAMER,base:'Howler'};
   const t=pickBase(), rare=t.tier>0&&S.wave<t.wave+NEW_WAVES?.5:1, roll=Math.random(), fc=FAST_CHANCE*rare;
