@@ -512,7 +512,7 @@ const LOBBY_ANIM={rocks:[],crystals:[],chevrons:[],pads:[],signs:[],gyro:[]};
   makePad('up','WEAPON UPGRADE\nSHOP',LOBBY.pads.up.x,LOBBY.pads.up.z,'n');
   makePad('ws','WEAPON\nSHOP',LOBBY.pads.ws.x,LOBBY.pads.ws.z,'n');
   makePad('hc','HARDCORE\nMODE',LOBBY.pads.hc.x,LOBBY.pads.hc.z);
-  makePad('vc','VOID CORE',LOBBY.pads.vc.x,LOBBY.pads.vc.z);
+  makePad('vc','VOIDCORE\nMODE',LOBBY.pads.vc.x,LOBBY.pads.vc.z);
   makePad('mp','MULTIPLAYER',LOBBY.pads.mp.x,LOBBY.pads.mp.z);
   // giant section signs
   function bigSign(txt,sub,cols,x,y,z,w,h){
@@ -527,7 +527,7 @@ const LOBBY_ANIM={rocks:[],crystals:[],chevrons:[],pads:[],signs:[],gyro:[]};
     for(const [bw,bh,bx,by] of [[w,.12,0,h/2],[w,.12,0,-h/2],[.12,h,-w/2,0],[.12,h,w/2,0]]) { const fm=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,.1),fc); fm.position.set(bx,by,0); grp.add(fm); }
     grp.add(glowSprite(parseInt(cols[0].slice(1),16),w*1.1,0,0,-.3)); lobbyG.add(grp); LOBBY_ANIM.signs.push({g:grp,x,z,y0:y});
   }
-  bigSign('PLAY','NORMAL  ·  HARDCORE  ·  VOID CORE  ·  MULTIPLAYER',['#4ade80','#ef4444','#a855f7','#60a5fa'],18,11,0,19,6.4);
+  bigSign('PLAY','NORMAL  ·  HARDCORE  ·  VOIDCORE MODE  ·  MULTIPLAYER',['#4ade80','#ef4444','#a855f7','#60a5fa'],18,11,0,19,6.4);
   bigSign('UPGRADES','WEAPON UPGRADE SHOP  ·  WEAPON SHOP',['#2dd4bf','#fbbf24'],-12,10,-14,17,5.4);
   // floating rocks + distant planet
   const rockM=new THREE.MeshLambertMaterial({color:0x2b2f45,flatShading:true});
@@ -1417,7 +1417,7 @@ function leaveArm(on){ clearTimeout(leaveTO); $('leaveBtn').textContent=on?'Real
 function openPause(){
   if(S.mode!=='game'||S.pauseOpen) return; S.pauseOpen=true; IN.down=false; for(const k in keys) keys[k]=false; flameSound(false);
   if(document.pointerLockElement) document.exitPointerLock(); leaveArm(false);
-  $('pauseInfo').innerHTML=`Wave ${S.wave} · $${S.cash.toLocaleString()}`+(S.hc?' · ☠ Hardcore':'')+(S.vc?' · 🌀 Void Core':'')+(NET.active?'<br>Multiplayer – the game keeps running!':'<br>Game paused');
+  $('pauseInfo').innerHTML=`Wave ${S.wave} · $${S.cash.toLocaleString()}`+(S.hc?' · ☠ Hardcore':'')+(S.vc?' · 🌀 VOIDCORE MODE':'')+(NET.active?'<br>Multiplayer – the game keeps running!':'<br>Game paused');
   $('pSound').textContent=AUD.muted?'🔇 Sound: off':'🔊 Sound: on'; $('pause').style.display='flex'; sfx('open');
 }
 function closePause(){ if(!S.pauseOpen&&$('pause').style.display!=='flex') { S.pauseOpen=false; return; } S.pauseOpen=false; $('pause').style.display='none'; leaveArm(false); }
@@ -1457,7 +1457,7 @@ function startGame(opts){
   if(opts&&opts.bricks) buildMap(opts.bricks); else genMap();
   P.x=MAP.w/2+(mp?[0,2.2,-2.2,0][NET.pid]:0); P.z=MAP.h/2+(mp?[0,0,0,2.2][NET.pid]:0); buildGun(S.weapon);
   S.downed=false; S.pulls=[]; NET.ghosts={}; NET.known={}; NET.nextZid=1; NET.nextCid=1;
-  say(sv?`Welcome back! Continuing at wave ${S.wave+1}`:(hc?'☠ HARDCORE MODE – good luck!':(vc?'🌀 VOID CORE – survive!':'Get ready!')),2.5); if(hc) showWarn('☠ HARDCORE MODE ☠',4); if(vc) showWarn('🌀 VOID CORE 🌀',4); S.saveT=5;
+  say(sv?`Welcome back! Continuing at wave ${S.wave+1}`:(hc?'☠ HARDCORE MODE – good luck!':(vc?'🌀 VOIDCORE MODE – survive!':'Get ready!')),2.5); if(hc) showWarn('☠ HARDCORE MODE ☠',4); if(vc) showWarn('🌀 VOIDCORE MODE 🌀',4); S.saveT=5;
 }
 
 /* ---------- Waves ---------- */
@@ -2074,7 +2074,7 @@ function render(dt){
 function updateHud(){
   $('hpBar').style.width=Math.max(0,S.hp/S.maxHp*100)+'%'; $('hpTxt').textContent=Math.max(0,Math.ceil(S.hp))+' / '+S.maxHp;
   $('cashTxtHud').textContent='$ '+S.cash;
-  $('waveTxt').textContent=`Wave ${S.wave} · Zombies: ${S.zombies.length+S.toSpawn}`+(S.rebirths?` · Rebirth ${S.rebirths}`:'')+(S.hc?' · ☠ HARDCORE':'')+(S.vc?' · 🌀 VOID CORE':'');
+  $('waveTxt').textContent=`Wave ${S.wave} · Zombies: ${S.zombies.length+S.toSpawn}`+(S.rebirths?` · Rebirth ${S.rebirths}`:'')+(S.hc?' · ☠ HARDCORE':'')+(S.vc?' · 🌀 VOIDCORE MODE':'');
   const wn=wpn(); $('wpnTxt').textContent=wn.id==='vampire'?BLADE[S.bladeMode].name+' · E: switch mode'+(S.bladeMode==='wing'?' · SPACE: jump':''):wn.id==='railgun'?(S.railMode==='laser'?'Railgun (Laser) · E: switch mode':'Railblaster · E: switch mode'):wn.name;
   { const ab=S.weapon==='vampire'&&((S.bladeMode==='blood'&&U('hook')&&'Blood Hook')||(S.bladeMode==='wing'&&U('wind')&&'Strong Wind')||(S.bladeMode==='earth'&&U('smash')&&'Earth Spikes')); const el=$('abTxt'); if(ab){ el.style.display='block'; el.textContent='Q · '+ab+' · '+(S.abCd>0?S.abCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; }
   { const el=$('skipTxt'); if(S.rebirths>=2&&S.mode==='game'){ el.style.display='block'; el.textContent=S.skipT>=0?'⏩ Skipping wave in '+S.skipT.toFixed(1)+'s…':'T · Skip Wave · '+(S.skipCd>0?S.skipCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; }
@@ -2271,8 +2271,8 @@ function mpRenderLobby(){
   for(let i=0;i<MP_MAX;i++){ const p=NET.players[i], d=document.createElement('div'); d.className='mpSlot'+(p?'':' empty');
     d.innerHTML=p?`<i style="background:#${MP_COLORS[p.color%4].toString(16).padStart(6,'0')}"></i><span>${p.name}${p.pid===0?' <em>(host)</em>':''}${p.pid===NET.pid?' <em>(you)</em>':''}</span>`:'<span>Waiting for player…</span>'; L.appendChild(d); }
   const host=NET.role==='host';
-  $('mpModeTxt').textContent=host?'Game mode':'Mode: '+(NET.hc?'☠ HARDCORE':(NET.vc?'🌀 VOID CORE':'Normal')); $('mpModeTxt').style.color=NET.hc?'#fca5a5':(NET.vc?'#d8b4fe':'#bfdbfe');
-  { const mb=$('mpModeBtn'); mb.style.display=host?'block':'none'; mb.textContent=NET.hc?'☠ Hardcore':(NET.vc?'🌀 Void Core':'Normal'); mb.classList.toggle('hc',!!NET.hc); mb.classList.toggle('vc',!!NET.vc); }
+  $('mpModeTxt').textContent=host?'Game mode':'Mode: '+(NET.hc?'☠ HARDCORE':(NET.vc?'🌀 VOIDCORE MODE':'Normal')); $('mpModeTxt').style.color=NET.hc?'#fca5a5':(NET.vc?'#d8b4fe':'#bfdbfe');
+  { const mb=$('mpModeBtn'); mb.style.display=host?'block':'none'; mb.textContent=NET.hc?'☠ Hardcore':(NET.vc?'🌀 VOIDCORE MODE':'Normal'); mb.classList.toggle('hc',!!NET.hc); mb.classList.toggle('vc',!!NET.vc); }
   $('mpStart').style.display=host?'block':'none'; $('mpHint').textContent=host?'Share the code with your friends, then press Start.':'Waiting for the host to start the game…';
 }
 $('mpClose').addEventListener('click',closeMultiplayer);
