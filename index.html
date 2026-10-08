@@ -943,22 +943,32 @@ function decorateShielder(m){
 }
 function makeCrier(t){
   const s=t.size, skin=new THREE.MeshLambertMaterial({color:t.col}), cloth=new THREE.MeshLambertMaterial({color:0x1a1c28});
-  const sock=mat(0x050508,'matte'), pale=mat(0xdfe2ea,'matte'), redG=new THREE.MeshBasicMaterial({color:0xff2a2a});
+  const sock=mat(0x050508,'matte'), pale=mat(0xdfe2ea,'matte'), redG=new THREE.MeshBasicMaterial({color:0xff2a2a}), gore=mat(0x7a0a0e,'matte'), fresh=mat(0xb3121a,'matte'), flesh=mat(0x5a1418,'matte'), bile=mat(0x2a3a14,'matte');
   const g=new THREE.Group(); g.rotation.order='YXZ'; const body=pivot(0,0,0,g);
   const legs=[-1,1].map(sd=>{ const hip=pivot(sd*.1,.95,0,body), knee=pivot(0,-.48,0,hip);
-    hip.add(zbox(.11,.5,.12,skin,0,-.24,0)); knee.add(zbox(.09,.47,.1,skin,0,-.23,0), zbox(.1,.04,.24,skin,0,-.47,.06)); return {hip,knee}; });
+    hip.add(zbox(.11,.5,.12,skin,0,-.24,0), zbox(.115,.14,.125,gore,0,-.12,0), zbox(.02,.2,.125,fresh,sd*.04,-.3,0)); knee.add(zbox(.09,.47,.1,skin,0,-.23,0), zbox(.1,.04,.24,skin,0,-.47,.06), zbox(.095,.16,.105,flesh,0,-.14,0), zbox(.02,.14,.02,pale,.03,-.2,.06), zbox(.11,.06,.26,gore,0,-.46,.06)); return {hip,knee}; });
   const torso=pivot(0,.95,0,body);
   torso.add(zbox(.34,.62,.2,cloth,0,.34,0), zbox(.4,.22,.26,cloth,0,-.04,0), zbox(.3,.08,.18,cloth,0,.68,0));
   for(let i=0;i<4;i++) torso.add(zbox(.3,.025,.02,pale,0,.18+i*.1,.105));
-  for(let i=0;i<5;i++) torso.add(zbox(.04,.1,.05,pale,0,.1+i*.14,-.13));
+  torso.add(zbox(.22,.3,.03,flesh,-.02,.36,.108), zbox(.12,.18,.03,fresh,.07,.3,.12), zbox(.08,.22,.03,gore,-.1,.18,.115), zbox(.06,.2,.02,fresh,.03,.04,.14), zbox(.34,.05,.22,gore,0,.66,.01));
+  for(let i=0;i<3;i++) torso.add(zbox(.025,.14+i*.04,.02,fresh,-.08+i*.08,.02-i*.04,.13));
+  torso.add(zbox(.16,.08,.1,fresh,.12,-.06,.12), zbox(.05,.05,.02,bile,-.1,.0,.14));
+  for(const sd of [-1,1]) torso.add(zbox(.04,.14,.04,pale,sd*.2,.64,-.02), zbox(.03,.1,.03,pale,sd*.23,.7,-.02));
+  for(let i=0;i<5;i++) torso.add(zbox(.04,.1,.05,pale,0,.1+i*.14,-.13), zbox(.045,.03,.055,fresh,0,.15+i*.14,-.13));
   for(let i=0;i<5;i++){ const p=pivot((i-2)*.09,-.12,.12*(i%2?1:-1),torso); p.add(zbox(.08,.34,.02,cloth,0,-.17,0)); }
   const neck=pivot(0,.68,0,torso); neck.add(zbox(.08,.16,.08,skin,0,.07,0));
   const head=pivot(0,.15,0,neck);
   head.add(zbox(.24,.4,.24,skin,0,.2,0), zbox(.09,.12,.03,sock,-.07,.27,.121), zbox(.09,.12,.03,sock,.07,.27,.121), zbox(.02,.2,.01,sock,.06,.2,.124), zbox(.03,.05,.01,sock,0,.16,.124));
+  head.add(zbox(.025,.2,.012,fresh,-.07,.14,.125), zbox(.025,.14,.012,fresh,.07,.15,.125), zbox(.12,.08,.012,flesh,.04,.36,.122), zbox(.05,.12,.012,gore,-.08,.34,.122), zbox(.26,.04,.26,gore,0,.4,0), zbox(.02,.08,.26,gore,0,.42,0));
+  head.add(zbox(.03,.03,.28,pale,-.1,.37,0), zbox(.03,.03,.28,pale,.1,.39,0));
+  for(const sd of [-1,1]) head.add(zbox(.03,.08,.03,pale,sd*.13,.4,-.04));
   const pupils=[zbox(.035,.05,.02,redG,-.07,.27,.14), zbox(.035,.05,.02,redG,.07,.27,.14)]; head.add(...pupils);
   const jaw=pivot(0,.06,-.1,head); jaw.add(zbox(.2,.16,.22,skin,0,-.06,.11), zbox(.17,.02,.2,sock,0,.03,.11)); for(let i=0;i<4;i++) jaw.add(zbox(.025,.05,.02,pale,-.06+i*.04,.05,.21));
+  for(let i=0;i<5;i++) jaw.add(zbox(.02,.07+(i%2)*.04,.02,pale,-.08+i*.04,-.1,.2)); jaw.add(zbox(.18,.04,.04,fresh,0,.0,.22), zbox(.03,.16,.02,gore,-.05,-.12,.215), zbox(.03,.22,.02,fresh,.05,-.14,.215), zbox(.2,.03,.2,gore,0,-.13,.11));
+  for(const sd of [-1,1]) jaw.add(zbox(.025,.1,.02,pale,sd*.07,.05,.22));
   const arms=[-1,1].map(sd=>{ const sh=pivot(sd*.23,.58,0,torso), el=pivot(0,-.46,0,sh);
-    sh.add(zbox(.09,.46,.09,skin,0,-.22,0)); el.add(zbox(.08,.48,.08,skin,0,-.23,0), zbox(.1,.1,.06,skin,0,-.5,0)); for(const fx_ of [-.035,0,.035]) el.add(zbox(.015,.2,.02,pale,fx_,-.65,0)); return {sh,el}; });
+    sh.add(zbox(.09,.46,.09,skin,0,-.22,0), zbox(.095,.12,.095,gore,0,-.1,0), zbox(.02,.2,.1,fresh,sd*.03,-.28,0)); el.add(zbox(.08,.48,.08,skin,0,-.23,0), zbox(.1,.1,.06,skin,0,-.5,0), zbox(.085,.18,.085,flesh,0,-.34,0), zbox(.04,.12,.04,pale,sd*.07,-.1,0), zbox(.02,.24,.02,pale,sd*.06,-.02,-.03), zbox(.11,.12,.07,fresh,0,-.52,0));
+    for(const fx_ of [-.035,0,.035]){ el.add(zbox(.015,.28,.02,pale,fx_,-.69,0), zbox(.012,.07,.02,fresh,fx_,-.58,0)); } return {sh,el}; });
   g.scale.setScalar(s);
   const bar=new THREE.Group(); const bg=new THREE.Mesh(barGeo,barBg), fill=new THREE.Mesh(barGeo,barFill);
   bg.renderOrder=10; fill.renderOrder=11; fill.position.z=.001; bar.add(bg,fill); bar.scale.set(.95,1,1);
