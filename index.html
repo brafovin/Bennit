@@ -876,13 +876,17 @@ function buildGun(id,forAvatar){
     for(let i=0;i<4;i++) A(bx(.066,.056,.012,0x0e0e10,0,-.12,-.24+i*.03,'matte'));
     tip=1.04;
   } else if(id==='ostrike'){
-    g.scale.setScalar(.6); g.position.z=-.05;
-    const wh=0xe5e7eb, dk=0x1c2030, gl=0x67e8f9;
-    A(cy(.055,1.1,wh,0,0,-.55,'metal'), cy(.09,.22,dk,0,0,-1.08,'metal'), cy(.045,.03,0xffffff,0,0,-1.2,'glow'), ring(.1,.014,gl,0,0,-1.17,'glow'),
-      bx(.13,.17,.5,dk,0,-.01,.05,'metal'), bx(.1,.03,.3,gl,0,.1,.05,'glow'), bx(.02,.16,.5,wh,.075,0,-.35,'metal'), bx(.02,.16,.5,wh,-.075,0,-.35,'metal'),
-      bx(.05,.16,.07,dk,0,-.14,.12,'matte',.2), bx(.07,.12,.22,dk,0,-.04,.38,'matte',-.1), cy(.08,.3,0x8b95a7,0,.0,-.12,'metal'));
-    for(const z0 of [-.3,-.55,-.8]) A(ring(.065,.01,0xffffff,0,0,z0,'glow'));
-    tip=1.22;
+    g.scale.setScalar(.82); g.position.set(.06,-.05,-.3);
+    const wh=0xe5e7eb, dk=0x1c2030, gl=0x67e8f9, gr=0x8b95a7;
+    // heavy cannon: thick barrel, big emitter, side power cells and glowing coils
+    A(cy(.085,1.0,wh,0,0,-.55,'metal'), cy(.12,.34,dk,0,0,-1.0,'metal'), cy(.15,.1,gr,0,0,-1.2,'metal'), cy(.1,.04,0xffffff,0,0,-1.27,'glow'), ring(.15,.02,gl,0,0,-1.24,'glow'), ring(.18,.012,gl,0,0,-1.3,'glow'),
+      bx(.2,.24,.62,dk,0,-.02,.1,'metal'), bx(.16,.04,.42,gl,0,.13,.1,'glow'), cy(.115,.5,gr,0,.0,-.12,'metal'),
+      bx(.04,.22,.7,wh,.12,-.01,-.45,'metal'), bx(.04,.22,.7,wh,-.12,-.01,-.45,'metal'), bx(.045,.05,.5,gl,.145,.05,-.45,'glow'), bx(.045,.05,.5,gl,-.145,.05,-.45,'glow'),
+      cyx(.07,.34,dk,0,.16,-.2,'metal'), cyx(.045,.36,gl,0,.16,-.2,'glow'),
+      bx(.07,.22,.1,dk,0,-.2,.18,'matte',.2), bx(.1,.17,.34,dk,0,-.05,.5,'matte',-.1), bx(.05,.06,.3,gl,0,.1,-.7,'glow'));
+    for(const z0 of [-.25,-.5,-.75]) A(ring(.1,.014,0xffffff,0,0,z0,'glow'));
+    for(const sd of [-1,1]) A(cy(.05,.34,dk,sd*.19,-.05,-.3,'metal'), cy(.032,.3,gl,sd*.19,-.05,-.3,'glow'));
+    tip=1.3;
   } else if(id==='minigun'){
     g.scale.setScalar(.68); g.position.z=-.1;
     const olive=0x39402f, steel=0x4a4f58, dk=0x23262c, brass=0xc9a227;
