@@ -1032,15 +1032,34 @@ function makeZombie(t){
   if(t.name==='BOSS'){ torso.add(zbox(.2,.2,.04,eyeMat,0,.45,.16)); head.add(zbox(.34,.08,.34,hornMat,0,.34,0), zbox(.06,.16,.06,hornMat,-.14,.44,0), zbox(.06,.2,.06,hornMat,0,.46,0), zbox(.06,.16,.06,hornMat,.14,.44,0)); }
   if(t.crawler){ for(const l of legs){ const h=l.hip; while(h.children.length) h.remove(h.children[0]); h.position.y=.12; h.add(zbox(.2,.2,.22,cloth,0,-.08,0), zbox(.15,.05,.17,bloodMat,0,-.19,0), zbox(.045,.16,.045,boneMat,.03,-.27,.02), zbox(.035,.1,.035,boneMat,-.04,-.24,-.03)); }
     torso.position.y=.12; torso.add(zbox(.3,.1,.02,bloodMat,0,.1,.15)); }
-  if(t.voidz){ skin.color.setHex(0x2e1658); cloth.color.setHex(0x0d0716); for(const c of head.children) if(c.material===eyeMat) c.material=voidEyeMat;
-    const vm=mat(0xc084fc,'glow'); torso.add(zbox(.04,.5,.02,vm,.1,.4,.15), zbox(.03,.3,.02,vm,-.12,.35,.15), zbox(.2,.03,.02,vm,0,.55,.15)); head.add(zbox(.03,.14,.03,vm,-.1,.37,0), zbox(.03,.2,.03,vm,.1,.38,0), zbox(.03,.12,.03,vm,0,.38,.1));
-    for(const a of arms) a.el.add(zbox(.03,.2,.03,vm,.05,-.2,.05)); }
+  let vOrbit=null;
+  if(t.voidz){
+    skin.color.setHex(0x120826); cloth.color.setHex(0x070311); for(const c of head.children) if(c.material===eyeMat) c.material=voidEyeMat;
+    const vm=mat(0xc084fc,'glow'), vm2=mat(0xf5d0fe,'glow'), crys=new THREE.MeshPhongMaterial({color:0x5b21b6,emissive:0x4c1d95,emissiveIntensity:.8,flatShading:true,shininess:90});
+    // hollow chest with a swirling core and cracked glowing veins
+    torso.add(zbox(.3,.34,.05,mat(0x000000,'matte'),0,.4,.15), zbox(.36,.04,.06,vm,0,.58,.15), zbox(.36,.04,.06,vm,0,.22,.15), zbox(.04,.34,.06,vm,-.17,.4,.15), zbox(.04,.34,.06,vm,.17,.4,.15));
+    const core=new THREE.Mesh(sphGeo,new THREE.MeshBasicMaterial({color:0xe9d5ff})); core.scale.setScalar(.075); core.position.set(0,.4,.14); torso.add(core); torso.add(glowSprite(0xa855f7,.8,0,.4,.2));
+    torso.add(zbox(.03,.5,.02,vm,.2,.4,.14), zbox(.03,.3,.02,vm,-.22,.3,.14), zbox(.2,.025,.02,vm,.12,.7,.14), zbox(.03,.4,.02,vm,.08,.4,-.15), zbox(.03,.3,.02,vm,-.12,.35,-.15));
+    // crystal growths bursting out of the back, shoulders and head
+    const cone=(r,h,x,y,z,rx,rz,p)=>{ const c=new THREE.Mesh(new THREE.ConeGeometry(r,h,5),crys); c.position.set(x,y,z); c.rotation.set(rx,0,rz); p.add(c); };
+    cone(.07,.5,-.12,.7,-.2,-.5,.2,torso); cone(.06,.4,.14,.62,-.2,-.6,-.25,torso); cone(.05,.34,0,.8,-.18,-.7,0,torso);
+    for(const a of arms){ const sd=a.sh.position.x>0?1:-1; cone(.07,.4,sd*.12,.05,0,0,-sd*.7,a.sh); }
+    cone(.05,.3,-.1,.4,0,0,.3,head); cone(.06,.42,.06,.42,0,0,-.25,head); cone(.04,.26,.14,.34,0,0,-.7,head);
+    head.add(zbox(.03,.2,.02,vm,-.04,.22,.155), zbox(.2,.025,.02,vm2,0,.08,.155));
+    // clawed hands + dripping void tendrils
+    for(const a of arms){ for(const fx_ of [-.04,0,.04]) a.el.add(zbox(.015,.26,.015,vm2,fx_,-.5,.04)); a.el.add(zbox(.025,.4,.025,vm,.05,-.3,.06)); }
+    // legs dissolve into void smoke
+    for(const l of legs){ l.knee.add(zbox(.19,.1,.2,vm,0,-.36,0)); l.knee.add(glowSprite(0x8b5cf6,.6,0,-.4,0)); }
+    // orbiting void shards
+    vOrbit=new THREE.Group(); vOrbit.position.y=.55; torso.add(vOrbit);
+    for(let i=0;i<5;i++){ const a=i/5*Math.PI*2, sh=new THREE.Mesh(new THREE.OctahedronGeometry(.07+(i%2)*.03),new THREE.MeshBasicMaterial({color:i%2?0xc084fc:0x7c3aed})); sh.position.set(Math.cos(a)*.62,Math.sin(i*1.7)*.35,Math.sin(a)*.62); vOrbit.add(sh); }
+  }
   g.scale.setScalar(s);
   const bar=new THREE.Group(); const bg=new THREE.Mesh(barGeo,barBg), fill=new THREE.Mesh(barGeo,barFill);
   bg.renderOrder=10; fill.renderOrder=11; fill.position.z=.001; bar.add(bg,fill);
   const w=Math.max(.8,s*.8); bar.scale.set(w,1,1);
   gameG.add(g,bar);
-  return {g,body,legs,torso,head,jaw,arms,skin,cloth,bar,fill,height:(t.crawler?1.4:2.05)*s,r:.42*s,fastLean:t.fast?.3:.12};
+  return {g,body,legs,torso,head,jaw,arms,skin,cloth,bar,fill,height:(t.crawler?1.4:2.05)*s,r:.42*s,fastLean:t.fast?.3:.12,vOrbit};
 }
 const voidEyeMat=new THREE.MeshBasicMaterial({color:0xe9d5ff});
 function makeVoidMaster(t){
@@ -1325,6 +1344,7 @@ function launchArrow(z){
 function animZombie(z,dt,run){
   if(z.archer) return animArcher(z,dt);
   if(z.crawler) return animCrawler(z,dt);
+  if(z.vOrbit) z.vOrbit.rotation.y+=dt*2.2;
   if(z.vmaster){ z.orbit.rotation.y+=dt*1.4; z.halo.rotation.z+=dt*.8; z.core.scale.setScalar(.14*(1+Math.sin(clock*4)*.18)); }
   if(z.crier) return animCrier(z,dt);
   if(z.screamer) return animScreamer(z,dt);
