@@ -312,7 +312,7 @@ const ZTYPES = [
   {name:'Titan',  wave:50, hp:10000, cash:1000, spd:2.55,col:0x38bdf8, size:1.7},
 ];
 const BOSS = {name:'BOSS', wave:99, hp:100000, cash:10000, spd:1.9, col:0x991b1b, size:3.4, tier:7};
-const CRIER={name:'Screamer',wave:25,hp:1200,cash:200,spd:6.2,col:0x7d8494,size:1.5,tier:3,crier:true};
+const CRIER={name:'Screamer',wave:25,hp:5000,cash:200,spd:9.5,col:0x7d8494,size:1.5,tier:3,crier:true};
 const SCREAMER={name:'Howler',wave:15,hp:500,cash:75,spd:1.7,col:0xf8fafc,size:1.45,tier:2,screamer:true};
 const ARCHER_WAVE=10, ARCHER_CHANCE=.05, ARCHER_RANGE=32, ARROW_V=30, ARROW_G=8;
 const isPaused=()=>(S.shopOpen||S.rebirthOpen||S.pauseOpen)&&!NET.active;
@@ -1108,16 +1108,20 @@ function makeCrier(t){
   return {g,body,legs,torso,head,jaw,arms,skin,cloth,bar,fill,height:2.2*s,r:.42*s,fastLean:.3,pupils};
 }
 function animCrier(z,dt){
-  const ph=z.phase, sw=Math.sin(ph), L=z.legs, A=z.arms, st=z.cst||0, k=st===0?0:(st===1?1-Math.max(0,z.standT)/.7:1), lp=(a,b)=>a+(b-a)*k;
-  const trem=st===0?Math.sin(clock*38)*.035:0;
+  const ph=z.phase, sw=Math.sin(ph), L=z.legs, A=z.arms, st=z.cst||0, k=st===0?0:(st===1?1-Math.max(0,z.standT)/.7:1), lp=(a,b)=>a+(b-a)*k, o=(z.id||0)*1.7;
+  const sit=1-k, rock=Math.sin(clock*1.9+o)*sit, breath=Math.sin(clock*5+o)*sit, fit=Math.pow(Math.max(0,Math.sin(clock*.8+o*2)),10)*sit, trem=(Math.sin(clock*41+o)*.012+Math.sin(clock*57)*.01)*sit+Math.sin(clock*63+o)*.05*fit;
   const run=k>=1?1:0, amp=.9*run;
-  L[0].hip.rotation.x=lp(-1.45,sw*amp); L[1].hip.rotation.x=lp(-1.45,-sw*amp);
-  L[0].knee.rotation.x=lp(1.45,Math.max(0,-sw)*1.2*run); L[1].knee.rotation.x=lp(1.45,Math.max(0,sw)*1.2*run);
-  z.body.position.set(0,lp(-.45,Math.abs(Math.cos(ph))*.09*run),0);
-  z.torso.rotation.set(lp(.55,.42+(st===1?-.9*Math.sin(k*Math.PI):0)),0,trem*2+(run?Math.sin(ph)*.06:0));
-  z.head.rotation.set(lp(.4,-.55+(run?Math.sin(ph*2)*.05:0)),trem*3,0); z.jaw.rotation.x=lp(0,1.15+(run?Math.sin(ph*8)*.1:0));
-  const sxL=run?-.3-sw*.9:lp(-.95,-2.6), sxR=run?-.3+sw*.9:lp(-.95,-2.6);
-  A[0].sh.rotation.set(sxL,0,-lp(.12,.5)); A[1].sh.rotation.set(sxR,0,lp(.12,.5)); A[0].el.rotation.x=lp(-1.95,-.7); A[1].el.rotation.x=lp(-1.95,-.7);
+  // legs: knees pulled up to the chest while sitting
+  L[0].hip.rotation.set(lp(-1.95,sw*amp),0,lp(.12,0)); L[1].hip.rotation.set(lp(-1.95,-sw*amp),0,lp(-.12,0));
+  L[0].knee.rotation.x=lp(2.5,Math.max(0,-sw)*1.2*run); L[1].knee.rotation.x=lp(2.5,Math.max(0,sw)*1.2*run);
+  z.body.position.set(trem*2,lp(-.67,Math.abs(Math.cos(ph))*.09*run),lp(rock*.05,0));
+  // hunched torso that rocks back and forth, jerks during fits
+  z.torso.rotation.set(lp(.8+rock*.1+breath*.02,.42+(st===1?-.9*Math.sin(k*Math.PI):0)),0,trem*3+(run?Math.sin(ph)*.06:0));
+  z.head.rotation.set(lp(.55+breath*.03-fit*.12,-.55+(run?Math.sin(ph*2)*.05:0)),trem*5+lp(Math.sin(clock*.6+o)*.12,0),lp(Math.sin(clock*.7+o)*.08,0)); z.jaw.rotation.x=lp(.12+Math.abs(breath)*.08+fit*.15,1.15+(run?Math.sin(ph*8)*.1:0));
+  // arms wrapped tightly around the head, elbows out, hands pressed to the face
+  const sxL=run?-.3-sw*.9:lp(-1.45+trem*2,-2.6), sxR=run?-.3+sw*.9:lp(-1.45-trem*2,-2.6);
+  A[0].sh.rotation.set(sxL,lp(.45,0),-lp(.35,.5)); A[1].sh.rotation.set(sxR,lp(-.45,0),lp(.35,.5));
+  A[0].el.rotation.set(lp(-2.35+fit*.15,-.7),0,0); A[1].el.rotation.set(lp(-2.35+fit*.15,-.7),0,0);
   const ps=1+k*1.4+(st>0?Math.sin(clock*40)*.2:0); for(const p of z.pupils) p.scale.setScalar(ps);
 }
 function animScreamer(z,dt){
@@ -1461,7 +1465,7 @@ function showWarn(t,sec){ sfx('alarm'); const w=$('warn'); w.textContent=t; w.st
 const BRUTE_WAVE=4, BRUTE_CHANCE=.12, FAST_CHANCE=.3, NEW_WAVES=2, NEW_WEIGHT=.2;
 function pickType(){
   const hc=S.hc, vc=S.vc;
-  if(S.wave>=(vc?10:(hc?15:25))&&Math.random()<.07&&S.zombies.filter(z=>z.crier).length<(vc?4:(hc?3:2))) return {...CRIER,base:'Screamer'};
+  if(S.wave>=(vc?10:(hc?15:25))&&Math.random()<.07&&S.zombies.filter(z=>z.crier).length<1) return {...CRIER,base:'Screamer'};
   if(S.wave>=(vc?5:11)&&Math.random()<.14&&S.zombies.filter(z=>z.shielder).length<(vc?10:6)){ const b0=pickBase(); return {...b0,name:'Shielder '+b0.name,shielder:true}; }
   if((hc||vc)&&S.wave>=4&&Math.random()<.008&&!S.zombies.some(z=>z.miniBoss)){ const b0=pickBase(); return {...b0,name:'Boss '+b0.name,miniBoss:true,hp:b0.hp*(vc?100:25),cash:b0.cash*10,size:b0.size*1.7,spd:b0.spd*.85}; }
   if(S.wave>=ARCHER_WAVE&&Math.random()<(hc?ARCHER_CHANCE*3:ARCHER_CHANCE)&&bricks.some(b=>(b.arch||0)<2)){ const b0=pickBase(); return {...b0,name:'Bowman '+b0.name,archer:true,hp:b0.hp*.75}; }
@@ -1483,7 +1487,7 @@ function spawnZombie(boss){
     const side=Math.floor(Math.random()*4), u=Math.random();
     if(side===0){x=u*MAP.w;z=2;} else if(side===1){x=u*MAP.w;z=MAP.h-2;} else if(side===2){x=2;z=u*MAP.h;} else {x=MAP.w-2;z=u*MAP.h;}
   }while(Math.hypot(x-P.x,z-P.z)<14&&n++<20);
-  const m=makeZombie(t), hpM=t.miniBoss?1:(S.hc?4:(S.vc?10:1)), shM=t.shielder?t.hp*hpM:0;
+  const m=makeZombie(t), hpM=(t.miniBoss||t.crier)?1:(S.hc?4:(S.vc?10:1)), shM=t.shielder?t.hp*hpM:0;
   const zb={id:NET.nextZid++,desc:{n:t.name,c:t.col,s:t.size,t:t.tier||0,a:t.archer?1:0,sc:t.screamer?1:0,b:boss?1:0,br:t.brute?1:0,bm:t.miniBoss?1:0,ca:t.cash,h:t.hp*hpM,cr:t.crier?1:0,sh:shM},burnBy:0,x,z,hp:t.hp*hpM,max:t.hp*hpM,cash:t.cash,miniBoss:!!t.miniBoss,permGlow:!!t.miniBoss,spd:t.spd*(.92+Math.random()*.16)*(t.crier?1:(S.hc&&t.base!=='Runner'?2:(S.vc&&t.base!=='Runner'?2.5:1))),dmg:(t.crier?50:BASE_DMG*Math.pow(DMG_GROWTH,t.tier)*(t.brute?2:1))*(S.hc?3:(S.vc?5:1)),
     atk:0,boss,flash:0,screamer:!!t.screamer,brute:!!t.brute,scream:0,screamCd:2.5,screamFired:true,waves:0,buff:0,burn:0,burnT:0,dead:false,kvx:0,kvz:0,stun:0,swing:0,hitDone:true,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,crier:!!t.crier,cst:0,standT:0,shielder:!!t.shielder,shMax:shM,sh:shM,...m};
   zb.y0=0;
