@@ -99,6 +99,7 @@
   #mpHint{margin-top:10px;font-size:13px;color:#9ca3af}
   #mpStatus{margin-top:12px;min-height:18px;font-size:13px}
   #mpClose{background:#dc2626;color:#fff;border:0;border-radius:10px;padding:6px 12px;cursor:pointer;font-weight:800;font-size:15px}
+  #leaveBtn{position:fixed;top:10px;right:202px;height:54px;padding:0 12px;border-radius:12px;border:2px solid #f87171;background:#450a0acc;color:#fecaca;font:bold 14px sans-serif;cursor:pointer;display:none}
   #sndBtn{position:fixed;top:10px;right:138px;width:54px;height:54px;border-radius:12px;border:2px solid #94a3b8;background:#1e293bcc;font-size:26px;cursor:pointer}
   #up{position:fixed;inset:0;background:radial-gradient(#2a1a05ee,#000d);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;backdrop-filter:blur(4px)}
   #up.open{opacity:1}
@@ -150,6 +151,7 @@
 </div>
 <button id="shopBtn" title="Shop (B)">🛒</button>
 <button id="rbBtn" title="Rebirth (G)">♻</button>
+<button id="leaveBtn" title="Leave run">🚪 LEAVE</button>
 <button id="sndBtn" title="Sound (M)">🔊</button>
 <button id="fireBtn">🔫</button>
 <div id="rebirth"><div id="rpanel">
@@ -1161,12 +1163,22 @@ function setMode(m){
   scene.fog=m==='game'?new THREE.Fog(fogC,hcm?7:10,hcm?42:48):null;
   sun.color.setHex(m==='game'?(hcm?0xff9070:0xaec6ff):0xffffff); hemi.color.setHex(hcm?0xff9a80:0xaab8ff);
   hemi.intensity=m==='lobby'?0.8:(hcm?0.9:0.55); sun.intensity=m==='lobby'?0.5:(hcm?0.5:0.35);
-  $('shopBtn').style.display=m==='game'?'block':'none';
+  $('shopBtn').style.display=m==='game'?'block':'none'; $('leaveBtn').style.display=m==='game'?'block':'none'; leaveArm(false);
   gunRoot.visible=m==='game';
   ['hpWrap','cashTxtHud','waveTxt','wpnTxt'].forEach(i=>$(i).style.display=m==='game'?'block':'none');
   $('tokTxt').style.display=m==='lobby'?'block':'none';
   $('cross').style.display=m==='game'?'block':'none';
 }
+let leaveTO=0;
+function leaveArm(on){ clearTimeout(leaveTO); $('leaveBtn').textContent=on?'Really leave?':'🚪 LEAVE'; if(on) leaveTO=setTimeout(()=>leaveArm(false),3000); }
+function leaveRun(){
+  if(S.mode!=='game') return;
+  const solo=!NET.active&&!S.hc;
+  if(solo) S.savedRun=runSnapshot();
+  sfx('click'); enterLobby(); saveGame();
+  say(solo?'You left the run. Your progress is saved.':'You left the run.',3);
+}
+$('leaveBtn').addEventListener('click',e=>{ e.stopPropagation(); if($('leaveBtn').textContent==='Really leave?') leaveRun(); else leaveArm(true); });
 function enterLobby(){
   mpCleanupGame(); S.downed=false; S.pulls=[]; S.delayed=[]; S.dash=null; S.abCd=0; S.skipT=-1; S.skipCd=0; for(const sp of S.spikes){ gameG.remove(sp.m); } S.spikes=[];
   P.y=0; P.vy=0; EYE=EYE0;
