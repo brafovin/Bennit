@@ -19,6 +19,11 @@
   #cross.hit i{background:#f43f5e}
   #warn{position:absolute;left:0;right:0;top:calc(12% + 62px);text-align:center;font-size:34px;font-weight:900;letter-spacing:3px;color:#ff3b4e;text-shadow:0 0 18px #ff0033,0 2px 4px #000;display:none;animation:warnp .5s infinite alternate}
   @keyframes warnp{from{opacity:.55;transform:scale(1)}to{opacity:1;transform:scale(1.06)}}
+  #grabFog{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .25s;background:radial-gradient(circle at 50% 50%,rgba(0,0,0,0) 0%,rgba(0,0,0,.35) 18%,rgba(0,0,0,.9) 50%,rgba(0,0,0,.97) 85%)}
+  #grabFog.two{background:radial-gradient(circle at 50% 50%,rgba(0,0,0,.15) 0%,rgba(0,0,0,.8) 20%,rgba(0,0,0,.97) 60%)}
+  #grabBar{position:fixed;left:50%;top:64%;transform:translateX(-50%);width:min(440px,78vw);z-index:6;display:none;text-align:center;pointer-events:none}
+  #grabTxt{font-size:26px;font-weight:900;letter-spacing:3px;color:#fff;text-shadow:0 0 12px #ef4444,0 2px 6px #000;margin-bottom:6px}
+  #grabTrack{height:22px;background:#000c;border:2px solid #fff9;border-radius:12px;overflow:hidden} #grabFill{display:block;height:100%;width:0;background:linear-gradient(90deg,#f97316,#fde047)}
   #bossBar{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:min(560px,66vw);display:none;text-align:center;pointer-events:none}
   #bossName{font-size:20px;font-weight:900;letter-spacing:4px;color:#e9d5ff;text-shadow:0 0 14px #a855f7,0 2px 6px #000;margin-bottom:4px}
   #bossTrack{height:16px;background:#000b;border:2px solid #c084fc;border-radius:10px;overflow:hidden;box-shadow:0 0 18px #a855f788}
@@ -159,6 +164,8 @@
   <div id="heatWrap"><div id="heat"></div><span id="heatLbl"></span></div>
   <div id="heatTxt"></div>
   <div id="cross"><i class="h"></i><i class="v"></i></div>
+  <div id="grabFog"></div>
+  <div id="grabBar"><div id="grabTxt">SPAM SPACE BAR!</div><div id="grabTrack"><i id="grabFill"></i></div></div>
   <div id="bossBar"><div id="bossName"></div><div id="bossTrack"><i id="bossFill"></i></div></div>
   <div id="team"></div>
   <div id="msg"></div>
@@ -344,7 +351,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -1021,6 +1028,8 @@ function makeZombie(t){
     if(tier>=5) sh.add(zbox(.07,.2,.07,hornMat,sd*.1,.1,0));
     return {sh,el}; });
   if(t.name==='BOSS'){ torso.add(zbox(.2,.2,.04,eyeMat,0,.45,.16)); head.add(zbox(.34,.08,.34,hornMat,0,.34,0), zbox(.06,.16,.06,hornMat,-.14,.44,0), zbox(.06,.2,.06,hornMat,0,.46,0), zbox(.06,.16,.06,hornMat,.14,.44,0)); }
+  if(t.crawler){ for(const l of legs){ const h=l.hip; while(h.children.length) h.remove(h.children[0]); h.position.y=.12; h.add(zbox(.2,.2,.22,cloth,0,-.08,0), zbox(.15,.05,.17,bloodMat,0,-.19,0), zbox(.045,.16,.045,boneMat,.03,-.27,.02), zbox(.035,.1,.035,boneMat,-.04,-.24,-.03)); }
+    torso.position.y=.12; torso.add(zbox(.3,.1,.02,bloodMat,0,.1,.15)); }
   if(t.voidz){ skin.color.setHex(0x2e1658); cloth.color.setHex(0x0d0716); for(const c of head.children) if(c.material===eyeMat) c.material=voidEyeMat;
     const vm=mat(0xc084fc,'glow'); torso.add(zbox(.04,.5,.02,vm,.1,.4,.15), zbox(.03,.3,.02,vm,-.12,.35,.15), zbox(.2,.03,.02,vm,0,.55,.15)); head.add(zbox(.03,.14,.03,vm,-.1,.37,0), zbox(.03,.2,.03,vm,.1,.38,0), zbox(.03,.12,.03,vm,0,.38,.1));
     for(const a of arms) a.el.add(zbox(.03,.2,.03,vm,.05,-.2,.05)); }
@@ -1029,7 +1038,7 @@ function makeZombie(t){
   bg.renderOrder=10; fill.renderOrder=11; fill.position.z=.001; bar.add(bg,fill);
   const w=Math.max(.8,s*.8); bar.scale.set(w,1,1);
   gameG.add(g,bar);
-  return {g,body,legs,torso,head,jaw,arms,skin,cloth,bar,fill,height:2.05*s,r:.42*s,fastLean:t.fast?.3:.12};
+  return {g,body,legs,torso,head,jaw,arms,skin,cloth,bar,fill,height:(t.crawler?1.4:2.05)*s,r:.42*s,fastLean:t.fast?.3:.12};
 }
 const voidEyeMat=new THREE.MeshBasicMaterial({color:0xe9d5ff});
 function makeVoidMaster(t){
@@ -1185,6 +1194,18 @@ function animCrier(z,dt){
   A[0].el.rotation.set(lp(-2.35+fit*.15,-.7),0,0); A[1].el.rotation.set(lp(-2.35+fit*.15,-.7),0,0);
   const ps=1+k*1.4+(st>0?Math.sin(clock*40)*.2:0); for(const p of z.pupils) p.scale.setScalar(ps);
 }
+function animCrawler(z,dt){
+  const ph=z.phase, sw=Math.sin(ph), st=z.cs|0, A=z.arms, L=z.legs;
+  let lean=.8+Math.sin(ph*2)*.05, hx=-.55, a0=-1.9+sw*.7, a1=-1.9-sw*.7, el=-.3, jaw=.2+.1*Math.sin(ph*3), by=0;
+  if(st===1){ const w=Math.sin(clock*40)*.03; lean=1.05+w; hx=-.2; a0=a1=-.5; jaw=.7; by=-.1; }
+  else if(st===2){ lean=.35; hx=-.7; a0=a1=-2.9; jaw=1.1; el=-.1; }
+  else if(st===4){ const c=Math.sin(clock*16+(z.id||0)); lean=.5; hx=-.4; a0=-2.5+c*.3; a1=-2.5-c*.3; jaw=.6+.5*Math.abs(c); el=-.9; }
+  else if(st===5){ lean=1.2; hx=.5; a0=-.6; a1=-.4; jaw=.1; by=-.12; }
+  else if(st===3){ lean=1.0; hx=-.1; a0=a1=-1.2; jaw=.3; }
+  z.body.position.set(0,by,0); z.torso.rotation.set(lean,0,Math.sin(ph)*.06); z.head.rotation.set(hx,Math.sin(ph*.5)*.2,0); z.jaw.rotation.x=jaw;
+  A[0].sh.rotation.set(a0,0,-.15); A[1].sh.rotation.set(a1,0,.15); A[0].el.rotation.x=el; A[1].el.rotation.x=el;
+  L[0].hip.rotation.x=sw*.15; L[1].hip.rotation.x=-sw*.15;
+}
 function animScreamer(z,dt){
   const ph=z.phase, sw=Math.sin(ph), L=z.legs, A=z.arms, sc=z.scream>0, u=sc?1-z.scream/SCREAM_T:0, att=z.swing>0;
   let hover=Math.sin(ph*.7)*.04+.04, lean=.1, headX=Math.sin(ph*1.3)*.06, jaw=.15+.1*Math.sin(ph*2), shX=-.55+Math.sin(ph*.8)*.12, shZ=.12, elX=-.3, shake=0, flare=0;
@@ -1291,6 +1312,7 @@ function launchArrow(z){
 }
 function animZombie(z,dt,run){
   if(z.archer) return animArcher(z,dt);
+  if(z.crawler) return animCrawler(z,dt);
   if(z.vmaster){ z.orbit.rotation.y+=dt*1.4; z.halo.rotation.z+=dt*.8; z.core.scale.setScalar(.14*(1+Math.sin(clock*4)*.18)); }
   if(z.crier) return animCrier(z,dt);
   if(z.screamer) return animScreamer(z,dt);
@@ -1500,6 +1522,7 @@ function leaveRun(){
 }
 $('leaveBtn').addEventListener('click',e=>{ e.stopPropagation(); if($('leaveBtn').textContent.startsWith('Really')) leaveRun(); else leaveArm(true); });
 function enterLobby(){
+  S.grab=0; S.grabF=0; $('grabFog').style.opacity=0; $('grabBar').style.display='none';
   $('bossBar').style.display='none'; resetOS(); mpCleanupGame(); S.downed=false; S.pulls=[]; S.delayed=[]; S.dash=null; S.abCd=0; S.skipT=-1; S.skipCd=0; for(const sp of S.spikes){ gameG.remove(sp.m); } S.spikes=[];
   P.y=0; P.vy=0; EYE=EYE0;
   closeRebirth(); clearProjs(); clearChests();
@@ -1536,6 +1559,7 @@ const BRUTE_WAVE=4, BRUTE_CHANCE=.12, FAST_CHANCE=.3, NEW_WAVES=2, NEW_WEIGHT=.2
 function pickType(){
   const hc=S.hc, vc=S.vc;
   if(S.wave>=(vc?10:(hc?15:25))&&Math.random()<.07&&S.zombies.filter(z=>z.crier).length<1) return {...CRIER,base:'Screamer'};
+  if(S.wave>=8&&Math.random()<.09&&S.zombies.filter(z=>z.crawler).length<5){ const b0=pickBase(); return {...b0,name:'Crawler '+b0.name,crawler:true,hp:b0.hp*.8,cash:b0.cash*1.2,spd:b0.spd*.65,size:b0.size*.95}; }
   if(S.wave>=(vc?5:11)&&Math.random()<.14&&S.zombies.filter(z=>z.shielder).length<(vc?10:6)){ const b0=pickBase(); return {...b0,name:'Shielder '+b0.name,shielder:true}; }
   if(!hc&&!vc&&S.wave>=10&&Math.random()<.015&&!S.zombies.some(z=>z.colossus)) return {name:'Colossus',colossus:true,miniBoss:true,hp:5000,cash:3000,spd:1.3,col:0x6b2a1e,size:2.4,tier:5,base:'Boss'};
   if(vc&&S.wave>=5&&Math.random()<.02&&!S.zombies.some(z=>z.vmaster)) return {name:'Void Master',vmaster:true,miniBoss:true,hp:2500*100,cash:20000,spd:1.5,col:0x1a0b33,size:2.6,tier:4,base:'Boss'};
@@ -1560,8 +1584,8 @@ function spawnZombie(boss,over){
     if(side===0){x=u*MAP.w;z=2;} else if(side===1){x=u*MAP.w;z=MAP.h-2;} else if(side===2){x=2;z=u*MAP.h;} else {x=MAP.w-2;z=u*MAP.h;}
   }while(Math.hypot(x-P.x,z-P.z)<14&&n++<20);
   const m=makeZombie(t), hpM=t.miniBoss?1:(S.hc?4:(S.vc?10:1)), shM=t.shielder?t.hp*hpM:0;
-  const zb={id:NET.nextZid++,desc:{n:t.name,c:t.col,s:t.size,t:t.tier||0,a:t.archer?1:0,sc:t.screamer?1:0,b:boss?1:0,br:t.brute?1:0,bm:t.miniBoss?1:0,ca:t.cash,h:t.hp*hpM,cr:t.crier?1:0,vm:t.vmaster?1:0,vz:t.voidz?1:0,co:t.colossus?1:0,sh:shM},burnBy:0,x,z,hp:t.hp*hpM,max:t.hp*hpM,cash:t.cash,miniBoss:!!t.miniBoss,permGlow:!!t.miniBoss,spd:t.spd*(.92+Math.random()*.16)*((t.crier||t.vmaster)?1:(S.hc&&t.base!=='Runner'?2:(S.vc&&t.base!=='Runner'?2.5:1))),dmg:(t.colossus?40:(t.vmaster?100:(t.crier?50:BASE_DMG*Math.pow(DMG_GROWTH,t.tier)*(t.brute?2:1))))*(S.hc?3:(S.vc?5:1))*(t.voidz?2:1),
-    atk:0,boss,flash:0,screamer:!!t.screamer,brute:!!t.brute,scream:0,screamCd:2.5,screamFired:true,waves:0,buff:0,burn:0,burnT:0,dead:false,kvx:0,kvz:0,stun:0,swing:0,hitDone:true,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,colossus:!!t.colossus,smN:0,smT:0,smCd:5,vmaster:!!t.vmaster,voidz:!!t.voidz,crier:!!t.crier,cst:0,standT:0,shielder:!!t.shielder,shMax:shM,sh:shM,...m};
+  const zb={id:NET.nextZid++,desc:{n:t.name,c:t.col,s:t.size,t:t.tier||0,a:t.archer?1:0,sc:t.screamer?1:0,b:boss?1:0,br:t.brute?1:0,bm:t.miniBoss?1:0,ca:t.cash,h:t.hp*hpM,cr:t.crier?1:0,vm:t.vmaster?1:0,vz:t.voidz?1:0,co:t.colossus?1:0,cw:t.crawler?1:0,sh:shM},burnBy:0,x,z,hp:t.hp*hpM,max:t.hp*hpM,cash:t.cash,miniBoss:!!t.miniBoss,permGlow:!!t.miniBoss,spd:t.spd*(.92+Math.random()*.16)*((t.crier||t.vmaster)?1:(S.hc&&t.base!=='Runner'?2:(S.vc&&t.base!=='Runner'?2.5:1))),dmg:(t.colossus?40:(t.vmaster?100:(t.crier?50:BASE_DMG*Math.pow(DMG_GROWTH,t.tier)*(t.brute?2:1))))*(S.hc?3:(S.vc?5:1))*(t.voidz?2:1),
+    atk:0,boss,flash:0,screamer:!!t.screamer,brute:!!t.brute,scream:0,screamCd:2.5,screamFired:true,waves:0,buff:0,burn:0,burnT:0,dead:false,kvx:0,kvz:0,stun:0,swing:0,hitDone:true,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,crawler:!!t.crawler,cs:0,csT:0,clCd:1+Math.random()*2,att:-1,atT:1,colossus:!!t.colossus,smN:0,smT:0,smCd:5,vmaster:!!t.vmaster,voidz:!!t.voidz,crier:!!t.crier,cst:0,standT:0,shielder:!!t.shielder,shMax:shM,sh:shM,...m};
   zb.y0=0;
   if(S.vc&&!t.crier&&!t.miniBoss&&!t.voidz){ const vm=t.base==='Runner'?1:2.5; if(t.fast) zb.spd=Math.min(zb.spd/vm*Math.min(vm,1.6),3.2); else zb.spd=Math.min(zb.spd,5.5); }
   if(t.crier){ zb.rageSpd=t.spd*(.92+Math.random()*.16); zb.spd=0; for(let i=0;i<30;i++){ const cx=rnd(3,MAP.w-3), cz=rnd(3,MAP.h-3); if(Math.hypot(cx-P.x,cz-P.z)>12&&!bricks.some(b=>cx>b.x-1&&cx<b.x+b.w+1&&cz>b.z-1&&cz<b.z+b.d+1)){ zb.x=cx; zb.z=cz; break; } } }
@@ -1834,6 +1858,38 @@ function updateVB(dt){
     if(b.t>=VB_LIFE){ b.dead=true; vbBlast(b.g.position); } }
   if(S.vb.some(b=>b.dead)) S.vb=S.vb.filter(b=>{ if(b.dead){ gameG.remove(b.g); b.core.material.dispose(); b.halo.material.dispose(); } return !b.dead; });
 }
+const CR_DMG=10;
+const attachedTo=pid=>S.zombies.filter(q=>q.crawler&&q.cs===4&&q.att===pid&&!q.dead).length;
+function crawlerStep(z,dt,d,T){
+  const mm=S.hc?3:(S.vc?5:1);
+  if(z.cs===0){ z.clCd-=dt; if(z.clCd<=0&&d<8&&d>2&&z.clear){ z.cs=1; z.csT=.7; sfx('crawl',z.x,z.z); } }
+  else if(z.cs===1){ z.csT-=dt; if(z.csT<=0){ const l=Math.hypot(T.x-z.x,T.z-z.z)||1; z.lvx=(T.x-z.x)/l*14; z.lvz=(T.z-z.z)/l*14; z.cs=2; z.csT=.5; sfx('crawljump',z.x,z.z); } }
+  else if(z.cs===2){ z.csT-=dt; z.x+=z.lvx*dt; z.z+=z.lvz*dt; z.y0=Math.sin((1-z.csT/.5)*Math.PI)*.9;
+    for(const g of (NET.TG||[{pid:NET.pid,x:P.x,y:P.y,z:P.z,alive:!S.downed}])){ if(!g.alive||(g.y||0)>.9||Math.hypot(g.x-z.x,g.z-z.z)>z.r+.6||attachedTo(g.pid)>=2) continue; z.cs=4; z.att=g.pid; z.atT=1; sfx('crawlgrab',z.x,z.z); break; }
+    if(z.cs===2&&z.csT<=0){ z.cs=3; z.csT=1.3; z.y0=0; z.clCd=3+Math.random()*2; } }
+  else if(z.cs===3){ z.csT-=dt; if(z.csT<=0) z.cs=0; }
+  else if(z.cs===4){ const g=(NET.TG||[{pid:NET.pid,x:P.x,y:P.y,z:P.z,alive:!S.downed}]).find(q=>q.pid===z.att);
+    if(!g||!g.alive){ z.cs=3; z.csT=1; z.att=-1; z.y0=0; z.clCd=3; }
+    else { z.x=g.x; z.z=g.z+.02; z.y0=(g.y||0)+.9; z.atT-=dt; if(z.atT<=0){ z.atT=1; hitPlayer(z.att,CR_DMG*mm); } } }
+  else if(z.cs===5){ z.csT-=dt; if(z.csT<=0){ z.cs=0; z.clCd=2; } }
+}
+function shakeOffFirst(pid){
+  const z=S.zombies.find(q=>q.crawler&&q.cs===4&&q.att===pid); if(!z) return; z.cs=5; z.csT=3; z.att=-1; z.y0=0; z.clCd=3;
+  const a=Math.random()*6.28; z.kvx=Math.cos(a)*7; z.kvz=Math.sin(a)*7; z.x+=Math.cos(a)*1.2; z.z+=Math.sin(a)*1.2;
+}
+function updateGrab(dt){
+  const n=NET.role==='client'?S.zombies.filter(z=>z.crawler&&z.att===NET.pid&&!z.dead).length:attachedTo(NET.pid);
+  if(n===0||S.downed) S.grabF=0;
+  if(n>S.grab) S.grabF=Math.min(S.grabF,.4);
+  S.grab=S.downed?0:n; S.grabF=Math.max(0,S.grabF-.12*dt);
+  const fog=$('grabFog'), bar=$('grabBar');
+  fog.style.opacity=S.grab?(S.grab>1?1:.85):0; fog.classList.toggle('two',S.grab>1);
+  bar.style.display=S.grab?'block':'none'; if(S.grab) $('grabFill').style.width=(S.grabF*100)+'%';
+}
+function grabPress(){
+  if(!S.grab||S.shopOpen||S.rebirthOpen) return; S.grabF+=.14; sfx('click');
+  if(S.grabF>=1){ S.grabF=0; sfx('shbreak'); if(NET.role==='client') netSendHost({t:'shake'}); else shakeOffFirst(NET.pid); }
+}
 const SM_T=.9, SM_R=9;
 function smashFx(x,z){
   const m=new THREE.Mesh(circGeo,new THREE.MeshBasicMaterial({color:0xfb923c,transparent:true,opacity:.7,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide})); m.rotation.x=-Math.PI/2; m.position.set(x,.08,z); gameG.add(m); fx.push({m,life:.5,max:.5,kind:'ring',radius:SM_R});
@@ -2062,7 +2118,7 @@ function update(dt){
   if(ui&&!NET.active){ flameSound(false); return; }
   const inputOff=ui||S.downed;
   const windBlade=S.weapon==='vampire'&&S.bladeMode==='wing';
-  if(windBlade&&keys[' ']&&P.y<=0&&!inputOff){ P.vy=JUMP_V; windWave(); }
+  if(windBlade&&keys[' ']&&P.y<=0&&!inputOff&&!S.grab){ P.vy=JUMP_V; windWave(); }
   P.vy-=GRAV*dt; P.y+=P.vy*dt; if(P.y<=0){ P.y=0; P.vy=0; } EYE=EYE0+P.y-(S.downed?1.1:0);
   if(S.dash) dashStep(dt);
   const mi=moveInput(), mx=(inputOff||S.dash)?0:mi.mx, my=(inputOff||S.dash)?0:mi.my, sprint=mi.sprint, sp=(sprint?SPRINT:WALK)*(windBlade?1.5:1);
@@ -2084,7 +2140,7 @@ function update(dt){
     if(S.lock>0&&Math.random()<dt*45){ gunMuzzle.getWorldPosition(_m); _m.x+=(Math.random()-.5)*.05; smoke(_m); }
   } else S.heat=0;
 
-  updateOS(dt);
+  updateOS(dt); updateGrab(dt);
   if(NET.role!=='client') for(let i=S.zombies.length-1;i>=0;i--) if(S.zombies[i].hp<=0){ killZombie(S.zombies[i]); S.zombies.splice(i,1); }
   updateProjs(dt); updateVB(dt); updatePuddles(dt); updateChests(dt); updateCbeam(dt); updateSpikes(dt);
   for(const d of S.delayed) d.t-=dt; { const due=S.delayed.filter(d=>d.t<=0); if(due.length){ S.delayed=S.delayed.filter(d=>d.t>0); for(const d of due) d.fn(); } }
@@ -2111,10 +2167,11 @@ function update(dt){
     if(z.crier&&z.cst===1){ z.standT-=dt; if(z.standT<=0) z.cst=2; }
     if(z.vmaster) vmasterStep(z,dt,d,T);
     if(z.colossus) colossusStep(z,dt,d);
+    if(z.crawler) crawlerStep(z,dt,d,T);
     if(z.archer) archerStep(z,dt,d);
     if(z.stun>0) z.stun-=dt;
     if(!z.archer){
-    z.spdMul=d>FAR_DIST?(S.vc?1.4:2):1; const mv=(z.swing>0?.2:1)*(z.stun>0?.15:1)*(z.scream>0?0:1)*(z.crier&&z.cst!==2?0:1)*(z.smN>0?0:1)*z.spdMul; z.x+=tx*z.spd*mv*dt; z.z+=tz*z.spd*mv*dt;
+    z.spdMul=d>FAR_DIST?(S.vc?1.4:2):1; const mv=(z.swing>0?.2:1)*(z.stun>0?.15:1)*(z.scream>0?0:1)*(z.crier&&z.cst!==2?0:1)*(z.smN>0?0:1)*(z.crawler&&z.cs>=1?0:1)*z.spdMul; z.x+=tx*z.spd*mv*dt; z.z+=tz*z.spd*mv*dt;
     if(z.kvx||z.kvz){ z.x+=z.kvx*dt; z.z+=z.kvz*dt; const f=Math.max(0,1-5*dt); z.kvx*=f; z.kvz*=f; if(Math.abs(z.kvx)+Math.abs(z.kvz)<.1) z.kvx=z.kvz=0; }
     for(const o of S.zombies) if(o!==z&&!o.archer){ const ox=z.x-o.x, oz=z.z-o.z, od=Math.hypot(ox,oz), m=z.r+o.r;
       if(od>0&&od<m){ const p=(m-od)*.5*Math.min(1,dt*8); z.x+=ox/od*p; z.z+=oz/od*p; } }
@@ -2127,7 +2184,7 @@ function update(dt){
     }
     z.atk-=dt;
     if(z.swing>0){ z.swing-=dt; if(!z.hitDone&&z.swing<=.3){ z.hitDone=true; if(d<z.r+.4+.7) hitPlayer(T.pid,Math.round(z.dmg)); } }
-    else if(!z.archer&&!(z.smN>0)&&(!z.crier||z.cst===2)&&d<z.r+.4+.4&&z.atk<=0){ z.atk=1; z.swing=.6; z.hitDone=false; sfx('zatk',z.x,z.z,1,zPitch(z)); }
+    else if(!z.archer&&!z.crawler&&!(z.smN>0)&&(!z.crier||z.cst===2)&&d<z.r+.4+.4&&z.atk<=0){ z.atk=1; z.swing=.6; z.hitDone=false; sfx('zatk',z.x,z.z,1,zPitch(z)); }
   }
   hurt.push(...incoming.splice(0));
   if(hurt.length){ sfx('hurt'); $('hurt').style.opacity=1; setTimeout(()=>$('hurt').style.opacity=0,150); }
@@ -2200,6 +2257,7 @@ function render(dt){
       if(z.glow&&(z.buff>0||z.permGlow)){ const pl=.5+.5*Math.sin(clock*6+z.phase); z.glow.material.opacity=.16+.12*pl; z.glow.scale.set(.85+.05*pl,1.2+.05*pl,.85+.05*pl); }
       if(z.crier&&z.cst===2&&!isPaused()){ z.cryT=(z.cryT||0)-dt; if(z.cryT<=0){ z.cryT=3; sfx('crier',z.x,z.z); } }
       if(z.fillSh&&!z.shBroken){ const sk=z.shMax?Math.max(0,z.sh/z.shMax):0; z.fillSh.scale.x=sk; z.fillSh.position.x=-.5*(1-sk); }
+      { const mine=z.crawler&&z.cs===4&&z.att===NET.pid; z.g.visible=!mine; z.bar.visible=!mine; }
       z.bar.position.set(z.x,(z.y0||0)+z.height+.35,z.z); z.bar.quaternion.copy(camera.quaternion);
       const k=Math.max(0,z.hp/z.max); z.fill.scale.x=k; z.fill.position.x=-.5*(1-k);
     }
@@ -2348,6 +2406,7 @@ addEventListener('keydown',e=>{
   if(k==='m'&&!e.repeat) setMuted(!AUD.muted);
   if(k==='q'&&!e.repeat) useAbility();
   if(k==='t'&&!e.repeat) useSkip();
+  if(k===' '&&!e.repeat&&S.mode==='game') grabPress();
   if(k==='g'&&!e.repeat) S.rebirthOpen?closeRebirth():openRebirth();
   if(k==='escape'){ if(S.pauseOpen) resumeGame(); else if(S.shopOpen||S.rebirthOpen) { closeShop(); closeRebirth(); } else if(S.mpOpen) closeMultiplayer(); else if(S.upOpen) S.wsOpen?closeWs():closeUpgrades(); else if(S.mode==='game') openPause(); }
   if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
@@ -2504,6 +2563,7 @@ function mpHostMsg(pid,m){
     case 'wind': windPush(m.x,m.z,Math.min(20,m.r||0)||undefined,Math.min(32,m.p||0)||undefined); break;
     case 'pull': S.pulls.push({x:m.x,z:m.z,t:1.5,r:Math.min(20,m.r||ORB_PULL)}); break;
     case 'need': NET.known[pid]={}; break;
+    case 'shake': shakeOffFirst(pid); break;
     case 'skip': if(S.skipT<0&&(S.zombies.length||S.toSpawn)) S.skipT=4; break;
   }
 }
@@ -2531,11 +2591,11 @@ function hostTick(dt){
   const pl=[[NET.pid,r2(P.x),r2(P.y),r2(P.z),r2(P.yaw),r2(P.pitch),S.weapon,Math.max(0,Math.ceil(S.hp)),S.maxHp,S.downed?0:1]];
   for(const pid in NET.players){ const p=NET.players[pid]; if(+pid===NET.pid||!p.live) continue; pl.push([+pid,r2(p.x),r2(p.y||0),r2(p.z),r2(p.yaw),r2(p.pitch),p.w,Math.max(0,Math.ceil(p.hp)),p.maxHp,p.alive?1:0]); }
   const live=S.zombies.filter(z=>!z.dead);
-  const zs=live.map(z=>[z.id,r2(z.x),r2(z.z),r2(z.face||0),Math.round(100*Math.max(0,z.hp)/z.max),r2(Math.max(0,z.swing)),r2(Math.max(0,z.scream)),AST[z.aSt]||0,r2(z.aT||0),(z.buff>0?1:0)|(z.burn>0?2:0),z.shMax?Math.round(100*Math.max(0,z.sh)/z.shMax):0,z.cst||0,z.smN||0,r2(Math.max(0,z.smT||0))]);
+  const zs=live.map(z=>[z.id,r2(z.x),r2(z.z),r2(z.face||0),Math.round(100*Math.max(0,z.hp)/z.max),r2(Math.max(0,z.swing)),r2(Math.max(0,z.scream)),AST[z.aSt]||0,r2(z.aT||0),(z.buff>0?1:0)|(z.burn>0?2:0),z.shMax?Math.round(100*Math.max(0,z.sh)/z.shMax):0,z.cst||0,z.smN||0,r2(Math.max(0,z.smT||0)),z.crawler?z.att+1:0,z.cs||0]);
   const base={t:'s',w:S.wave,n:live.length+S.toSpawn,bt:r2(Math.max(0,S.breakT)),p:pl,z:zs};
   for(const pid in NET.conns){
     const kn=NET.known[pid]||(NET.known[pid]={}), d=[];
-    for(const z of live) if(!kn[z.id]){ kn[z.id]=1; const q=z.desc; d.push({i:z.id,n:q.n,c:q.c,s:q.s,t:q.t,a:q.a,sc:q.sc,b:q.b,br:q.br,bm:q.bm,h:q.h,ca:q.ca,cr:q.cr,vm:q.vm,vz:q.vz,co:q.co,sh:q.sh,y:z.y0||0,x:r2(z.x),z:r2(z.z)}); }
+    for(const z of live) if(!kn[z.id]){ kn[z.id]=1; const q=z.desc; d.push({i:z.id,n:q.n,c:q.c,s:q.s,t:q.t,a:q.a,sc:q.sc,b:q.b,br:q.br,bm:q.bm,h:q.h,ca:q.ca,cr:q.cr,vm:q.vm,vz:q.vz,co:q.co,cw:q.cw,sh:q.sh,y:z.y0||0,x:r2(z.x),z:r2(z.z)}); }
     netSend(NET.conns[pid],{...base,d});
   }
 }
@@ -2566,8 +2626,8 @@ function mpClientData(m){
   }
 }
 function createGhost(d){
-  const t={name:d.n,col:d.c,size:d.s,tier:d.t,archer:!!d.a,screamer:!!d.sc,brute:!!d.br,crier:!!d.cr,shielder:!!d.sh,vmaster:!!d.vm,voidz:!!d.vz,colossus:!!d.co}, m=makeZombie(t);
-  const z={id:d.i,desc:d,x:d.x,z:d.z,tx:d.x,tz:d.z,face:0,tface:0,hp:d.h,max:d.h,cash:d.ca||0,spd:0,dead:false,swing:0,hitDone:true,scream:0,screamFired:true,waves:0,screamer:!!d.sc,archer:!!d.a,brute:!!d.br,miniBoss:!!d.bm,permGlow:!!d.bm,aSt:'wait',aT:0,dr:0,y0:d.y||0,buff:0,burn:0,burnT:0,flash:0,phase:Math.random()*6,kvx:0,kvz:0,boss:!!d.b,colossus:!!d.co,smN:0,smT:0,vmaster:!!d.vm,voidz:!!d.vz,crier:!!d.cr,cst:0,standT:0,shielder:!!d.sh,shMax:d.sh||0,sh:d.sh||0,...m};
+  const t={name:d.n,col:d.c,size:d.s,tier:d.t,archer:!!d.a,screamer:!!d.sc,brute:!!d.br,crier:!!d.cr,shielder:!!d.sh,vmaster:!!d.vm,voidz:!!d.vz,colossus:!!d.co,crawler:!!d.cw}, m=makeZombie(t);
+  const z={id:d.i,desc:d,x:d.x,z:d.z,tx:d.x,tz:d.z,face:0,tface:0,hp:d.h,max:d.h,cash:d.ca||0,spd:0,dead:false,swing:0,hitDone:true,scream:0,screamFired:true,waves:0,screamer:!!d.sc,archer:!!d.a,brute:!!d.br,miniBoss:!!d.bm,permGlow:!!d.bm,aSt:'wait',aT:0,dr:0,y0:d.y||0,buff:0,burn:0,burnT:0,flash:0,phase:Math.random()*6,kvx:0,kvz:0,boss:!!d.b,crawler:!!d.cw,cs:0,att:-1,colossus:!!d.co,smN:0,smT:0,vmaster:!!d.vm,voidz:!!d.vz,crier:!!d.cr,cst:0,standT:0,shielder:!!d.sh,shMax:d.sh||0,sh:d.sh||0,...m};
   if(d.bm){ ensureGlow(z); z.glow.material.color.setHex(d.co?0xdc2626:0xd946ef); z.glow.visible=true; }
   S.zombies.push(z); NET.ghosts[d.i]=z; return z;
 }
@@ -2579,6 +2639,7 @@ function clientSnapshot(m){
   for(const e of m.z){ const z=NET.ghosts[e[0]]; if(!z){ need=true; continue; } seen[e[0]]=1;
     z.tx=e[1]; z.tz=e[2]; z.tface=e[3]; z.hp=e[4]/100*z.max;
     if(z.shMax){ const nsh=(e[10]||0)/100*z.shMax; if(nsh<=0) breakShield(z); z.sh=nsh; }
+    if(z.crawler){ const ns=e[15]|0; if(ns===1&&z.cs!==1) sfx('crawl',z.x,z.z); if(ns===2&&z.cs!==2) sfx('crawljump',z.x,z.z); z.att=(e[14]|0)-1; z.cs=ns; z.y0=ns===4?.9:(ns===2?.6:0); }
     if(z.colossus){ z.smN=e[12]|0; if(z.smN>0) z.smT=e[13]; }
     if(z.crier){ const nc=e[11]|0; if(nc>0&&(z.cst||0)===0){ sfx('crier',z.x,z.z); z.standT=.7; } z.cst=nc; }
     if(e[6]>0&&z.scream<=0){ z.screamFired=false; z.waves=0; sfx('scream',z.x,z.z); } z.scream=e[6]; if(e[5]>0&&z.swing<=0) sfx('zatk',z.x,z.z,1,zPitch(z)); z.swing=e[5]; const ns=ASTN[e[7]]||'wait'; if(ns==='draw'&&z.aSt!=='draw') sfx('bowdraw',z.x,z.z); z.aSt=ns; z.aT=e[8];
@@ -2733,6 +2794,9 @@ const SND={
   roar:{v:1,range:80,f:o=>{ tone({f:55,f2:35,dur:1.4,type:'sawtooth',vol:.8,lp:420,att:.2,out:o}); noise({dur:1.3,vol:.5,ft:'lowpass',f:600,f2:150,out:o}); }},
   headshot:{v:.7,f:o=>{ tone({f:1500,f2:2400,dur:.09,type:'square',vol:.18,out:o}); tone({f:900,f2:600,dur:.12,type:'triangle',vol:.2,delay:.03,out:o}); }},
   smash:{v:1,range:95,f:o=>{ tone({f:90,f2:30,dur:.5,type:'sine',vol:.6,out:o}); noise({dur:.5,vol:.55,ft:'lowpass',f:900,f2:150,out:o}); tone({f:200,f2:60,dur:.3,type:'square',vol:.15,lp:800,out:o}); }},
+  crawl:{v:.6,range:50,f:o=>{ noise({dur:.5,vol:.25,ft:'bandpass',f:400,f2:900,out:o}); tone({f:120,f2:70,dur:.5,type:'sawtooth',vol:.2,lp:600,out:o}); }},
+  crawljump:{v:.8,range:60,f:o=>{ tone({f:200,f2:700,dur:.3,type:'sawtooth',vol:.3,lp:2200,out:o}); noise({dur:.3,vol:.25,ft:'highpass',f:1200,f2:2500,out:o}); }},
+  crawlgrab:{v:.9,range:60,f:o=>{ tone({f:110,f2:60,dur:.35,type:'square',vol:.35,lp:700,out:o}); noise({dur:.25,vol:.4,ft:'lowpass',f:700,f2:200,out:o}); }},
   vball:{v:.8,range:70,f:o=>{ tone({f:300,f2:90,dur:.6,type:'sawtooth',vol:.3,lp:1200,out:o}); noise({dur:.5,vol:.25,ft:'bandpass',f:900,f2:300,out:o}); }},
   vblast:{v:.7,range:55,f:o=>{ tone({f:140,f2:40,dur:.35,type:'sine',vol:.4,out:o}); tone({f:600,f2:200,dur:.25,type:'square',vol:.1,lp:1500,out:o}); noise({dur:.3,vol:.25,ft:'lowpass',f:1200,f2:300,out:o}); }},
   vsummon:{v:.9,range:80,f:o=>{ tone({f:80,f2:400,dur:1.0,type:'sawtooth',vol:.35,lp:1800,att:.1,out:o}); tone({f:1200,f2:300,dur:.9,type:'triangle',vol:.12,out:o}); noise({dur:.8,vol:.2,ft:'bandpass',f:600,f2:2000,out:o}); }},
