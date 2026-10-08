@@ -31,6 +31,8 @@
   #dDetail h3{margin:0 0 2px;font-size:24px;color:#fde68a} #dDetail .sub{color:#a8a29e;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}
   #dDetail ul{margin:6px 0 10px 18px;padding:0} #dDetail table{border-collapse:collapse;margin-top:8px;width:100%} #dDetail td{padding:4px 8px;border-bottom:1px solid #2a2012} #dDetail td:first-child{color:#fbbf24;font-weight:700;width:38%}
   #dClose{background:#dc2626;color:#fff;border:0;border-radius:10px;padding:6px 12px;cursor:pointer;font-weight:800;font-size:15px}
+  #osFx{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity .08s;background:radial-gradient(circle at 50% 58%,rgba(255,255,255,.55) 0%,rgba(190,230,255,.22) 16%,rgba(255,255,255,0) 46%)}
+  #osFx.hy{background:radial-gradient(circle at 50% 58%,rgba(255,80,120,.55) 0%,rgba(192,38,211,.25) 18%,rgba(120,0,60,0) 50%)}
   #ghoulFx{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity .3s;background:radial-gradient(circle at 50% 50%,rgba(220,38,38,0) 38%,rgba(185,28,28,.5) 100%)}
   #blurFx{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);background:rgba(120,0,20,.12)}
   #grabFog{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .25s;background:radial-gradient(circle at 50% 50%,rgba(0,0,0,0) 0%,rgba(0,0,0,.35) 18%,rgba(0,0,0,.9) 50%,rgba(0,0,0,.97) 85%)}
@@ -178,6 +180,7 @@
   <div id="heatWrap"><div id="heat"></div><span id="heatLbl"></span></div>
   <div id="heatTxt"></div>
   <div id="cross"><i class="h"></i><i class="v"></i></div>
+  <div id="osFx"></div>
   <div id="ghoulFx"></div>
   <div id="blurFx"></div>
   <div id="grabFog"></div>
@@ -1949,18 +1952,28 @@ function contBeam(a,b){
 function updateCbeam(dt){ const cb=S.cbeam; if(cb){ cb.t-=dt; if(cb.t<=0){ scene.remove(cb.g); cb.outer.material.dispose(); cb.inner.material.dispose(); S.cbeam=null; } } }
 const OS_FIRE=5, OS_HYPER=2, OS_COOL=10, OS_COOL_H=15;
 function resetMelee(){ S.souls=0; S.ghoul=0; S.spin=0; S.throwCd=0; S.chAcc=0; if(S.thrown){ gameG.remove(S.thrown.g); S.thrown=null; } $('ghoulFx').style.opacity=0; }
-function resetOS(){ resetMelee(); S.os={ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}; if(S.osbeam){ scene.remove(S.osbeam.g); S.osbeam.o.material.dispose(); S.osbeam.i.material.dispose(); S.osbeam=null; } }
+function resetOS(){ resetMelee(); S.os={ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}; osBeamRemove(); }
 function startOS(){ S.os={ph:'fire',t:OS_FIRE,acc:0,ft:.3,nt:0,hm:0}; sfx('osfire'); say('ORBITAL STRIKE!',1.2); }
+function osBeamRemove(){ const ob=S.osbeam; if(!ob) return; scene.remove(ob.g); ob.o.material.dispose(); ob.i.material.dispose(); for(const sp of ob.sp) sp.material.dispose(); S.osbeam=null; }
+const beamTex=canvasTex(64,4,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,w,0); gr.addColorStop(0,'rgba(255,255,255,0)'); gr.addColorStop(.35,'rgba(255,255,255,.55)'); gr.addColorStop(.5,'rgba(255,255,255,1)'); gr.addColorStop(.65,'rgba(255,255,255,.55)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fillRect(0,0,w,h); });
+const _bx=new THREE.Vector3(), _by=new THREE.Vector3(), _bz=new THREE.Vector3(), _bm=new THREE.Matrix4();
 function osBeam(a,b,hy){
   let ob=S.osbeam;
-  if(!ob){ const g=new THREE.Group(), mk=(c,o)=>new THREE.Mesh(beamGeo,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,depthWrite:false,blending:THREE.AdditiveBlending})); const o=mk(0xffffff,.45), i=mk(0xffffff,1); g.add(o,i); scene.add(g); ob=S.osbeam={g,o,i}; }
+  if(!ob){ const g=new THREE.Group(), mk=(o)=>new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:beamTex,color:0xffffff,transparent:true,opacity:o,depthWrite:false,depthTest:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending})); const o=mk(.6), i=mk(1); o.renderOrder=20; i.renderOrder=21; g.add(o,i);
+    const sp=[]; for(let k=0;k<12;k++){ const m=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffffff,transparent:true,opacity:.55,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending,fog:false})); m.renderOrder=19; g.add(m); sp.push(m); }
+    scene.add(g); ob=S.osbeam={g,o,i,sp}; }
   const dir=b.clone().sub(a), len=dir.length(); dir.normalize();
-  ob.g.position.copy(a).addScaledVector(dir,len/2); ob.g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
-  const wob=1+Math.sin(clock*70)*.1; ob.o.scale.set(1.5*wob,len,1.5*wob); ob.i.scale.set(.55,len,.55);
-  ob.o.material.color.setHex(hy?0xa21caf:0xbfe9ff); ob.i.material.color.setHex(hy?0xff3b6b:0xffffff);
+  // camera-facing ribbons so the beam is visible from first person
+  const mid=a.clone().addScaledVector(dir,len/2), toCam=camera.position.clone().sub(mid);
+  _bx.crossVectors(dir,toCam); if(_bx.lengthSq()<1e-6) _bx.set(1,0,0); _bx.normalize(); _by.copy(dir); _bz.crossVectors(_bx,_by).normalize(); _bm.makeBasis(_bx,_by,_bz);
+  const wob=1+Math.sin(clock*70)*.1;
+  for(const [m,w] of [[ob.o,2.2*wob],[ob.i,.75]]){ m.position.copy(mid); m.quaternion.setFromRotationMatrix(_bm); m.scale.set(w,len,1); }
+  ob.o.material.color.setHex(hy?0xc026d3:0xbfe9ff); ob.i.material.color.setHex(hy?0xff4d6d:0xffffff);
+  for(let k=0;k<ob.sp.length;k++){ const d=1.2*Math.pow(1.38,k), sp=ob.sp[k]; sp.position.copy(a).addScaledVector(dir,Math.min(d,len)); sp.scale.setScalar(2+d*.22); sp.material.color.setHex(hy?0xff5d8f:0xdff3ff); sp.material.opacity=.3+.1*Math.sin(clock*40+k); }
 }
 function updateOS(dt){
-  const o=S.os; if(o.ph==='idle'){ return; }
+  const o=S.os; if(o.ph!=='fire'&&o.ph!=='hyper') $('osFx').style.opacity=0;
+  if(o.ph==='idle'){ return; }
   o.t-=dt;
   if(o.ph==='fire'||o.ph==='hyper'){
     const hy=o.ph==='hyper', dmg=hy?200:100;
@@ -1973,13 +1986,13 @@ function updateOS(dt){
       o.hm-=dt; if(any&&o.hm<=0){ o.hm=.15; hitMarker(); } }
     o.ft-=dt; if(o.ft<=0){ o.ft=.35; for(const z of S.zombies) if(z.osSum){ floatText(z.osPos||new THREE.Vector3(z.x,z.height,z.z),fmtN(z.osSum),hy?'#f43f5e':'#ffffff'); z.osSum=0; } }
     o.nt-=dt; if(o.nt<=0){ o.nt=.07; netShot({k:'b',big:1,hy:hy?1:0,a:[_m.x,_m.y,_m.z],b:[_b.x,_b.y,_b.z]}); }
-    S.shake=Math.max(S.shake,hy?.25:.12);
+    S.shake=Math.max(S.shake,hy?.25:.12); { const fx=$('osFx'); fx.classList.toggle('hy',hy); fx.style.opacity=.5+.2*Math.sin(clock*60); }
   }
   if(o.t<=0){
     if(o.ph==='fire'){ if(U('hyper')){ o.ph='hyper'; o.t=OS_HYPER; sfx('osfire'); say('HYPERCHARGE!',1.2); } else { o.ph='cool'; o.t=OS_COOL; } }
     else if(o.ph==='hyper'){ o.ph='cool'; o.t=OS_COOL_H; }
     else { o.ph='idle'; }
-    if(o.ph==='cool'){ sfx('oscool'); if(S.osbeam){ scene.remove(S.osbeam.g); S.osbeam.o.material.dispose(); S.osbeam.i.material.dispose(); S.osbeam=null; } say('Orbital Strike overcharged – cooling',1.5); }
+    if(o.ph==='cool'){ sfx('oscool'); osBeamRemove(); say('Orbital Strike overcharged – cooling',1.5); }
   }
 }
 function fireLaser(w){
