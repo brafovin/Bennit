@@ -301,10 +301,10 @@ const WEAPONS = [
   {id:'chainsaw',name:'Chainsaw',cost:7500,dmg:10,cd:0.01,tokens:50,cat:'Melee',desc:'Hold to rev: 10 dmg every 0.01s, victims bleed for 3s (10 dmg / 0.05s)'},
   {id:'lava',   name:'Lava Blaster',cost:10000,dmg:250,cd:1.0,  rebirth:2, desc:'Lava balls: 250 explosion dmg, leave a giant lava puddle (10 dmg / 0.1s + burning)'},
   {id:'railgun',name:'Railgun',    cost:17500,dmg:75, cd:0.05,  rebirth:3, desc:'75 dmg / 0.05s piercing laser, overheats. Press E: Railblaster (1000 dmg explosive balls / 1s)'},
-  {id:'ostrike',name:'Orbital Strike',cost:100000,dmg:100,cd:0.01,rebirth:6, desc:'Giant white laser, 100 dmg / 0.01s. One click = it fires 5s and cannot be cancelled, then 10s cooldown'},
+  {id:'orbital',name:'Orbital Cannon',cost:35000,dmg:5000,cd:2.0,rebirth:4, desc:'Giant red ball sucks enemies in, explodes after 1.5s for 5000 dmg / 2s'},
   {id:'vampire',name:'Vampire Blade',cost:50000,dmg:6666,cd:0.66,rebirth:5, desc:'Melee blade, 6666 dmg, heals 1% of damage dealt. E: Wind Blade / Earth Blade'},
   {id:'reaper',name:'Soul Reaper',cost:75000,dmg:5000,cd:0.75,tokens:150,cat:'Melee',desc:'5000 dmg per slice / 0.75s. 10 kills = E releases the souls: Ghoul state (7500 dmg / 0.5s). Q: 360° spin with red slices'},
-  {id:'orbital',name:'Orbital Cannon',cost:35000,dmg:5000,cd:2.0,rebirth:4, desc:'Giant red ball sucks enemies in, explodes after 1.5s for 5000 dmg / 2s'},
+  {id:'ostrike',name:'Orbital Strike',cost:100000,dmg:100,cd:0.01,rebirth:6, desc:'Giant white laser, 100 dmg / 0.01s. One click = it fires 5s and cannot be cancelled, then 10s cooldown'},
 ];
 const LAVA_R=4, ORB_PULL=10, ORB_R=6;
 const BLADE={blood:{cd:.66,dmg:6666,name:'Vampire Blade'},wing:{cd:.25,dmg:2500,name:'Wind Blade'},earth:{cd:1.5,dmg:7500,name:'Earth Blade'}};
@@ -1849,11 +1849,11 @@ function meleeAttack(){
     if((z.y0||0)>P.y+(arch?4.6:2.4)) continue;
     if(earth){ if(dist-z.r>(U('smash')?12:EARTH_R)+(arch?2:0)) continue; }
     else {
-      if(dist-z.r>MELEE_R+(arch?2.4:0)) continue;
+      if(dist-z.r>MELEE_R+(arch?4.2:0)) continue;
       const ang=dist<.05?0:Math.acos(Math.max(-1,Math.min(1,(dx*hx+dz*hz)/dist)));
-      if(ang-Math.atan2(z.r,dist)>MELEE_ARC+(arch?.5:0)) continue;
+      if(ang-Math.atan2(z.r,dist)>MELEE_ARC+(arch?.9:0)) continue;
       const nd={x:dx/dist,y:0,z:dz/dist}; let blocked=false;
-      for(const b of bricks){ if(arch&&b===z.brick) continue; if(rayBox(o,nd,{x:b.x,z:b.z,w:b.w,d:b.d,h:10},dist)!==Infinity){blocked=true;break;} }
+      for(const b of bricks){ if(arch) break; if(rayBox(o,nd,{x:b.x,z:b.z,w:b.w,d:b.d,h:10},dist)!==Infinity){blocked=true;break;} }
       if(blocked) continue;
     }
     hurtZombie(z,m.dmg,new THREE.Vector3(z.x,z.height*.7,z.z)); any=true;
@@ -1878,10 +1878,10 @@ function reaperHit(dmg){
 function inMelee(z,range,arc){
   if(z.dead||(z.y0||0)>P.y+(z.archer?4.6:2.4)) return false;
   const arch=!!z.archer, hx=-Math.sin(P.yaw), hz=-Math.cos(P.yaw), dx=z.x-P.x, dz=z.z-P.z, dist=Math.hypot(dx,dz);
-  if(dist-z.r>range+(arch?2.4:0)) return false;
-  const ang=dist<.05?0:Math.acos(Math.max(-1,Math.min(1,(dx*hx+dz*hz)/dist))); if(ang-Math.atan2(z.r,dist)>arc+(arch?.5:0)) return false;
+  if(dist-z.r>range+(arch?4.2:0)) return false;
+  const ang=dist<.05?0:Math.acos(Math.max(-1,Math.min(1,(dx*hx+dz*hz)/dist))); if(ang-Math.atan2(z.r,dist)>arc+(arch?.9:0)) return false;
   const o={x:P.x,y:EYE,z:P.z}, nd={x:dx/(dist||1),y:0,z:dz/(dist||1)};
-  for(const b of bricks){ if(arch&&b===z.brick) continue; if(rayBox(o,nd,{x:b.x,z:b.z,w:b.w,d:b.d,h:10},dist)!==Infinity) return false; }
+  if(!arch) for(const b of bricks){ if(rayBox(o,nd,{x:b.x,z:b.z,w:b.w,d:b.d,h:10},dist)!==Infinity) return false; }
   return true;
 }
 function chainsawFrame(dt){
