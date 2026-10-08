@@ -33,6 +33,12 @@
   #dClose{background:#dc2626;color:#fff;border:0;border-radius:10px;padding:6px 12px;cursor:pointer;font-weight:800;font-size:15px}
   #osFx{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity .08s;background:radial-gradient(circle at 50% 58%,rgba(255,255,255,.55) 0%,rgba(190,230,255,.22) 16%,rgba(255,255,255,0) 46%)}
   #osFx.hy{background:radial-gradient(circle at 50% 58%,rgba(255,80,120,.55) 0%,rgba(192,38,211,.25) 18%,rgba(120,0,60,0) 50%)}
+  #passBtn{position:fixed;top:10px;right:202px;width:54px;height:54px;border-radius:12px;border:2px solid #34d399;background:#1e293bcc;font-size:24px;cursor:pointer;display:none}
+  #pass{position:fixed;inset:0;background:radial-gradient(#2a1a05ee,#000d);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;backdrop-filter:blur(4px)}
+  #pass.open{opacity:1}
+  #passPanel{background:linear-gradient(#1a1409,#0d0a05);border:1px solid #f59e0b88;box-shadow:0 20px 80px #000a;border-radius:18px;padding:18px;width:min(1000px,96vw);max-height:92vh;overflow:auto}
+  #passGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;margin-top:10px}
+  #passClose{background:#dc2626;color:#fff;border:0;border-radius:10px;padding:6px 12px;cursor:pointer;font-weight:800;font-size:15px}
   #ghoulFx{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity .3s;background:radial-gradient(circle at 50% 50%,rgba(220,38,38,0) 38%,rgba(185,28,28,.5) 100%)}
   #blurFx{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);background:rgba(120,0,20,.12)}
   #grabFog{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .25s;background:radial-gradient(circle at 50% 50%,rgba(0,0,0,0) 0%,rgba(0,0,0,.35) 18%,rgba(0,0,0,.9) 50%,rgba(0,0,0,.97) 85%)}
@@ -192,6 +198,7 @@
   <div id="hint"></div>
 </div>
 <button id="shopBtn" title="Shop (B)">🛒</button>
+<button id="passBtn" title="Passives">✨</button>
 <button id="diaryBtn" title="Bestiary (B)">📖</button>
 <button id="rbBtn" title="Rebirth (G)">♻</button>
 <button id="pauseBtn" title="Pause (Esc)">⏸</button>
@@ -239,6 +246,11 @@
   <button id="pResume">▶ Resume</button>
   <button id="pSound">🔊 Sound: on</button>
   <button id="leaveBtn">🚪 Leave Game</button>
+</div></div>
+<div id="pass"><div id="passPanel">
+  <div class="sh-head"><h2>✨ Passives</h2><span class="chip" id="passChip"></span><button id="passClose">✕</button></div>
+  <div style="font-size:12.5px;color:#9ca3af;margin-top:6px">Passives work automatically in every run. Buy them once with tokens and switch them on or off here. Unlocked at Rebirth 4.</div>
+  <div id="passGrid"></div>
 </div></div>
 <div id="ws"><div id="wsPanel">
   <div class="sh-head"><h2>🔫 Weapon Shop</h2><span class="chip" id="wsChip"></span><button id="wsClose">✕</button></div>
@@ -314,6 +326,12 @@ const heated=w=>w.id==='minigun'||(w.id==='railgun'&&S.railMode==='laser');
 const WEAPONS_IDS=WEAPONS.map(w=>w.id);
 const SB_MODES=[{name:'Sonic Mode',cd:.5,spd:62,r:.28,life:2.2,col:0x7dd3fc},{name:'Pulse Mode',cd:1,spd:12,r:1.1,life:6.5,col:0xa78bfa},{name:'Hypersonic Mode',cd:.75,spd:42,r:1.4,life:4,col:0xfde68a}];
 const SB_AOE=4.2, SB_PULSE_R=4.8;
+const PASSIVES=[
+  {id:'overkill',name:'Overkill',ico:'💢',tokens:100,desc:'Every kill makes you stronger: +5% damage per kill, capped at 1.5x. If you do not hit an enemy for 1 second the meter resets.'},
+  {id:'rage',name:'Rage',ico:'😡',tokens:250,desc:'The lower your health, the harder you hit: up to 2x damage when you are under 10% health.'},
+  {id:'stormking',name:'Storm King',ico:'⛈️',tokens:500,desc:'Every kill releases a small blast dealing 50% of your equipped weapon\'s damage per second. Every 15th kill a lightning bolt strikes for 200% of your DPS.'},
+  {id:'stormprince',name:'Storm Prince',ico:'⚡',tokens:750,desc:'Every time you hit an enemy a small lightning chain jumps to nearby enemies, dealing 5% of your equipped weapon\'s DPS to each.'},
+];
 const SECONDARIES=[{id:'grenade',name:'Grenade',ico:'💣',tokens:10,key:'X',cd:10,dmg:250,desc:'Throw with X (10 s cooldown). Explodes after a short fuse for 250 damage in a 5 m radius. Works together with any weapon.'}];
 const sonicModes=()=>S.up.hypersonic?3:2;
 const SHOPW=()=>WEAPONS.filter(w=>!w.tokens||S.wu[w.id]);
@@ -392,7 +410,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, pas:{}, pasOff:{}, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -405,7 +423,7 @@ function runSnapshot(){
   const busy=S.toSpawn>0||S.zombies.length>0;
   return {re:S.runEarned,rt:S.runTok,cash:S.cash,owned:S.owned,weapon:S.weapon,hpBuys:S.hpBuys,wave:busy?Math.max(0,S.wave-1):S.wave,cleared:S.cleared,railMode:S.railMode,bladeMode:S.bladeMode};
 }
-function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,cl:S.cashLv,tk:S.tokens,wu:S.wu,gl:S.goals,sec:S.sec,se:S.secEq,kills:S.kills,run:(S.mode==='game'&&!NET.active&&!S.hc&&!S.vc)?runSnapshot():S.savedRun}; }
+function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,cl:S.cashLv,tk:S.tokens,wu:S.wu,gl:S.goals,pa:S.pas,po:S.pasOff,sec:S.sec,se:S.secEq,kills:S.kills,run:(S.mode==='game'&&!NET.active&&!S.hc&&!S.vc)?runSnapshot():S.savedRun}; }
 function saveGame(){
   const js=JSON.stringify(savePayload()); let ok=false;
   try{ localStorage.setItem(SAVE_KEY,js); ok=localStorage.getItem(SAVE_KEY)===js; }catch(e){}
@@ -415,7 +433,7 @@ function saveGame(){
 }
 function parseSave(js){ try{ const d=JSON.parse(js); return d&&d.v===1?d:null; }catch(e){ return null; } }
 function applySave(d){
-  S.rebirths=Math.min(MAX_REB,Math.max(0,d.rebirths|0)); S.goals={}; if(d.gl&&typeof d.gl==='object') for(const k of ['h','v','vb']) if(d.gl[k]) S.goals[k]=true; S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.sec={}; if(d.sec&&typeof d.sec==='object') for(const o of SECONDARIES) if(d.sec[o.id]) S.sec[o.id]=true; S.secEq=(d.se&&S.sec[d.se])?d.se:null; S.kills={}; if(d.kills&&typeof d.kills==='object') for(const k in d.kills) S.kills[k]=Math.max(0,Math.min(1e7,d.kills[k]|0)); S.wu={}; if(d.wu&&typeof d.wu==='object') for(const w of WEAPONS) if(w.tokens&&d.wu[w.id]) S.wu[w.id]=true; buildShop(); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true;
+  S.rebirths=Math.min(MAX_REB,Math.max(0,d.rebirths|0)); S.pas={}; S.pasOff={}; if(d.pa&&typeof d.pa==='object') for(const o of PASSIVES) if(d.pa[o.id]){ S.pas[o.id]=true; if(d.po&&d.po[o.id]) S.pasOff[o.id]=true; } S.goals={}; if(d.gl&&typeof d.gl==='object') for(const k of ['h','v','vb']) if(d.gl[k]) S.goals[k]=true; S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.sec={}; if(d.sec&&typeof d.sec==='object') for(const o of SECONDARIES) if(d.sec[o.id]) S.sec[o.id]=true; S.secEq=(d.se&&S.sec[d.se])?d.se:null; S.kills={}; if(d.kills&&typeof d.kills==='object') for(const k in d.kills) S.kills[k]=Math.max(0,Math.min(1e7,d.kills[k]|0)); S.wu={}; if(d.wu&&typeof d.wu==='object') for(const w of WEAPONS) if(w.tokens&&d.wu[w.id]) S.wu[w.id]=true; buildShop(); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true;
   if(r&&r.owned&&r.owned.glock&&WEAPONS_IDS.includes(r.weapon)) S.savedRun={re:+r.re||0,rt:r.rt|0,cash:+r.cash||0,owned:r.owned,weapon:r.weapon,hpBuys:r.hpBuys|0,wave:r.wave|0,cleared:r.cleared|0,railMode:r.railMode==='blaster'?'blaster':'laser',bladeMode:['blood','wing','earth'].includes(r.bladeMode)?r.bladeMode:'blood'};
 }
 function loadGame(){
@@ -428,7 +446,7 @@ function loadGame(){
   else { try{ S.rebirths=Math.min(MAX_REB,Math.max(0,parseInt(localStorage.getItem('zs_rebirths'))||0)); }catch(e){} } // very old save format
   saveGame(); // write everything back (also tests whether saving works)
 }
-function resetProgress(){ S.goals={}; S.sec={}; S.secEq=null; S.kills={}; S.rebirths=0; S.wu={}; S.up={}; S.cashLv=0; S.tokens=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
+function resetProgress(){ S.pas={}; S.pasOff={}; S.goals={}; S.sec={}; S.secEq=null; S.kills={}; S.rebirths=0; S.wu={}; S.up={}; S.cashLv=0; S.tokens=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
 function exportCode(){ return btoa(unescape(encodeURIComponent(JSON.stringify(savePayload())))); }
 function importCode(txt){
   txt=(txt||'').trim(); if(!txt) return false;
@@ -1583,7 +1601,7 @@ function setMode(m){
   scene.fog=m==='game'?new THREE.Fog(fogC,hcm?7:10,hcm?42:48):null;
   sun.color.setHex(m==='game'?(hcm?0xff9070:(vcm?0xc4a0ff:0xaec6ff)):0xffffff); hemi.color.setHex(hcm?0xff9a80:(vcm?0xb89cff:0xaab8ff));
   hemi.intensity=m==='lobby'?0.8:(hcm?0.9:0.55); sun.intensity=m==='lobby'?0.5:(hcm?0.5:0.35);
-  $('diaryBtn').style.display=m==='lobby'?'block':'none'; $('shopBtn').style.display=m==='game'?'block':'none'; $('pauseBtn').style.display=m==='game'?'block':'none'; closePause();
+  $('diaryBtn').style.display=m==='lobby'?'block':'none'; $('passBtn').style.display=(m==='lobby'&&S.rebirths>=4)?'block':'none'; $('shopBtn').style.display=m==='game'?'block':'none'; $('pauseBtn').style.display=m==='game'?'block':'none'; closePause();
   gunRoot.visible=m==='game';
   ['hpWrap','cashTxtHud','waveTxt','wpnTxt'].forEach(i=>$(i).style.display=m==='game'?'block':'none');
   $('tokTxt').style.display=m==='lobby'?'block':'none';
@@ -1619,7 +1637,7 @@ function enterLobby(){
   closeRebirth(); clearProjs(); clearChests();
   for(const z of S.zombies) removeZombie(z); S.zombies=[]; for(const z of S.corpses) removeZombie(z); S.corpses=[];
   S.lastRunTok=S.tokGain; S.tokGain=0;
-  setMode('lobby'); closeDiary(); P.x=LOBBY.spawn.x; P.z=LOBBY.spawn.z; P.yaw=-Math.PI/2; P.pitch=0; closeShop();
+  setMode('lobby'); closeDiary(); closePass(); P.x=LOBBY.spawn.x; P.z=LOBBY.spawn.z; P.yaw=-Math.PI/2; P.pitch=0; closeShop();
   $('heatWrap').style.display=$('heatTxt').style.display='none';
   if(S.killsDirty){ S.killsDirty=false; saveGame(); }
 }
@@ -1711,7 +1729,7 @@ function applyDamage(z,dmg,by){ // solo / host: authoritative damage
   if(dmg>0) z.hp-=dmg;
   if(z.crier&&z.cst===0&&z.hp>0&&z.hp<=z.max*.8) rageCrier(z);
   if(z.hp<=0){
-    z.dead=true; if(by===NET.pid){ recordKill(z); goalKill(z); } if(by===NET.pid&&S.reapDmg) reaperKill();
+    z.dead=true; if(by===NET.pid){ recordKill(z); goalKill(z); passKill(z); } if(by===NET.pid&&S.reapDmg) reaperKill();
     if(by===NET.pid){ const c=Math.round(z.cash*cashMul()*(S.hc||S.vc?.5:1)); addCash(c); floatText(new THREE.Vector3(z.x,(z.y0||0)+z.height+.3,z.z),'+$'+c,'#facc15'); }
     if(NET.role==='host') netBroadcast({t:'dead',id:z.id,by});
   }
@@ -1720,14 +1738,41 @@ function igniteZombie(z,t){
   if(NET.role==='client'){ const e=NET.hitBuf[z.id]||(NET.hitBuf[z.id]={d:0,b:0}); e.b=1; z.burn=t; return; }
   if(z.burn<=0) z.burnT=0; z.burn=t; z.burnBy=NET.pid;
 }
+const passOn=id=>!!S.pas[id]&&!S.pasOff[id]&&S.rebirths>=4;
+function passMul(){ if(S.inPass) return 1; let m=1; if(passOn('overkill')) m*=1+Math.min(.5,S.okStacks*.05); if(passOn('rage')){ const f=S.maxHp>0?S.hp/S.maxHp:1; m*=1+Math.max(0,Math.min(1,(1-f)/.9)); } return m; }
+function curDps(){ const w=ew(wpn()); let base; if(w.id==='vampire'){ const b=BLADE[S.bladeMode]; base=b.dmg/b.cd; } else if(w.id==='railgun'&&S.railMode==='blaster') base=1000; else base=w.dmg*(w.pellets||1)/Math.max(.01,w.cd); return Math.min(base,60000); }
+function boltFx(a,b,col,thick){
+  const pts=[a.clone()], n=7, d=b.clone().sub(a); for(let i=1;i<n;i++){ const p=a.clone().addScaledVector(d,i/n); p.x+=rnd(-.5,.5)*(thick?1.2:.6); p.z+=rnd(-.5,.5)*(thick?1.2:.6); pts.push(p); } pts.push(b.clone());
+  if(thick){ for(let i=0;i<pts.length-1;i++) beam(pts[i],pts[i+1],col,.1); }
+  else { const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:.95})); scene.add(l); fx.push({m:l,life:.12,max:.12,kind:'line'}); }
+}
+function passHit(z){
+  if(!passOn('stormprince')||S.inPass||S.spT>0) return; S.spT=.06; const dps=curDps()*.05; let n=0; S.inPass=true;
+  for(const o of S.zombies){ if(o===z||o.dead||n>=3) continue; if(Math.hypot(o.x-z.x,o.z-z.z)<7){ n++; hurtZombie(o,dps,new THREE.Vector3(o.x,(o.y0||0)+o.height*.6,o.z),'#93c5fd',true); boltFx(new THREE.Vector3(z.x,(z.y0||0)+z.height*.6,z.z),new THREE.Vector3(o.x,(o.y0||0)+o.height*.6,o.z),0x93c5fd,false); } }
+  S.inPass=false; if(n) sfx('zap',z.x,z.z);
+}
+function passKill(z){
+  if(S.inPass) return;
+  if(passOn('overkill')){ S.okStacks=Math.min(10,S.okStacks+1); S.okT=0; }
+  if(passOn('stormking')){
+    S.kk++; const dps=curDps(); S.inPass=true;
+    blast(new THREE.Vector3(z.x,(z.y0||0)+.8,z.z),4,0x7dd3fc,.35);
+    for(const o of S.zombies){ if(o===z||o.dead) continue; if(Math.hypot(o.x-z.x,o.z-z.z)-o.r<=4) hurtZombie(o,dps*.5,new THREE.Vector3(o.x,(o.y0||0)+o.height*.6,o.z),'#7dd3fc',true); }
+    if(S.kk%15===0){ const cands=S.zombies.filter(o=>!o.dead&&o!==z); const t=cands.sort((a,b)=>Math.hypot(a.x-P.x,a.z-P.z)-Math.hypot(b.x-P.x,b.z-P.z))[0]; const tx=t?t.x:z.x, tz=t?t.z:z.z;
+      boltFx(new THREE.Vector3(tx,40,tz),new THREE.Vector3(tx,0,tz),0xfef08a,true); blast(new THREE.Vector3(tx,.6,tz),6,0xfde047,.5); sfx('thunder',tx,tz); S.shake=Math.max(S.shake,.4);
+      for(const o of S.zombies){ if(o.dead) continue; if(Math.hypot(o.x-tx,o.z-tz)-o.r<=6) hurtZombie(o,dps*2,new THREE.Vector3(o.x,(o.y0||0)+o.height*.6,o.z),'#fde047',true); } }
+    S.inPass=false; sfx('zap',z.x,z.z);
+  }
+}
 function hurtZombie(z,base,pos,col,silent){ // damage dealt by the local player
   if(z.dead) return;
-  const dmg=Math.round(base*mult().dmg); if(!col) z.flash=.1;
+  if(!S.inPass) S.okT=0;
+  const dmg=Math.round(base*mult().dmg*passMul()); if(!col) z.flash=.1;
   if(S.ls) S.hp=Math.min(S.maxHp,S.hp+dmg*S.ls);
   if(z.y0&&pos.y<z.y0) pos.y+=z.y0;
   if(!silent) floatText(pos,dmg,col);
   if(NET.role==='client'){ const e=NET.hitBuf[z.id]||(NET.hitBuf[z.id]={d:0,b:0}); e.d+=dmg; if(z.sh>0) z.sh=Math.max(0,z.sh-dmg); else z.hp-=dmg*(z.crier&&!z.cst?.25:1)*(z.brute?((S.hc||S.vc)?.5:.75):1)*(z.colossus?.75:1); return; }
-  applyDamage(z,dmg,NET.pid);
+  applyDamage(z,dmg,NET.pid); if(!S.inPass) passHit(z);
 }
 function fireFlame(w){
   const o=new THREE.Vector3(P.x,EYE,P.z), dir=dirFrom(P.yaw,P.pitch,new THREE.Vector3());
@@ -1995,7 +2040,7 @@ function contBeam(a,b){
 }
 function updateCbeam(dt){ const cb=S.cbeam; if(cb){ cb.t-=dt; if(cb.t<=0){ scene.remove(cb.g); cb.outer.material.dispose(); cb.inner.material.dispose(); S.cbeam=null; } } }
 const OS_FIRE=5, OS_HYPER=2, OS_COOL=5, OS_COOL_H=7;
-function resetMelee(){ S.sonicMode=0; S.souls=0; S.ghoul=0; S.spin=0; S.throwCd=0; S.chAcc=0; if(S.thrown){ gameG.remove(S.thrown.g); S.thrown=null; } $('ghoulFx').style.opacity=0; }
+function resetMelee(){ S.okStacks=0; S.okT=9; S.kk=0; S.inPass=false; S.sonicMode=0; S.souls=0; S.ghoul=0; S.spin=0; S.throwCd=0; S.chAcc=0; if(S.thrown){ gameG.remove(S.thrown.g); S.thrown=null; } $('ghoulFx').style.opacity=0; }
 function resetOS(){ resetMelee(); S.os={ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}; osBeamRemove(); }
 function startOS(){ S.os={ph:'fire',t:OS_FIRE,acc:0,ft:.3,nt:0,hm:0}; sfx('osfire'); say('ORBITAL STRIKE!',1.2); }
 function osBeamRemove(){ const ob=S.osbeam; if(!ob) return; scene.remove(ob.g); ob.o.material.dispose(); ob.i.material.dispose(); for(const sp of ob.sp) sp.material.dispose(); S.osbeam=null; }
@@ -2414,7 +2459,8 @@ function update(dt){
   if(S.ghoul>0){ S.ghoul=Math.max(0,S.ghoul-dt); if(S.ghoul===0) say('Ghoul state ended',1.5); } $('ghoulFx').style.opacity=S.ghoul>0?.9:0;
   if(S.spin>0){ P.yaw+=2*Math.PI/.55*dt; S.spin-=dt; }
   if(NET.role!=='client') for(let i=S.zombies.length-1;i>=0;i--) if(S.zombies[i].hp<=0){ killZombie(S.zombies[i]); S.zombies.splice(i,1); }
-  updateProjs(dt); updateVB(dt); updateSonic(dt); updateGrenades(dt); updatePuddles(dt); updateChests(dt); updateCbeam(dt); updateSpikes(dt);
+  updateProjs(dt); updateVB(dt); updateSonic(dt); updateGrenades(dt);
+  S.okT+=dt; if(S.okT>1) S.okStacks=0; S.spT=Math.max(0,S.spT-dt); updatePuddles(dt); updateChests(dt); updateCbeam(dt); updateSpikes(dt);
   for(const d of S.delayed) d.t-=dt; { const due=S.delayed.filter(d=>d.t<=0); if(due.length){ S.delayed=S.delayed.filter(d=>d.t>0); for(const d of due) d.fn(); } }
   S.abCd=Math.max(0,S.abCd-dt*(S.ghoul>0&&S.weapon==='reaper'?2:1)); S.skipCd=Math.max(0,S.skipCd-dt);
   if(S.skipT>=0){ S.skipT-=dt; if(S.skipT<0){ S.skipT=-1; if(NET.role!=='client') doSkip(); } }
@@ -2568,6 +2614,9 @@ function updateHud(){
       L.push('E · Release Souls · '+(S.ghoul>0?'GHOUL '+S.ghoul.toFixed(0)+'s':(S.souls>=SOULS_NEED?'READY':S.souls+'/'+SOULS_NEED+' souls')));
       if(U('throw')) L.push('C · Scythe Throw · '+(S.thrown?'flying…':(S.throwCd>0?S.throwCd.toFixed(1)+'s':'READY'))); }
     else { const ab=S.weapon==='vampire'&&((S.bladeMode==='blood'&&U('hook')&&'Blood Hook')||(S.bladeMode==='wing'&&U('wind')&&'Strong Wind')||(S.bladeMode==='earth'&&U('smash')&&'Earth Spikes')); if(ab) L.push('Q · '+ab+' · '+(S.abCd>0?S.abCd.toFixed(1)+'s':'READY')); }
+    if(passOn('overkill')) L.push('Overkill · x'+(1+Math.min(.5,S.okStacks*.05)).toFixed(2)+(S.okStacks>=10?' (MAX)':''));
+    if(passOn('rage')) L.push('Rage · x'+(1+Math.max(0,Math.min(1,(1-S.hp/S.maxHp)/.9))).toFixed(2));
+    if(passOn('stormking')) L.push('Storm King · '+(S.kk%15)+'/15 kills');
     if(S.secEq==='grenade') L.push('X · Grenade · '+(S.grCd>0?S.grCd.toFixed(1)+'s':'READY'));
     if(L.length){ el.style.display='block'; el.textContent=L.join('\n'); } else el.style.display='none'; }
   { const el=$('skipTxt'); if(S.rebirths>=2&&S.mode==='game'){ el.style.display='block'; el.textContent=S.skipT>=0?'⏩ Skipping wave in '+S.skipT.toFixed(1)+'s…':'T · Skip Wave · '+(S.skipCd>0?S.skipCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; }
@@ -2709,7 +2758,7 @@ addEventListener('keydown',e=>{
   if(k==='e'&&!e.repeat&&S.mode==='game'&&!S.shopOpen&&!S.rebirthOpen&&S.weapon==='reaper') releaseSouls();
   if(k===' '&&!e.repeat&&S.mode==='game') grabPress();
   if(k==='g'&&!e.repeat) S.rebirthOpen?closeRebirth():openRebirth();
-  if(k==='escape'){ if(S.pauseOpen) resumeGame(); else if(S.shopOpen||S.rebirthOpen) { closeShop(); closeRebirth(); } else if(S.mpOpen) closeMultiplayer(); else if(S.diaryOpen) closeDiary(); else if(S.upOpen) S.wsOpen?closeWs():closeUpgrades(); else if(S.mode==='game') openPause(); }
+  if(k==='escape'){ if(S.pauseOpen) resumeGame(); else if(S.shopOpen||S.rebirthOpen) { closeShop(); closeRebirth(); } else if(S.mpOpen) closeMultiplayer(); else if(S.passOpen) closePass(); else if(S.diaryOpen) closeDiary(); else if(S.upOpen) S.wsOpen?closeWs():closeUpgrades(); else if(S.mode==='game') openPause(); }
   if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
 });
 document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('button'); if(b&&!b.closest('.card')&&b.id!=='sndBtn') sfx('click'); });
@@ -2954,7 +3003,7 @@ function clientSnapshot(m){
 function clientDead(m){
   const z=NET.ghosts[m.id]; if(!z) return; delete NET.ghosts[m.id]; const i=S.zombies.indexOf(z); if(i>=0) S.zombies.splice(i,1);
   if(m.quiet){ removeZombie(z); return; }
-  z.dead=true; z.hp=0; if(m.by===NET.pid){ recordKill(z); goalKill(z); } if(m.by===NET.pid&&S.weapon==='reaper') reaperKill();
+  z.dead=true; z.hp=0; if(m.by===NET.pid){ recordKill(z); goalKill(z); passKill(z); } if(m.by===NET.pid&&S.weapon==='reaper') reaperKill();
   if(m.by===NET.pid){ const c=Math.round(z.cash*cashMul()*(S.hc||S.vc?.5:1)); addCash(c); floatText(new THREE.Vector3(z.x,(z.y0||0)+z.height+.3,z.z),'+$'+c,'#facc15'); }
   killZombie(z);
 }
@@ -3101,6 +3150,8 @@ const SND={
   crawljump:{v:.8,range:60,f:o=>{ tone({f:200,f2:700,dur:.3,type:'sawtooth',vol:.3,lp:2200,out:o}); noise({dur:.3,vol:.25,ft:'highpass',f:1200,f2:2500,out:o}); }},
   crawlgrab:{v:.9,range:60,f:o=>{ tone({f:110,f2:60,dur:.35,type:'square',vol:.35,lp:700,out:o}); noise({dur:.25,vol:.4,ft:'lowpass',f:700,f2:200,out:o}); }},
   chainsaw:{v:.5,range:40,f:o=>{ tone({f:75,f2:105,dur:.12,type:'sawtooth',vol:.32,lp:1000,out:o}); noise({dur:.12,vol:.28,ft:'bandpass',f:1800,f2:3000,out:o}); }},
+  zap:{v:.4,range:40,f:o=>{ tone({f:1800,f2:600,dur:.08,type:'sawtooth',vol:.2,out:o}); noise({dur:.08,vol:.15,ft:'highpass',f:3000,f2:1500,out:o}); }},
+  thunder:{v:1,range:100,f:o=>{ noise({dur:.7,vol:.6,ft:'lowpass',f:1500,f2:150,out:o}); tone({f:70,f2:35,dur:.6,type:'sine',vol:.6,out:o}); tone({f:2000,f2:300,dur:.15,type:'sawtooth',vol:.25,out:o}); }},
   vball:{v:.8,range:70,f:o=>{ tone({f:300,f2:90,dur:.6,type:'sawtooth',vol:.3,lp:1200,out:o}); noise({dur:.5,vol:.25,ft:'bandpass',f:900,f2:300,out:o}); }},
   vblast:{v:.7,range:55,f:o=>{ tone({f:140,f2:40,dur:.35,type:'sine',vol:.4,out:o}); tone({f:600,f2:200,dur:.25,type:'square',vol:.1,lp:1500,out:o}); noise({dur:.3,vol:.25,ft:'lowpass',f:1200,f2:300,out:o}); }},
   vsummon:{v:.9,range:80,f:o=>{ tone({f:80,f2:400,dur:1.0,type:'sawtooth',vol:.35,lp:1800,att:.1,out:o}); tone({f:1200,f2:300,dur:.9,type:'triangle',vol:.12,out:o}); noise({dur:.8,vol:.2,ft:'bandpass',f:600,f2:2000,out:o}); }},
@@ -3232,6 +3283,24 @@ function openWs(){ if(S.mode!=='lobby') return; sfx('open'); S.upOpen=true; S.ws
 function closeWs(){ S.upOpen=false; S.wsOpen=false; $('ws').classList.remove('open'); setTimeout(()=>{ if(!S.upOpen) $('ws').style.display='none'; },200); const pw=LOBBY.pads.ws; P.x=pw.x; P.z=pw.z+4.6; }
 $('wsClose').addEventListener('click',closeWs);
 buildWs(); buildShop();
+
+/* ---------- Passives ---------- */
+function buildPass(){
+  const g=$('passGrid'); g.innerHTML='';
+  for(const o of PASSIVES){ const c=document.createElement('div'); c.className='ucard'; c.id='pass-'+o.id;
+    c.innerHTML=`<div class="ctop"><div class="ico">${o.ico}</div><div><div class="wn">Passive</div><div class="un">${o.name}</div></div></div><div class="ud">${o.desc}</div><button></button>`;
+    c.querySelector('button').onclick=()=>{ if(S.pas[o.id]){ S.pasOff[o.id]=!S.pasOff[o.id]; sfx('equip'); saveGame(); updatePass(); return; } if(S.tokens<o.tokens) return; S.tokens-=o.tokens; S.pas[o.id]=true; delete S.pasOff[o.id]; sfx('buy'); pop(c); saveGame(); updatePass(); };
+    g.appendChild(c); }
+}
+function updatePass(){
+  $('passChip').textContent=`🪙 ${S.tokens} tokens`;
+  for(const o of PASSIVES){ const c=$('pass-'+o.id), b=c.querySelector('button'), own=!!S.pas[o.id], on=own&&!S.pasOff[o.id]; c.classList.toggle('owned',on);
+    b.textContent=own?(on?'Active ✓ (click to turn off)':'Off (click to turn on)'):'Buy — '+o.tokens+' 🪙 tokens'; b.disabled=!own&&S.tokens<o.tokens; b.style.opacity=b.disabled&&!own?.5:1; }
+}
+function openPass(){ if(S.mode!=='lobby'||S.rebirths<4||S.passOpen) return; sfx('open'); S.passOpen=true; S.upOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('pass').style.display='flex'; requestAnimationFrame(()=>$('pass').classList.add('open')); updatePass(); }
+function closePass(){ if(!S.passOpen) return; S.passOpen=false; S.upOpen=false; $('pass').classList.remove('open'); setTimeout(()=>{ if(!S.passOpen) $('pass').style.display='none'; },200); }
+$('passClose').addEventListener('click',closePass); $('passBtn').addEventListener('click',e=>{ e.stopPropagation(); S.passOpen?closePass():openPass(); });
+buildPass();
 
 /* ---------- Bestiary ---------- */
 const DIA_NEED=5;
