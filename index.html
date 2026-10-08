@@ -1943,16 +1943,16 @@ function throwScythe(){
   if(S.mode!=='game'||S.downed||S.shopOpen||S.rebirthOpen||S.pauseOpen||S.weapon!=='reaper'||!U('throw')||S.thrown||S.throwCd>0) return;
   const d=dirFrom(P.yaw,P.pitch,new THREE.Vector3()); d.y*=.5; d.normalize();
   const g=makeScytheMesh(); g.position.set(P.x+d.x*.8,EYE-.3,P.z+d.z*.8); gameG.add(g);
-  S.thrown={g,dir:d,t:0,tick:.1,out:1.5}; sfx('swing',undefined,undefined,1,.5); S.throwCd=999;
+  S.thrown={g,dir:d,t:0,tick:.1,out:.9}; sfx('swing',undefined,undefined,1,.5); S.throwCd=999;
 }
 function updateScythe(dt){
   if(S.throwCd<900) S.throwCd=Math.max(0,S.throwCd-dt);
   const t=S.thrown; gunRoot.visible=S.mode==='game'&&!(t&&S.weapon==='reaper'); if(!t) return;
-  t.t+=dt; t.g.rotation.y+=dt*22;
-  if(t.t<t.out) t.g.position.addScaledVector(t.dir,24*dt);
+  t.t+=dt; t.g.rotation.y+=dt*30;
+  if(t.t<t.out) t.g.position.addScaledVector(t.dir,40*dt);
   else { const tx=P.x-t.g.position.x, ty=EYE-.4-t.g.position.y, tz=P.z-t.g.position.z, l=Math.hypot(tx,ty,tz)||1;
-    t.g.position.x+=tx/l*28*dt; t.g.position.y+=ty/l*28*dt; t.g.position.z+=tz/l*28*dt;
-    if(l<1.4||t.t>t.out+3){ gameG.remove(t.g); S.thrown=null; S.throwCd=6; gunRoot.visible=S.mode==='game'; sfx('equip'); return; } }
+    t.g.position.x+=tx/l*44*dt; t.g.position.y+=ty/l*44*dt; t.g.position.z+=tz/l*44*dt;
+    if(l<1.6||t.t>t.out+2){ gameG.remove(t.g); S.thrown=null; S.throwCd=6; gunRoot.visible=S.mode==='game'; sfx('equip'); return; } }
   t.tick-=dt; if(t.tick<=0){ t.tick=.25; S.reapDmg=true; S.ls=S.ghoul>0?.001:0; let any=false; const p=t.g.position, gm=S.ghoul>0?1.5:1;
     for(const z of S.zombies){ if(z.dead) continue; if(Math.hypot(z.x-p.x,z.z-p.z)<2.8+z.r&&p.y<(z.y0||0)+z.height+1){ hurtZombie(z,2500*gm,new THREE.Vector3(z.x,(z.y0||0)+z.height*.7,z.z)); any=true; } }
     S.reapDmg=false; S.ls=0; if(any){ hitMarker(); sfx('slash'); } blast(p.clone(),1.6,0xdc2626,.25); }
