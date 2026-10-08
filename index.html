@@ -324,7 +324,7 @@ const UPG=[
   {id:'balls',w:'railgun',mode:'Railblaster mode',name:'Stronger Laserballs',desc:'Bigger balls with a bigger explosion.'},
   {id:'hyper',w:'ostrike',name:'Hypercharge',desc:'After its 5 seconds the beam turns purple-red for 2 more seconds and deals 200 damage every 0.01s. The cooldown afterwards grows to 15 seconds.'},
   {id:'chain',w:'chainsaw',name:'Stronger Chain',desc:'The chainsaw deals 20 damage per tick instead of 10.'},
-  {id:'throw',w:'reaper',name:'Scythe Throw',desc:'Press C to throw the scythe. It spins while flying and deals 2500 damage every 0.5s, then returns to you.'},
+  {id:'throw',w:'reaper',name:'Scythe Throw',desc:'Press C to throw the scythe. It spins while flying and deals 2500 damage every 0.25s, then returns to you.'},
   {id:'hole',w:'orbital',name:'Black Hole',desc:'Red-purple theme, colour-changing ball, longer pull range and a second explosion (2000 dmg) 0.5s later.'},
   {id:'hook',w:'vampire',mode:'Blood mode',name:'Blood Hook',desc:'Press Q: dash forward and stab enemies for 10000 damage each. Lifesteal 5% (was 1%).'},
   {id:'wind',w:'vampire',mode:'Wind mode',name:'Strong Wind',desc:'Press Q: a giant wind wave deals 5000 damage and pushes every enemy around you away.'},
@@ -1930,7 +1930,7 @@ function updateScythe(dt){
   else { const tx=P.x-t.g.position.x, ty=EYE-.4-t.g.position.y, tz=P.z-t.g.position.z, l=Math.hypot(tx,ty,tz)||1;
     t.g.position.x+=tx/l*28*dt; t.g.position.y+=ty/l*28*dt; t.g.position.z+=tz/l*28*dt;
     if(l<1.4||t.t>t.out+3){ gameG.remove(t.g); S.thrown=null; S.throwCd=6; gunRoot.visible=S.mode==='game'; sfx('equip'); return; } }
-  t.tick-=dt; if(t.tick<=0){ t.tick=.5; S.reapDmg=true; let any=false; const p=t.g.position;
+  t.tick-=dt; if(t.tick<=0){ t.tick=.25; S.reapDmg=true; let any=false; const p=t.g.position;
     for(const z of S.zombies){ if(z.dead) continue; if(Math.hypot(z.x-p.x,z.z-p.z)<2.8+z.r&&p.y<(z.y0||0)+z.height+1){ hurtZombie(z,2500,new THREE.Vector3(z.x,(z.y0||0)+z.height*.7,z.z)); any=true; } }
     S.reapDmg=false; if(any){ hitMarker(); sfx('slash'); } blast(p.clone(),1.6,0xdc2626,.25); }
 }
