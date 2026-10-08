@@ -71,7 +71,7 @@
       '<button class="x" data-close aria-label="Close">×</button>' +
       '<div class="body"><h2>' + esc(g.title) + "</h2>" +
       '<div class="rating">' + stars(g.rating) + " " + g.rating.toFixed(1) + " / 5</div>" +
-      '<div class="tags"><span class="tag">' + esc(g.genre) + '</span><span class="tag">' + g.year + "</span>" +
+      '<div class="tags"><span class="tag">' + esc(g.genre) + '</span><span class="tag">' + g.year + "</span>" + (g.age ? '<span class="tag">' + esc(g.age) + "</span>" : "") +
       g.platforms.map(function (p) { return '<span class="tag">' + esc(p) + "</span>"; }).join("") + "</div>" +
       "<p>" + esc(g.desc) + "</p>" +
       '<div class="buy">' + priceHtml(g) + '<button class="btn" data-add="' + g.id + '">Add to cart</button></div></div>';
