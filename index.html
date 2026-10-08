@@ -303,7 +303,7 @@ const WEAPONS = [
   {id:'railgun',name:'Railgun',    cost:17500,dmg:75, cd:0.05,  rebirth:3, desc:'75 dmg / 0.05s piercing laser, overheats. Press E: Railblaster (1000 dmg explosive balls / 1s)'},
   {id:'orbital',name:'Orbital Cannon',cost:35000,dmg:5000,cd:2.0,rebirth:4, desc:'Giant red ball sucks enemies in, explodes after 1.5s for 5000 dmg / 2s'},
   {id:'vampire',name:'Vampire Blade',cost:50000,dmg:6666,cd:0.66,rebirth:5, desc:'Melee blade, 6666 dmg, heals 1% of damage dealt. E: Wind Blade / Earth Blade'},
-  {id:'reaper',name:'Soul Reaper',cost:75000,dmg:5000,cd:0.75,tokens:150,cat:'Melee',desc:'5000 dmg per slice / 0.75s. 10 kills = E releases the souls: Ghoul state (7500 dmg / 0.5s). Q: 360° spin with red slices'},
+  {id:'reaper',name:'Soul Reaper',cost:75000,dmg:5000,cd:0.75,tokens:150,cat:'Melee',desc:'5000 dmg per slice / 0.75s. 25 kills = E releases the souls: Ghoul state (7500 dmg / 0.25s, 1.5x speed, 0.1% life steal, all abilities 1.5x damage). Q: 360° spin with red slices'},
   {id:'ostrike',name:'Orbital Strike',cost:100000,dmg:100,cd:0.01,rebirth:6, desc:'Giant white laser, 100 dmg / 0.01s. One click = it fires 5s and cannot be cancelled, then 7s cooldown'},
 ];
 const LAVA_R=4, ORB_PULL=10, ORB_R=6;
@@ -1870,9 +1870,9 @@ const slashTex=canvasTex(256,128,(g,w,h)=>{ g.shadowColor='#ff2030'; g.shadowBlu
 const slashFx=new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.3),new THREE.MeshBasicMaterial({map:slashTex,transparent:true,opacity:0,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false}));
 slashFx.position.set(0,-.05,-1.05); slashFx.renderOrder=40; slashFx.visible=false; camera.add(slashFx);
 function reaperHit(dmg){
-  S.reapDmg=true; let any=false;
+  S.reapDmg=true; S.ls=S.ghoul>0?.001:0; let any=false;
   for(const z of S.zombies){ if(!inMelee(z,REAP_R,MELEE_ARC)) continue; hurtZombie(z,dmg,new THREE.Vector3(z.x,z.height*.7,z.z)); any=true; }
-  S.reapDmg=false; if(any){ hitMarker(); sfx('slash'); }
+  S.reapDmg=false; S.ls=0; if(any){ hitMarker(); sfx('slash'); }
   const hx=-Math.sin(P.yaw), hz=-Math.cos(P.yaw); groundRing(P.x+hx*1.8,P.z+hz*1.8,1.6,S.ghoul>0?0xff2a2a:0xdc2626,.3);
 }
 function inMelee(z,range,arc){
@@ -1898,22 +1898,23 @@ function updateDots(dt){
       if(Math.random()<.35){ const sp=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0xb91c1c,transparent:true,depthWrite:false})); sp.scale.setScalar(.14); sp.position.set(z.x+rnd(-.2,.2),(z.y0||0)+z.height*rnd(.3,.9),z.z+rnd(-.2,.2)); scene.add(sp); fx.push({m:sp,life:.45,max:.45,vel:new THREE.Vector3(0,-1.5,0),kind:'spark'}); } } }
   S.dotT-=dt; if(S.dotT<=0){ S.dotT=.35; for(const z of S.zombies) if(z.dotSum){ floatText(z.dotPos||new THREE.Vector3(z.x,z.height,z.z),fmtN(z.dotSum),'#fca5a5'); z.dotSum=0; } }
 }
-function reaperKill(){ if(S.ghoul>0) return; if(S.souls<10){ S.souls++; if(S.souls===10){ say('10 souls – press E to release them!',2.5); sfx('open'); } } }
-function releaseSouls(){ if(S.ghoul>0) return; if(S.souls<10){ say(`Souls ${S.souls}/10`,1); return; } S.souls=0; S.ghoul=12; sfx('roar'); say('GHOUL STATE!',2); }
+const SOULS_NEED=25;
+function reaperKill(){ if(S.ghoul>0) return; if(S.souls<SOULS_NEED){ S.souls++; if(S.souls===SOULS_NEED){ say(SOULS_NEED+' souls – press E to release them!',2.5); sfx('open'); } } }
+function releaseSouls(){ if(S.ghoul>0) return; if(S.souls<SOULS_NEED){ say(`Souls ${S.souls}/${SOULS_NEED}`,1); return; } S.souls=0; S.ghoul=12; sfx('roar'); say('GHOUL STATE!',2); }
 function reaperSlash(){
   const gh=S.ghoul>0, dmg=gh?7500:5000;
-  S.fireCd=gh?.5:.75; S.swing=.42; S.swingMax=.42; S.reapDir=-(S.reapDir||1);
+  S.fireCd=gh?.25:.75; S.swing=gh?.3:.42; S.swingMax=S.swing; S.reapDir=-(S.reapDir||1);
   S.delayed.push({t:.15,fn:()=>reaperHit(dmg)});
   setTimeout(()=>{ if(S.mode==='game') sfx('swing',undefined,undefined,1,.8); },90);
 }
 function reaperSpin(){
   S.abCd=8; S.spin=.55; sfx('swing',undefined,undefined,1,.6); sfx('slam',undefined,undefined,.6);
-  const o={x:P.x,y:.9,z:P.z}, hits=new Map(); S.reapDmg=true;
+  const o={x:P.x,y:.9,z:P.z}, hits=new Map(), gm=S.ghoul>0?1.5:1; S.reapDmg=true; S.ls=S.ghoul>0?.001:0;
   for(let i=0;i<12;i++){ const a=i/12*Math.PI*2, d={x:Math.sin(a),y:0,z:Math.cos(a)};
-    for(const z of S.zombies){ if(z.dead) continue; const t=rayZombie(o,d,z,.3); if(t<=16) hits.set(z,(hits.get(z)||0)+(Math.hypot(z.x-P.x,z.z-P.z)<4?6000:3000)); }
+    for(const z of S.zombies){ if(z.dead) continue; const t=rayZombie(o,d,z,.3); if(t<=16) hits.set(z,(hits.get(z)||0)+(Math.hypot(z.x-P.x,z.z-P.z)<4?6000:3000)*gm); }
     vRing(new THREE.Vector3(P.x,1.1,P.z),a,0xff2030,.6,3.6,18); }
   for(const [z,dmg] of hits) hurtZombie(z,dmg,new THREE.Vector3(z.x,z.height*.7,z.z));
-  S.reapDmg=false; if(hits.size){ hitMarker(); sfx('slash'); }
+  S.reapDmg=false; S.ls=0; if(hits.size){ hitMarker(); sfx('slash'); }
   groundRing(P.x,P.z,16,0xdc2626,.6); groundRing(P.x,P.z,4,0xff6a6a,.4); S.shake=Math.max(S.shake,.5);
 }
 function scytheModel(){
@@ -1952,9 +1953,9 @@ function updateScythe(dt){
   else { const tx=P.x-t.g.position.x, ty=EYE-.4-t.g.position.y, tz=P.z-t.g.position.z, l=Math.hypot(tx,ty,tz)||1;
     t.g.position.x+=tx/l*28*dt; t.g.position.y+=ty/l*28*dt; t.g.position.z+=tz/l*28*dt;
     if(l<1.4||t.t>t.out+3){ gameG.remove(t.g); S.thrown=null; S.throwCd=6; gunRoot.visible=S.mode==='game'; sfx('equip'); return; } }
-  t.tick-=dt; if(t.tick<=0){ t.tick=.25; S.reapDmg=true; let any=false; const p=t.g.position;
-    for(const z of S.zombies){ if(z.dead) continue; if(Math.hypot(z.x-p.x,z.z-p.z)<2.8+z.r&&p.y<(z.y0||0)+z.height+1){ hurtZombie(z,2500,new THREE.Vector3(z.x,(z.y0||0)+z.height*.7,z.z)); any=true; } }
-    S.reapDmg=false; if(any){ hitMarker(); sfx('slash'); } blast(p.clone(),1.6,0xdc2626,.25); }
+  t.tick-=dt; if(t.tick<=0){ t.tick=.25; S.reapDmg=true; S.ls=S.ghoul>0?.001:0; let any=false; const p=t.g.position, gm=S.ghoul>0?1.5:1;
+    for(const z of S.zombies){ if(z.dead) continue; if(Math.hypot(z.x-p.x,z.z-p.z)<2.8+z.r&&p.y<(z.y0||0)+z.height+1){ hurtZombie(z,2500*gm,new THREE.Vector3(z.x,(z.y0||0)+z.height*.7,z.z)); any=true; } }
+    S.reapDmg=false; S.ls=0; if(any){ hitMarker(); sfx('slash'); } blast(p.clone(),1.6,0xdc2626,.25); }
 }
 function explode(pos,radius,base,color,visual){
   blast(pos,radius,color); sfx('boom',pos.x,pos.z,Math.min(1,.5+radius/10),radius>5?.7:1); if(visual) return;
@@ -2271,7 +2272,7 @@ function ew(w){
   if(w.id==='mg'&&U('fingers')) e.cd=.05;
   if(w.id==='shotgun'&&U('shells')) e.pellets=15;
   if(w.id==='chainsaw'&&U('chain')) e.dmg=20;
-  if(w.id==='reaper'&&S.ghoul>0){ e.dmg=7500; e.cd=.5; }
+  if(w.id==='reaper'&&S.ghoul>0){ e.dmg=7500; e.cd=.25; }
   if(w.id==='minigun'&&U('cooling')) e.dmg=30;
   return e;
 }
@@ -2310,7 +2311,7 @@ function update(dt){
   if(windBlade&&keys[' ']&&P.y<=0&&!inputOff&&!S.grab){ P.vy=JUMP_V; windWave(); }
   P.vy-=GRAV*dt; P.y+=P.vy*dt; if(P.y<=0){ P.y=0; P.vy=0; } EYE=EYE0+P.y-(S.downed?1.1:0);
   if(S.dash) dashStep(dt);
-  const mi=moveInput(), mx=(inputOff||S.dash)?0:mi.mx, my=(inputOff||S.dash)?0:mi.my, sprint=mi.sprint, sp=(sprint?SPRINT:WALK)*(windBlade?1.5:1);
+  const mi=moveInput(), mx=(inputOff||S.dash)?0:mi.mx, my=(inputOff||S.dash)?0:mi.my, sprint=mi.sprint, sp=(sprint?SPRINT:WALK)*(windBlade?1.5:1)*(S.ghoul>0?1.5:1);
   const fx_=-Math.sin(P.yaw), fz_=-Math.cos(P.yaw), rx=Math.cos(P.yaw), rz=-Math.sin(P.yaw);
   P.x+=(fx_*my+rx*mx)*sp*dt; P.z+=(fz_*my+rz*mx)*sp*dt;
   if((mx||my)&&P.y<=0&&!S.downed){ S.stepD=(S.stepD||0)+sp*dt; if(S.stepD>(sprint?2.3:1.8)){ S.stepD=0; sfx('step'); } }
@@ -2482,10 +2483,10 @@ function updateHud(){
   $('hpBar').style.width=Math.max(0,S.hp/S.maxHp*100)+'%'; $('hpTxt').textContent=Math.max(0,Math.ceil(S.hp))+' / '+S.maxHp;
   $('cashTxtHud').textContent='$ '+S.cash;
   $('waveTxt').textContent=`Wave ${S.wave} · Zombies: ${S.zombies.length+S.toSpawn}`+(S.rebirths?` · Rebirth ${S.rebirths}`:'')+(S.hc?' · ☠ HARDCORE':'')+(S.vc?' · 🌀 VOIDCORE MODE':'');
-  const wn=wpn(); $('wpnTxt').textContent=wn.id==='vampire'?BLADE[S.bladeMode].name+' · E: switch mode'+(S.bladeMode==='wing'?' · SPACE: jump':''):wn.id==='reaper'?('Soul Reaper · Souls '+S.souls+'/10'+(S.ghoul>0?' · 👻 GHOUL':'')):wn.id==='railgun'?(S.railMode==='laser'?'Railgun (Laser) · E: switch mode':'Railblaster · E: switch mode'):wn.name;
+  const wn=wpn(); $('wpnTxt').textContent=wn.id==='vampire'?BLADE[S.bladeMode].name+' · E: switch mode'+(S.bladeMode==='wing'?' · SPACE: jump':''):wn.id==='reaper'?('Soul Reaper · Souls '+S.souls+'/'+SOULS_NEED+(S.ghoul>0?' · 👻 GHOUL':'')):wn.id==='railgun'?(S.railMode==='laser'?'Railgun (Laser) · E: switch mode':'Railblaster · E: switch mode'):wn.name;
   { const el=$('abTxt'); el.style.whiteSpace='pre-line';
     if(S.weapon==='reaper'){ const L=[]; L.push('Q · Spin Slash · '+(S.abCd>0?S.abCd.toFixed(1)+'s':(S.thrown?'scythe is away':'READY')));
-      L.push('E · Release Souls · '+(S.ghoul>0?'GHOUL '+S.ghoul.toFixed(0)+'s':(S.souls>=10?'READY':S.souls+'/10 souls')));
+      L.push('E · Release Souls · '+(S.ghoul>0?'GHOUL '+S.ghoul.toFixed(0)+'s':(S.souls>=SOULS_NEED?'READY':S.souls+'/'+SOULS_NEED+' souls')));
       if(U('throw')) L.push('C · Scythe Throw · '+(S.thrown?'flying…':(S.throwCd>0?S.throwCd.toFixed(1)+'s':'READY')));
       el.style.display='block'; el.textContent=L.join('\n'); }
     else { const ab=S.weapon==='vampire'&&((S.bladeMode==='blood'&&U('hook')&&'Blood Hook')||(S.bladeMode==='wing'&&U('wind')&&'Strong Wind')||(S.bladeMode==='earth'&&U('smash')&&'Earth Spikes')); if(ab){ el.style.display='block'; el.textContent='Q · '+ab+' · '+(S.abCd>0?S.abCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; } }
@@ -2513,7 +2514,7 @@ const WINFO={
   railgun:{ico:'⚡',tags:['Pierces all','Overheats','E: Railblaster'],note:'Blue laser pierces everything. E = Railblaster: 1000 dmg explosive balls / 1 s.'},
   vampire:{ico:'🗡️',tags:['Melee','Lifesteal','E: 3 modes'],note:'Blood: 6666 dmg / 0.66 s, heals 1% of damage. Wind (E): 2500 / 0.25 s, +50% speed, SPACE = high jump + wind wave. Earth (E): 7500 / 1.5 s, 360° shockwave.'},
   chainsaw:{ico:'🪚',tags:['Melee','Bleed','Hold to rev'],note:'Rips through enemies: 10 dmg every 0.01 s and a 3 s bleed (10 dmg / 0.05 s).'},
-  reaper:{ico:'💀',tags:['Melee','Souls','Q: 360° spin'],note:'5000 dmg slices. 10 kills = E: Ghoul state (7500 dmg / 0.5 s). Q: spin that sends red slices in all directions.'},
+  reaper:{ico:'💀',tags:['Melee','Souls','Q: 360° spin'],note:'5000 dmg slices. 25 kills = E: Ghoul state (7500 dmg / 0.25 s, +50% speed, 0.1% life steal, abilities +50% damage). Q: spin that sends red slices in all directions.'},
   ostrike:{ico:'☄️',tags:['Pierces all','Can\'t cancel','Giant laser'],note:'One click fires a giant white laser for 5 s (100 dmg / 0.01 s, pierces everything). It cannot be stopped, then it cools down for 7 s.'},
   orbital:{ico:'🔴',tags:['Black hole','Huge blast'],note:'Giant sphere sucks enemies in, then explodes after 1.5 s (6 m radius).'},
 };
