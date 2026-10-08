@@ -625,10 +625,10 @@ function buildMap(list){
   const dkM=mat(0x0e0e10,'matte'), glassM=mat(0x1a2a33,'metal'), carCols=[0x3a1d14,0x1f2428,0x2a3a38,0x4a2a14];
   for(const b of bricks){ const {x,z,w,d,h}=b, cx=x+w/2, cz=z+d/2;
     if(b.kind==='container'){
-      const ci=Math.floor(Math.random()*4), tex=contTex(ci).clone(); tex.needsUpdate=true; tex.repeat.set(Math.max(w,d)/2.4,1);
+      const ci=Math.floor(Math.random()*4), tex=contTex(ci).clone(); tex.needsUpdate=true; tex.repeat.set(Math.round(Math.max(w,d)/2.4),1);
       const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({map:tex})); m.userData.own=true; m.position.set(cx,h/2,cz); brickGroup.add(m);
-      const along=w>d; for(const sg of [-1,1]){ const f=along?zbox(.12,h-.1,d+.02,dkM,cx+sg*(w/2-.06),h/2,cz):zbox(w+.02,h-.1,.12,dkM,cx,h/2,cz+sg*(d/2-.06)); brickGroup.add(f); }
-      for(let i=0;i<4;i++) brickGroup.add(along?zbox(.14,.14,d+.04,capM,cx-w/2+(i+.5)*w/4,h+.02,cz):zbox(w+.04,.14,.14,capM,cx,h+.02,cz-d/2+(i+.5)*d/4));
+      const along=w>d; for(const sg of [-1,1]){ const f=along?zbox(.12,h-.1,d+.04,dkM,cx+sg*(w/2-.04),h/2,cz):zbox(w+.04,h-.1,.12,dkM,cx,h/2,cz+sg*(d/2-.04)); brickGroup.add(f); }
+      for(let i=0;i<4;i++) brickGroup.add(along?zbox(.14,.14,d+.04,capM,cx-w/2+(i+.5)*w/4,h+.08,cz):zbox(w+.04,.14,.14,capM,cx,h+.08,cz-d/2+(i+.5)*d/4));
       continue;
     }
     if(b.kind==='car'){
