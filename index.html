@@ -100,7 +100,12 @@
   #mpHint{margin-top:10px;font-size:13px;color:#9ca3af}
   #mpStatus{margin-top:12px;min-height:18px;font-size:13px}
   #mpClose{background:#dc2626;color:#fff;border:0;border-radius:10px;padding:6px 12px;cursor:pointer;font-weight:800;font-size:15px}
-  #leaveBtn{position:fixed;top:10px;right:202px;height:54px;padding:0 12px;border-radius:12px;border:2px solid #f87171;background:#450a0acc;color:#fecaca;font:bold 14px sans-serif;cursor:pointer;display:none}
+  #pauseBtn{position:fixed;top:10px;right:202px;width:54px;height:54px;border-radius:12px;border:2px solid #94a3b8;background:#1e293bcc;font-size:24px;cursor:pointer;display:none}
+  #pause{position:fixed;inset:0;background:radial-gradient(#0b1020cc,#000d);display:none;align-items:center;justify-content:center;z-index:40;backdrop-filter:blur(5px)}
+  #pausePanel{background:linear-gradient(#141a2b,#0b0f1a);border:1px solid #475569;box-shadow:0 20px 80px #000a;border-radius:18px;padding:26px 30px;width:min(360px,92vw);display:flex;flex-direction:column;gap:12px;text-align:center}
+  #pausePanel h2{margin:0 0 4px;letter-spacing:4px;font-size:26px} #pauseInfo{font-size:13px;color:#94a3b8;margin-bottom:6px;line-height:1.5}
+  #pausePanel button{border:0;border-radius:12px;padding:13px;font-size:16px;font-weight:800;cursor:pointer;color:#fff;background:#334155}
+  #pausePanel button:hover{filter:brightness(1.15)} #pResume{background:linear-gradient(#22c55e,#15803d)} #leaveBtn{background:linear-gradient(#ef4444,#991b1b)!important}
   #sndBtn{position:fixed;top:10px;right:138px;width:54px;height:54px;border-radius:12px;border:2px solid #94a3b8;background:#1e293bcc;font-size:26px;cursor:pointer}
   #up{position:fixed;inset:0;background:radial-gradient(#2a1a05ee,#000d);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;backdrop-filter:blur(4px)}
   #up.open{opacity:1}
@@ -157,7 +162,7 @@
 </div>
 <button id="shopBtn" title="Shop (B)">🛒</button>
 <button id="rbBtn" title="Rebirth (G)">♻</button>
-<button id="leaveBtn" title="Leave run">🚪 LEAVE</button>
+<button id="pauseBtn" title="Pause (Esc)">⏸</button>
 <button id="sndBtn" title="Sound (M)">🔊</button>
 <button id="fireBtn">🔫</button>
 <div id="rebirth"><div id="rpanel">
@@ -191,6 +196,12 @@
   <div id="cashCard" class="ucard"></div>
   <div id="upGrid"></div>
   <div style="margin-top:12px;font-size:12px;color:#9ca3af"><a href="#" id="upExport" style="color:#9ca3af">Copy save code</a> · <a href="#" id="upImport" style="color:#9ca3af">Load save code</a> · <a href="#" id="upReset" style="color:#9ca3af">Remove all upgrades & boosts</a><div style="margin-top:4px">The save code includes your rebirths, weapon upgrades and cash boosts.</div></div>
+</div></div>
+<div id="pause"><div id="pausePanel">
+  <h2>PAUSED</h2><div id="pauseInfo"></div>
+  <button id="pResume">▶ Resume</button>
+  <button id="pSound">🔊 Sound: on</button>
+  <button id="leaveBtn">🚪 Leave Game</button>
 </div></div>
 <div id="ws"><div id="wsPanel">
   <div class="sh-head"><h2>🔫 Weapon Shop</h2><span class="chip" id="wsChip"></span><button id="wsClose">✕</button></div>
@@ -304,7 +315,7 @@ const BOSS = {name:'BOSS', wave:99, hp:100000, cash:10000, spd:1.9, col:0x991b1b
 const CRIER={name:'Screamer',wave:25,hp:1200,cash:200,spd:6.2,col:0x7d8494,size:1.5,tier:3,crier:true};
 const SCREAMER={name:'Howler',wave:15,hp:500,cash:75,spd:1.7,col:0xf8fafc,size:1.45,tier:2,screamer:true};
 const ARCHER_WAVE=10, ARCHER_CHANCE=.05, ARCHER_RANGE=32, ARROW_V=30, ARROW_G=8;
-const isPaused=()=>(S.shopOpen||S.rebirthOpen)&&!NET.active;
+const isPaused=()=>(S.shopOpen||S.rebirthOpen||S.pauseOpen)&&!NET.active;
 const incoming=[]; // damage dealt to the local player this frame
 function mpTargets(){
   const T=[{pid:NET.pid,x:P.x,y:P.y,z:P.z,alive:!S.downed}];
@@ -326,7 +337,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, hc:false, vc:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -1385,14 +1396,27 @@ function setMode(m){
   scene.fog=m==='game'?new THREE.Fog(fogC,hcm?7:10,hcm?42:48):null;
   sun.color.setHex(m==='game'?(hcm?0xff9070:(vcm?0xc4a0ff:0xaec6ff)):0xffffff); hemi.color.setHex(hcm?0xff9a80:(vcm?0xb89cff:0xaab8ff));
   hemi.intensity=m==='lobby'?0.8:(hcm?0.9:0.55); sun.intensity=m==='lobby'?0.5:(hcm?0.5:0.35);
-  $('shopBtn').style.display=m==='game'?'block':'none'; $('leaveBtn').style.display=m==='game'?'block':'none'; leaveArm(false);
+  $('shopBtn').style.display=m==='game'?'block':'none'; $('pauseBtn').style.display=m==='game'?'block':'none'; closePause();
   gunRoot.visible=m==='game';
   ['hpWrap','cashTxtHud','waveTxt','wpnTxt'].forEach(i=>$(i).style.display=m==='game'?'block':'none');
   $('tokTxt').style.display=m==='lobby'?'block':'none';
   $('cross').style.display=m==='game'?'block':'none';
 }
 let leaveTO=0;
-function leaveArm(on){ clearTimeout(leaveTO); $('leaveBtn').textContent=on?'Really leave?':'🚪 LEAVE'; if(on) leaveTO=setTimeout(()=>leaveArm(false),3000); }
+function leaveArm(on){ clearTimeout(leaveTO); $('leaveBtn').textContent=on?'Really leave? (click again)':'🚪 Leave Game'; if(on) leaveTO=setTimeout(()=>leaveArm(false),3000); }
+function openPause(){
+  if(S.mode!=='game'||S.pauseOpen) return; S.pauseOpen=true; IN.down=false; for(const k in keys) keys[k]=false; flameSound(false);
+  if(document.pointerLockElement) document.exitPointerLock(); leaveArm(false);
+  $('pauseInfo').innerHTML=`Wave ${S.wave} · $${S.cash.toLocaleString()}`+(S.hc?' · ☠ Hardcore':'')+(S.vc?' · 🌀 Void Core':'')+(NET.active?'<br>Multiplayer – the game keeps running!':'<br>Game paused');
+  $('pSound').textContent=AUD.muted?'🔇 Sound: off':'🔊 Sound: on'; $('pause').style.display='flex'; sfx('open');
+}
+function closePause(){ if(!S.pauseOpen&&$('pause').style.display!=='flex') { S.pauseOpen=false; return; } S.pauseOpen=false; $('pause').style.display='none'; leaveArm(false); }
+function resumeGame(){ closePause(); cv.requestPointerLock?.(); }
+function togglePause(){ S.pauseOpen?resumeGame():openPause(); }
+$('pResume').addEventListener('click',resumeGame);
+$('pSound').addEventListener('click',()=>{ audUnlock(); setMuted(!AUD.muted); $('pSound').textContent=AUD.muted?'🔇 Sound: off':'🔊 Sound: on'; });
+$('pauseBtn').addEventListener('click',e=>{ e.stopPropagation(); openPause(); });
+document.addEventListener('pointerlockchange',()=>{ if(!document.pointerLockElement&&S.mode==='game'&&!S.shopOpen&&!S.rebirthOpen&&!S.pauseOpen&&!S.mpOpen) openPause(); });
 function leaveRun(){
   if(S.mode!=='game') return;
   const solo=!NET.active&&!S.hc&&!S.vc;
@@ -1400,7 +1424,7 @@ function leaveRun(){
   sfx('click'); enterLobby(); saveGame();
   say(solo?'You left the run. Your progress is saved.':'You left the run.',3);
 }
-$('leaveBtn').addEventListener('click',e=>{ e.stopPropagation(); if($('leaveBtn').textContent==='Really leave?') leaveRun(); else leaveArm(true); });
+$('leaveBtn').addEventListener('click',e=>{ e.stopPropagation(); if($('leaveBtn').textContent.startsWith('Really')) leaveRun(); else leaveArm(true); });
 function enterLobby(){
   mpCleanupGame(); S.downed=false; S.pulls=[]; S.delayed=[]; S.dash=null; S.abCd=0; S.skipT=-1; S.skipCd=0; for(const sp of S.spikes){ gameG.remove(sp.m); } S.spikes=[];
   P.y=0; P.vy=0; EYE=EYE0;
@@ -1880,7 +1904,7 @@ function moveInput(){
 function update(dt){
   if(S.msgT>0){ S.msgT-=dt; if(S.msgT<=0) $('msg').style.opacity=0; }
   if(S.mode==='lobby'){ flameSound(false); return updateLobby(dt); }
-  const ui=S.shopOpen||S.rebirthOpen;
+  const ui=S.shopOpen||S.rebirthOpen||S.pauseOpen;
   if(ui&&!NET.active){ flameSound(false); return; }
   const inputOff=ui||S.downed;
   const windBlade=S.weapon==='vampire'&&S.bladeMode==='wing';
@@ -2156,7 +2180,7 @@ $('rbBtn').addEventListener('click',()=>S.rebirthOpen?closeRebirth():openRebirth
 
 /* ---------- Input ---------- */
 addEventListener('keydown',e=>{
-  const k=e.key.toLowerCase(); keys[k]=true; if(e.shiftKey) keys.shift=true;
+  const k=e.key.toLowerCase(); if(S.pauseOpen&&k!=='escape') return; keys[k]=true; if(e.shiftKey) keys.shift=true;
   if(k==='b'&&!e.repeat) S.shopOpen?closeShop():openShop();
   if(/^[0-9]$/.test(k)&&S.mode==='game'&&!S.rebirthOpen){ const w=SHOPW()[k==='0'?9:+k-1]; if(w&&S.owned[w.id]&&!(w.rebirth&&S.rebirths<w.rebirth)){ equip(w.id); if(S.shopOpen) updateShop(); } }
   if(k==='e'&&!e.repeat&&S.mode==='game'&&!S.shopOpen&&!S.rebirthOpen&&S.weapon==='vampire'){ S.bladeMode=BLADE_ORDER[(BLADE_ORDER.indexOf(S.bladeMode)+1)%3]; buildGun('vampire'); S.fireCd=Math.max(S.fireCd,.3); say(BLADE[S.bladeMode].name,1.2); }
@@ -2165,7 +2189,7 @@ addEventListener('keydown',e=>{
   if(k==='q'&&!e.repeat) useAbility();
   if(k==='t'&&!e.repeat) useSkip();
   if(k==='g'&&!e.repeat) S.rebirthOpen?closeRebirth():openRebirth();
-  if(k==='escape'){ closeShop(); closeRebirth(); if(S.mpOpen) closeMultiplayer(); if(S.upOpen) S.wsOpen?closeWs():closeUpgrades(); }
+  if(k==='escape'){ if(S.pauseOpen) resumeGame(); else if(S.shopOpen||S.rebirthOpen) { closeShop(); closeRebirth(); } else if(S.mpOpen) closeMultiplayer(); else if(S.upOpen) S.wsOpen?closeWs():closeUpgrades(); else if(S.mode==='game') openPause(); }
   if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
 });
 document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('button'); if(b&&!b.closest('.card')&&b.id!=='sndBtn') sfx('click'); });
