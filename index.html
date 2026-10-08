@@ -2096,7 +2096,7 @@ function shootRay(yaw,pitch,dmgNear,dmgFar,range){
     let dmg=dmgNear; if(dmgFar!==dmgNear) dmg=dmgNear+(dmgFar-dmgNear)*Math.min(1,tz/range);
     const head=(_o.y+_d.y*tz)>=(hit.y0||0)+hit.height*.82; if(head){ dmg*=1.5; hit.flash=.1; }
     hurtZombie(hit,dmg,_e.clone().setY(Math.min((hit.y0||0)+hit.height,_e.y+.2)),head?'#ef4444':undefined);
-    hitMarker(); if(head) sfx('headshot');
+    hitMarker();
   }
 }
 function heatTime(w){ return w.id==='minigun'?MINI_HEAT_TIME:RAIL_HEAT_TIME; }
