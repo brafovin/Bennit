@@ -969,6 +969,9 @@ function makeCrier(t){
   const arms=[-1,1].map(sd=>{ const sh=pivot(sd*.23,.58,0,torso), el=pivot(0,-.46,0,sh);
     sh.add(zbox(.09,.46,.09,skin,0,-.22,0), zbox(.095,.12,.095,gore,0,-.1,0), zbox(.02,.2,.1,fresh,sd*.03,-.28,0)); el.add(zbox(.08,.48,.08,skin,0,-.23,0), zbox(.1,.1,.06,skin,0,-.5,0), zbox(.085,.18,.085,flesh,0,-.34,0), zbox(.04,.12,.04,pale,sd*.07,-.1,0), zbox(.02,.24,.02,pale,sd*.06,-.02,-.03), zbox(.11,.12,.07,fresh,0,-.52,0));
     for(const fx_ of [-.035,0,.035]){ el.add(zbox(.015,.28,.02,pale,fx_,-.69,0), zbox(.012,.07,.02,fresh,fx_,-.58,0)); } return {sh,el}; });
+  for(const l of legs) l.hip.scale.set(1.6,1,1.6);
+  for(const a of arms) a.sh.scale.set(1.0,1,1.0);
+  torso.scale.set(1.45,1,1.5); neck.scale.set(1/1.45,1,1/1.5); head.scale.set(1.15,1,1.15);
   g.scale.setScalar(s);
   const bar=new THREE.Group(); const bg=new THREE.Mesh(barGeo,barBg), fill=new THREE.Mesh(barGeo,barFill);
   bg.renderOrder=10; fill.renderOrder=11; fill.position.z=.001; bar.add(bg,fill); bar.scale.set(.95,1,1);
