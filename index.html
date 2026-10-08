@@ -924,10 +924,8 @@ function buildGun(id,forAvatar){
     A(bx(.1,.06,.1,0x991b1b,0,.0,.28,'metal'));
     tip=1.15;
   } else if(id==='reaper'){
-    g.scale.setScalar(.7); g.position.set(.14,-.2,.1); g.rotation.set(.55,.25,-.1);
-    A(cy(.022,1.7,0x2a1d14,0,0,-.55,'matte'), cy(.032,.18,0x17141c,0,0,.28,'metal'), cy(.03,.04,0xff2030,0,0,.16,'glow'));
-    for(let i=0;i<8;i++){ const a=i/7*1.25, m=bx(.34,.035,.1,i%2?0x17141c:0x2a2733,-.25-Math.sin(a)*.45,.0,-1.35-Math.cos(a)*.5+.42,'metal'); m.rotation.y=-(a-.5); A(m); const e=bx(.34,.02,.03,0xff2030,-.25-Math.sin(a)*.45,.02,-1.38-Math.cos(a)*.5+.42,'glow'); e.rotation.y=-(a-.5); A(e); }
-    A(bx(.08,.06,.08,0xe5e0cf,0,0,-1.3,'matte'), bx(.12,.04,.04,0xff2030,0,.03,-1.34,'glow'));
+    g.scale.setScalar(.62); g.position.set(.12,-.12,.05);
+    const sc=scytheModel(); sc.rotation.set(-1.0,.18,.12); sc.position.set(.18,-.25,.35); A(sc);
     tip=1.3;
   } else if(id==='ostrike'){
     g.scale.setScalar(.82); g.position.set(.06,-.05,-.3);
@@ -1910,12 +1908,28 @@ function reaperSpin(){
   S.reapDmg=false; if(hits.size){ hitMarker(); sfx('slash'); }
   groundRing(P.x,P.z,16,0xdc2626,.6); groundRing(P.x,P.z,4,0xff6a6a,.4); S.shake=Math.max(S.shake,.5);
 }
-function makeScytheMesh(){
-  const g=new THREE.Group(), dk=mat(0x17141c,'metal'), rd=mat(0xff2030,'glow');
-  g.add(zbox(1.7,.07,.07,dk,0,0,0));
-  for(let i=0;i<7;i++){ const a=i/6*1.3, m=zbox(.34,.05,.14,i%2?dk:mat(0x2a2733,'metal'),.85+Math.sin(a)*.2,0,-.05-Math.cos(a)*.5+.5); m.rotation.y=a-.4; g.add(m); const e=zbox(.34,.03,.03,rd,.85+Math.sin(a)*.2,0,-.12-Math.cos(a)*.5+.5); e.rotation.y=a-.4; g.add(e); }
-  g.scale.setScalar(1.4); return g;
+function scytheModel(){
+  const sc=new THREE.Group(), wood=mat(0x3a2818,'matte'), steel=mat(0x6b7280,'metal'), blade=mat(0x1b1722,'metal'), blade2=mat(0x2c2838,'metal'), edge=mat(0xff2030,'glow'), bone=mat(0xe8e0cc,'matte'), cloth=mat(0x5a0a14,'matte');
+  // shaft with metal bands, spike and grip wraps
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.03,.034,2.0,8),wood); shaft.position.y=.55; sc.add(shaft);
+  for(const y of [-.25,.15,.65,1.15,1.5]){ const r=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.05,10),steel); r.position.y=y; sc.add(r); }
+  const sp=new THREE.Mesh(new THREE.ConeGeometry(.04,.22,8),steel); sp.position.y=-.58; sp.rotation.x=Math.PI; sc.add(sp);
+  for(let k=0;k<5;k++){ const w=zbox(.075,.03,.075,mat(0x1a1210,'matte'),0,-.1+k*.08,0); w.rotation.y=k; sc.add(w); }
+  // skull ornament + glowing eyes where the blade joins
+  sc.add(zbox(.16,.14,.14,bone,0,1.64,0), zbox(.1,.05,.1,bone,0,1.55,.02), zbox(.03,.035,.02,edge,-.04,1.66,.075), zbox(.03,.035,.02,edge,.04,1.66,.075), zbox(.02,.05,.02,mat(0x111111,'matte'),0,1.6,.075));
+  // crescent blade: tapered segments following an arc, with a glowing edge on the inside
+  const N=12, pts=[];
+  for(let i=0;i<=N;i++){ const u=i/N; pts.push([-u*1.35, 1.55+.46*Math.sin(u*Math.PI*.85)-u*u*.62, 0.095-.035*(1-u)]); }
+  for(let i=0;i<N;i++){ const a=pts[i], b=pts[i+1], dx=b[0]-a[0], dy=b[1]-a[1], len=Math.hypot(dx,dy)+.02, ang=Math.atan2(dy,dx), u=(i+.5)/N, hw=.06+.22*Math.pow(1-u,.75);
+    const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2, nx=-Math.sin(ang), ny=Math.cos(ang);
+    const seg=zbox(len,hw,.035,i%2?blade:blade2,mx,my-nx*0-ny*0,0); seg.rotation.z=ang; sc.add(seg);
+    const ed=zbox(len,.025,.045,edge,mx+nx*(-hw/2+.01)*-1*-1,my+ny*(-hw/2+.01),0); ed.rotation.z=ang; sc.add(ed); }
+  sc.add(zbox(.1,.2,.06,blade,-.04,1.52,0), zbox(.08,.12,.05,edge,-.05,1.47,0));
+  // tattered cloth hanging from the joint
+  for(let k=0;k<3;k++){ const c=zbox(.06,.34+k*.1,.01,cloth,-.1-k*.07,1.3-k*.04,-.03); c.rotation.z=.15+k*.08; sc.add(c); }
+  return sc;
 }
+function makeScytheMesh(){ const g=new THREE.Group(), sc=scytheModel(); sc.rotation.x=.35; sc.position.y=-.6; g.add(sc); g.scale.setScalar(1.15); return g; }
 function throwScythe(){
   if(S.mode!=='game'||S.downed||S.shopOpen||S.rebirthOpen||S.pauseOpen||S.weapon!=='reaper'||!U('throw')||S.thrown||S.throwCd>0) return;
   const d=dirFrom(P.yaw,P.pitch,new THREE.Vector3()); d.y*=.5; d.normalize();
