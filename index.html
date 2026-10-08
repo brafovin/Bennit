@@ -312,7 +312,7 @@ const ZTYPES = [
   {name:'Titan',  wave:50, hp:10000, cash:1000, spd:2.55,col:0x38bdf8, size:1.7},
 ];
 const BOSS = {name:'BOSS', wave:99, hp:100000, cash:10000, spd:1.9, col:0x991b1b, size:3.4, tier:7};
-const CRIER={name:'Screamer',wave:25,hp:5000,cash:200,spd:9.5,col:0x7d8494,size:1.5,tier:3,crier:true};
+const CRIER={name:'Screamer',wave:25,hp:1000,cash:200,spd:9.5,col:0x7d8494,size:1.5,tier:3,crier:true};
 const SCREAMER={name:'Howler',wave:15,hp:500,cash:75,spd:1.7,col:0xf8fafc,size:1.45,tier:2,screamer:true};
 const ARCHER_WAVE=10, ARCHER_CHANCE=.05, ARCHER_RANGE=32, ARROW_V=30, ARROW_G=8;
 const isPaused=()=>(S.shopOpen||S.rebirthOpen||S.pauseOpen)&&!NET.active;
@@ -1487,7 +1487,7 @@ function spawnZombie(boss){
     const side=Math.floor(Math.random()*4), u=Math.random();
     if(side===0){x=u*MAP.w;z=2;} else if(side===1){x=u*MAP.w;z=MAP.h-2;} else if(side===2){x=2;z=u*MAP.h;} else {x=MAP.w-2;z=u*MAP.h;}
   }while(Math.hypot(x-P.x,z-P.z)<14&&n++<20);
-  const m=makeZombie(t), hpM=(t.miniBoss||t.crier)?1:(S.hc?4:(S.vc?10:1)), shM=t.shielder?t.hp*hpM:0;
+  const m=makeZombie(t), hpM=t.miniBoss?1:(S.hc?4:(S.vc?10:1)), shM=t.shielder?t.hp*hpM:0;
   const zb={id:NET.nextZid++,desc:{n:t.name,c:t.col,s:t.size,t:t.tier||0,a:t.archer?1:0,sc:t.screamer?1:0,b:boss?1:0,br:t.brute?1:0,bm:t.miniBoss?1:0,ca:t.cash,h:t.hp*hpM,cr:t.crier?1:0,sh:shM},burnBy:0,x,z,hp:t.hp*hpM,max:t.hp*hpM,cash:t.cash,miniBoss:!!t.miniBoss,permGlow:!!t.miniBoss,spd:t.spd*(.92+Math.random()*.16)*(t.crier?1:(S.hc&&t.base!=='Runner'?2:(S.vc&&t.base!=='Runner'?2.5:1))),dmg:(t.crier?50:BASE_DMG*Math.pow(DMG_GROWTH,t.tier)*(t.brute?2:1))*(S.hc?3:(S.vc?5:1)),
     atk:0,boss,flash:0,screamer:!!t.screamer,brute:!!t.brute,scream:0,screamCd:2.5,screamFired:true,waves:0,buff:0,burn:0,burnT:0,dead:false,kvx:0,kvz:0,stun:0,swing:0,hitDone:true,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,crier:!!t.crier,cst:0,standT:0,shielder:!!t.shielder,shMax:shM,sh:shM,...m};
   zb.y0=0;
