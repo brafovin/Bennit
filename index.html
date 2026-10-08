@@ -249,7 +249,7 @@
 </div></div>
 <div id="pass"><div id="passPanel">
   <div class="sh-head"><h2>✨ Passives</h2><span class="chip" id="passChip"></span><button id="passClose">✕</button></div>
-  <div style="font-size:12.5px;color:#9ca3af;margin-top:6px">Passives work automatically in every run. Buy them once with tokens and switch them on or off here. Unlocked at Rebirth 4.</div>
+  <div style="font-size:12.5px;color:#9ca3af;margin-top:6px">Buy passives once with tokens, then equip one – only 1 passive can be active at a time. Unlocked at Rebirth 4.</div>
   <div id="passGrid"></div>
 </div></div>
 <div id="ws"><div id="wsPanel">
@@ -410,7 +410,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, pas:{}, pasOff:{}, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -423,7 +423,7 @@ function runSnapshot(){
   const busy=S.toSpawn>0||S.zombies.length>0;
   return {re:S.runEarned,rt:S.runTok,cash:S.cash,owned:S.owned,weapon:S.weapon,hpBuys:S.hpBuys,wave:busy?Math.max(0,S.wave-1):S.wave,cleared:S.cleared,railMode:S.railMode,bladeMode:S.bladeMode};
 }
-function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,cl:S.cashLv,tk:S.tokens,wu:S.wu,gl:S.goals,pa:S.pas,po:S.pasOff,sec:S.sec,se:S.secEq,kills:S.kills,run:(S.mode==='game'&&!NET.active&&!S.hc&&!S.vc)?runSnapshot():S.savedRun}; }
+function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,cl:S.cashLv,tk:S.tokens,wu:S.wu,gl:S.goals,pa:S.pas,pe:S.pasEq,sec:S.sec,se:S.secEq,kills:S.kills,run:(S.mode==='game'&&!NET.active&&!S.hc&&!S.vc)?runSnapshot():S.savedRun}; }
 function saveGame(){
   const js=JSON.stringify(savePayload()); let ok=false;
   try{ localStorage.setItem(SAVE_KEY,js); ok=localStorage.getItem(SAVE_KEY)===js; }catch(e){}
@@ -433,7 +433,7 @@ function saveGame(){
 }
 function parseSave(js){ try{ const d=JSON.parse(js); return d&&d.v===1?d:null; }catch(e){ return null; } }
 function applySave(d){
-  S.rebirths=Math.min(MAX_REB,Math.max(0,d.rebirths|0)); S.pas={}; S.pasOff={}; if(d.pa&&typeof d.pa==='object') for(const o of PASSIVES) if(d.pa[o.id]){ S.pas[o.id]=true; if(d.po&&d.po[o.id]) S.pasOff[o.id]=true; } S.goals={}; if(d.gl&&typeof d.gl==='object') for(const k of ['h','v','vb']) if(d.gl[k]) S.goals[k]=true; S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.sec={}; if(d.sec&&typeof d.sec==='object') for(const o of SECONDARIES) if(d.sec[o.id]) S.sec[o.id]=true; S.secEq=(d.se&&S.sec[d.se])?d.se:null; S.kills={}; if(d.kills&&typeof d.kills==='object') for(const k in d.kills) S.kills[k]=Math.max(0,Math.min(1e7,d.kills[k]|0)); S.wu={}; if(d.wu&&typeof d.wu==='object') for(const w of WEAPONS) if(w.tokens&&d.wu[w.id]) S.wu[w.id]=true; buildShop(); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true;
+  S.rebirths=Math.min(MAX_REB,Math.max(0,d.rebirths|0)); S.pas={}; S.pasEq=null; if(d.pa&&typeof d.pa==='object') for(const o of PASSIVES) if(d.pa[o.id]){ S.pas[o.id]=true; if(d.pe===undefined&&!S.pasEq&&!(d.po&&d.po[o.id])) S.pasEq=o.id; } if(d.pe&&S.pas[d.pe]) S.pasEq=d.pe; S.goals={}; if(d.gl&&typeof d.gl==='object') for(const k of ['h','v','vb']) if(d.gl[k]) S.goals[k]=true; S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.sec={}; if(d.sec&&typeof d.sec==='object') for(const o of SECONDARIES) if(d.sec[o.id]) S.sec[o.id]=true; S.secEq=(d.se&&S.sec[d.se])?d.se:null; S.kills={}; if(d.kills&&typeof d.kills==='object') for(const k in d.kills) S.kills[k]=Math.max(0,Math.min(1e7,d.kills[k]|0)); S.wu={}; if(d.wu&&typeof d.wu==='object') for(const w of WEAPONS) if(w.tokens&&d.wu[w.id]) S.wu[w.id]=true; buildShop(); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true;
   if(r&&r.owned&&r.owned.glock&&WEAPONS_IDS.includes(r.weapon)) S.savedRun={re:+r.re||0,rt:r.rt|0,cash:+r.cash||0,owned:r.owned,weapon:r.weapon,hpBuys:r.hpBuys|0,wave:r.wave|0,cleared:r.cleared|0,railMode:r.railMode==='blaster'?'blaster':'laser',bladeMode:['blood','wing','earth'].includes(r.bladeMode)?r.bladeMode:'blood'};
 }
 function loadGame(){
@@ -446,7 +446,7 @@ function loadGame(){
   else { try{ S.rebirths=Math.min(MAX_REB,Math.max(0,parseInt(localStorage.getItem('zs_rebirths'))||0)); }catch(e){} } // very old save format
   saveGame(); // write everything back (also tests whether saving works)
 }
-function resetProgress(){ S.pas={}; S.pasOff={}; S.goals={}; S.sec={}; S.secEq=null; S.kills={}; S.rebirths=0; S.wu={}; S.up={}; S.cashLv=0; S.tokens=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
+function resetProgress(){ S.pas={}; S.pasEq=null; S.goals={}; S.sec={}; S.secEq=null; S.kills={}; S.rebirths=0; S.wu={}; S.up={}; S.cashLv=0; S.tokens=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
 function exportCode(){ return btoa(unescape(encodeURIComponent(JSON.stringify(savePayload())))); }
 function importCode(txt){
   txt=(txt||'').trim(); if(!txt) return false;
@@ -1738,7 +1738,7 @@ function igniteZombie(z,t){
   if(NET.role==='client'){ const e=NET.hitBuf[z.id]||(NET.hitBuf[z.id]={d:0,b:0}); e.b=1; z.burn=t; return; }
   if(z.burn<=0) z.burnT=0; z.burn=t; z.burnBy=NET.pid;
 }
-const passOn=id=>!!S.pas[id]&&!S.pasOff[id]&&S.rebirths>=4;
+const passOn=id=>S.pasEq===id&&!!S.pas[id]&&S.rebirths>=4;
 function passMul(){ if(S.inPass) return 1; let m=1; if(passOn('overkill')) m*=1+Math.min(.5,S.okStacks*.05); if(passOn('rage')){ const f=S.maxHp>0?S.hp/S.maxHp:1; m*=1+Math.max(0,Math.min(1,(1-f)/.9)); } return m; }
 function curDps(){ const w=ew(wpn()); let base; if(w.id==='vampire'){ const b=BLADE[S.bladeMode]; base=b.dmg/b.cd; } else if(w.id==='railgun'&&S.railMode==='blaster') base=1000; else base=w.dmg*(w.pellets||1)/Math.max(.01,w.cd); return Math.min(base,60000); }
 function boltFx(a,b,col,thick){
@@ -3289,13 +3289,13 @@ function buildPass(){
   const g=$('passGrid'); g.innerHTML='';
   for(const o of PASSIVES){ const c=document.createElement('div'); c.className='ucard'; c.id='pass-'+o.id;
     c.innerHTML=`<div class="ctop"><div class="ico">${o.ico}</div><div><div class="wn">Passive</div><div class="un">${o.name}</div></div></div><div class="ud">${o.desc}</div><button></button>`;
-    c.querySelector('button').onclick=()=>{ if(S.pas[o.id]){ S.pasOff[o.id]=!S.pasOff[o.id]; sfx('equip'); saveGame(); updatePass(); return; } if(S.tokens<o.tokens) return; S.tokens-=o.tokens; S.pas[o.id]=true; delete S.pasOff[o.id]; sfx('buy'); pop(c); saveGame(); updatePass(); };
+    c.querySelector('button').onclick=()=>{ if(S.pas[o.id]){ S.pasEq=(S.pasEq===o.id)?null:o.id; sfx('equip'); saveGame(); updatePass(); return; } if(S.tokens<o.tokens) return; S.tokens-=o.tokens; S.pas[o.id]=true; if(!S.pasEq) S.pasEq=o.id; sfx('buy'); pop(c); saveGame(); updatePass(); };
     g.appendChild(c); }
 }
 function updatePass(){
   $('passChip').textContent=`🪙 ${S.tokens} tokens`;
-  for(const o of PASSIVES){ const c=$('pass-'+o.id), b=c.querySelector('button'), own=!!S.pas[o.id], on=own&&!S.pasOff[o.id]; c.classList.toggle('owned',on);
-    b.textContent=own?(on?'Active ✓ (click to turn off)':'Off (click to turn on)'):'Buy — '+o.tokens+' 🪙 tokens'; b.disabled=!own&&S.tokens<o.tokens; b.style.opacity=b.disabled&&!own?.5:1; }
+  for(const o of PASSIVES){ const c=$('pass-'+o.id), b=c.querySelector('button'), own=!!S.pas[o.id], on=S.pasEq===o.id; c.classList.toggle('owned',on);
+    b.textContent=own?(on?'Equipped ✓ (click to unequip)':'Equip – only 1 passive at a time'):'Buy — '+o.tokens+' 🪙 tokens'; b.disabled=!own&&S.tokens<o.tokens; b.style.opacity=b.disabled&&!own?.5:1; }
 }
 function openPass(){ if(S.mode!=='lobby'||S.rebirths<4||S.passOpen) return; sfx('open'); S.passOpen=true; S.upOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('pass').style.display='flex'; requestAnimationFrame(()=>$('pass').classList.add('open')); updatePass(); }
 function closePass(){ if(!S.passOpen) return; S.passOpen=false; S.upOpen=false; $('pass').classList.remove('open'); setTimeout(()=>{ if(!S.passOpen) $('pass').style.display='none'; },200); }
