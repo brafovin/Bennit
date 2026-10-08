@@ -1821,7 +1821,7 @@ function dashStep(dt){
   P.x+=d.dx*41*dt; P.z+=d.dz*41*dt; P.x=Math.max(.4,Math.min(MAP.w-.4,P.x)); P.z=Math.max(.4,Math.min(MAP.h-.4,P.z)); collide(P,.4,bricks);
   for(let i=0;i<2;i++){ const sp=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0xb91c1c,transparent:true,depthWrite:false})); sp.scale.setScalar(.35); sp.position.set(P.x,.5+Math.random()*1.2,P.z); scene.add(sp); fx.push({m:sp,life:.5,max:.5,vel:new THREE.Vector3(0,.4,0),kind:'spark'}); }
   S.ls=.05;
-  for(const z of S.zombies){ if(z.dead||d.hit.has(z)||(z.y0||0)>P.y+(z.archer?4.6:2.2)) continue; if(Math.hypot(z.x-P.x,z.z-P.z)<z.r+1.1+(z.archer?1.6:0)){ d.hit.add(z); hurtZombie(z,10000,new THREE.Vector3(z.x,z.height*.6,z.z)); hitMarker(); sfx('slash'); S.shake=Math.max(S.shake,.35); groundRing(z.x,z.z,2,0xef4444,.35); } }
+  for(const z of S.zombies){ if(z.dead||d.hit.has(z)||(z.y0||0)>P.y+(z.archer?4.6:2.2)) continue; if(Math.hypot(z.x-P.x,z.z-P.z)<z.r+1.1+(z.archer?1.6:0)){ d.hit.add(z); hurtZombie(z,5000,new THREE.Vector3(z.x,z.height*.6,z.z)); hitMarker(); sfx('slash'); S.shake=Math.max(S.shake,.35); groundRing(z.x,z.z,2,0xef4444,.35); } }
   S.ls=0;
   if(d.t<=0) S.dash=null;
 }
