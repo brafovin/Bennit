@@ -1946,7 +1946,7 @@ function throwScythe(){
   S.thrown={g,dir:d,t:0,tick:.1,out:.9}; sfx('swing',undefined,undefined,1,.5); S.throwCd=999;
 }
 function updateScythe(dt){
-  if(S.throwCd<900) S.throwCd=Math.max(0,S.throwCd-dt);
+  if(S.throwCd<900) S.throwCd=Math.max(0,S.throwCd-dt*(S.ghoul>0?2:1));
   const t=S.thrown; gunRoot.visible=S.mode==='game'&&!(t&&S.weapon==='reaper'); if(!t) return;
   t.t+=dt; t.g.rotation.y+=dt*30;
   if(t.t<t.out) t.g.position.addScaledVector(t.dir,40*dt);
@@ -2337,7 +2337,7 @@ function update(dt){
   if(NET.role!=='client') for(let i=S.zombies.length-1;i>=0;i--) if(S.zombies[i].hp<=0){ killZombie(S.zombies[i]); S.zombies.splice(i,1); }
   updateProjs(dt); updateVB(dt); updatePuddles(dt); updateChests(dt); updateCbeam(dt); updateSpikes(dt);
   for(const d of S.delayed) d.t-=dt; { const due=S.delayed.filter(d=>d.t<=0); if(due.length){ S.delayed=S.delayed.filter(d=>d.t>0); for(const d of due) d.fn(); } }
-  S.abCd=Math.max(0,S.abCd-dt); S.skipCd=Math.max(0,S.skipCd-dt);
+  S.abCd=Math.max(0,S.abCd-dt*(S.ghoul>0&&S.weapon==='reaper'?2:1)); S.skipCd=Math.max(0,S.skipCd-dt);
   if(S.skipT>=0){ S.skipT-=dt; if(S.skipT<0){ S.skipT=-1; if(NET.role!=='client') doSkip(); } }
   if(NET.role==='client'){ clientTick(dt); return; }
   for(const pl of S.pulls){ pl.t-=dt; for(const z of S.zombies){ if(z.dead||z.archer) continue; const dx=pl.x-z.x, dz=pl.z-z.z, d=Math.hypot(dx,dz); if(d<(pl.r||ORB_PULL)&&d>.05){ const m=Math.min(d,9*dt); z.x+=dx/d*m; z.z+=dz/d*m; } } } S.pulls=S.pulls.filter(p=>p.t>0);
