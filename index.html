@@ -1522,6 +1522,7 @@ function rageCrier(z){ z.cst=1; z.standT=.7; z.spd=z.rageSpd||6; sfx('crier',z.x
 function applyDamage(z,dmg,by){ // solo / host: authoritative damage
   if(z.dead) return;
   if(z.crier&&z.cst===0) dmg*=.25;
+  if(z.brute) dmg*=(S.hc||S.vc)?.5:.75;
   if(z.sh>0){ const a=Math.min(z.sh,dmg); z.sh-=a; dmg-=a; if(z.sh<=0) breakShield(z); }
   if(dmg>0) z.hp-=dmg;
   if(z.crier&&z.cst===0&&z.hp>0&&z.hp<=z.max*.8) rageCrier(z);
@@ -1541,7 +1542,7 @@ function hurtZombie(z,base,pos,col,silent){ // damage dealt by the local player
   if(S.ls) S.hp=Math.min(S.maxHp,S.hp+dmg*S.ls);
   if(z.y0&&pos.y<z.y0) pos.y+=z.y0;
   if(!silent) floatText(pos,dmg,col);
-  if(NET.role==='client'){ const e=NET.hitBuf[z.id]||(NET.hitBuf[z.id]={d:0,b:0}); e.d+=dmg; if(z.sh>0) z.sh=Math.max(0,z.sh-dmg); else z.hp-=dmg*(z.crier&&!z.cst?.25:1); return; }
+  if(NET.role==='client'){ const e=NET.hitBuf[z.id]||(NET.hitBuf[z.id]={d:0,b:0}); e.d+=dmg; if(z.sh>0) z.sh=Math.max(0,z.sh-dmg); else z.hp-=dmg*(z.crier&&!z.cst?.25:1)*(z.brute?((S.hc||S.vc)?.5:.75):1); return; }
   applyDamage(z,dmg,NET.pid);
 }
 function fireFlame(w){
