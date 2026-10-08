@@ -304,7 +304,7 @@ const WEAPONS = [
   {id:'orbital',name:'Orbital Cannon',cost:35000,dmg:5000,cd:2.0,rebirth:4, desc:'Giant red ball sucks enemies in, explodes after 1.5s for 5000 dmg / 2s'},
   {id:'vampire',name:'Vampire Blade',cost:50000,dmg:4000,cd:0.66,rebirth:5, desc:'Melee blade, 4000 dmg, heals 1% of damage dealt. E: Wind Blade / Earth Blade'},
   {id:'reaper',name:'Soul Reaper',cost:75000,dmg:5000,cd:0.75,tokens:150,cat:'Melee',desc:'5000 dmg per slice / 0.75s. 25 kills = E releases the souls: Ghoul state (7500 dmg / 0.25s, 1.5x speed, 0.1% life steal, all abilities 1.5x damage). Q: 360° spin with red slices'},
-  {id:'ostrike',name:'Orbital Strike',cost:100000,dmg:100,cd:0.01,rebirth:6, desc:'Giant white laser, 100 dmg / 0.01s. One click = it fires 5s and cannot be cancelled, then 5s cooldown'},
+  {id:'ostrike',name:'Orbital Strike',cost:100000,dmg:150,cd:0.01,rebirth:6, desc:'Giant white laser, 150 dmg / 0.01s. One click = it fires 5s and cannot be cancelled, then 5s cooldown'},
   {id:'sonic',name:'Sonic Blaster',cost:150000,dmg:5000,cd:0.5,tokens:300,cat:'Guns',desc:'E switches modes. Sonic: fast piercing balls, 5000 dmg, explode on walls. Pulse: slow big ball pulsing 5000 dmg every second. Hypersonic upgrade adds a third mode: both combined'},
 ];
 const LAVA_R=4, ORB_PULL=10, ORB_R=6;
@@ -2014,7 +2014,7 @@ function updateOS(dt){
   if(o.ph==='idle'){ return; }
   o.t-=dt;
   if(o.ph==='fire'||o.ph==='hyper'){
-    const hy=o.ph==='hyper', dmg=hy?200:100;
+    const hy=o.ph==='hyper', dmg=hy?200:150;
     _o.set(P.x,EYE,P.z); dirFrom(P.yaw,P.pitch,_d); gunMuzzle.getWorldPosition(_m); const _b=_o.clone().addScaledVector(_d,90);
     osBeam(_m,_b,hy);
     o.acc+=dt; let n=Math.floor(o.acc/.01); o.acc-=n*.01; n=Math.min(n,8);
@@ -2591,7 +2591,7 @@ const WINFO={
   chainsaw:{ico:'🪚',tags:['Melee','Bleed','Hold to rev'],note:'Rips through enemies: 10 dmg every 0.01 s and a 3 s bleed (10 dmg / 0.05 s).'},
   reaper:{ico:'💀',tags:['Melee','Souls','Q: 360° spin'],note:'5000 dmg slices. 25 kills = E: Ghoul state (7500 dmg / 0.25 s, +50% speed, 0.1% life steal, abilities +50% damage). Q: spin that sends red slices in all directions.'},
   sonic:{ico:'🔊',tags:['2 modes','Pierces','Explodes on walls','E: switch'],note:'Sonic Mode: fast piercing balls (5000 dmg, explode on walls for 5000 AoE, 0.5 s). Pulse Mode: slow huge ball pulsing 5000 dmg every second (1 s). Hypersonic upgrade: third mode, both combined.'},
-  ostrike:{ico:'☄️',tags:['Pierces all','Can\'t cancel','Giant laser'],note:'One click fires a giant white laser for 5 s (100 dmg / 0.01 s, pierces everything). It cannot be stopped, then it cools down for 5 s.'},
+  ostrike:{ico:'☄️',tags:['Pierces all','Can\'t cancel','Giant laser'],note:'One click fires a giant white laser for 5 s (150 dmg / 0.01 s, pierces everything). It cannot be stopped, then it cools down for 5 s.'},
   orbital:{ico:'🔴',tags:['Black hole','Huge blast'],note:'Giant sphere sucks enemies in, then explodes after 1.5 s (6 m radius).'},
 };
 const lg=(v,m)=>Math.min(100,Math.log(v+1)/Math.log(m+1)*100);
