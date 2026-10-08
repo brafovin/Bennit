@@ -277,7 +277,7 @@ const UPG=[
   {id:'ammo',w:'rifle',name:'Stronger Ammo',desc:'Each rifle shot deals 50 damage (was 34).'},
   {id:'fingers',w:'mg',name:'Fast Fingers',desc:'Machine gun cooldown 0.15s → 0.05s.'},
   {id:'shells',w:'shotgun',name:'More Shells',desc:'The shotgun fires 15 shells (was 9).'},
-  {id:'cooling',w:'minigun',name:'Better Cooling',desc:'Overcharge takes 7 seconds to build up instead of 5.'},
+  {id:'cooling',w:'minigun',name:'Bigger Bullets',desc:'Bigger bullets that deal 30 damage instead of 15 (and are easier to hit with).'},
   {id:'flames',w:'flame',name:'Stronger Flames',desc:'Burning deals 200 damage every 0.5s (was 50).'},
   {id:'lava',w:'lava',name:'More Lava',desc:'Bigger explosion and pool, the pool stays 3s longer and the lava deals 2x damage.'},
   {id:'laser',w:'railgun',mode:'Laser mode',name:'Stronger Laser',desc:'A wider, real continuous laser beam instead of many single shots.'},
@@ -1373,6 +1373,12 @@ function beam(a,b,color,rad){
   m.position.copy(a).addScaledVector(dir,.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());
   scene.add(m); fx.push({m,life:.2,max:.2,kind:'beam'});
 }
+function thickTracer(a,b){
+  const d=b.clone().sub(a), len=d.length(); if(len<.01) return;
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,len,6),new THREE.MeshBasicMaterial({color:0xfbbf24,transparent:true,opacity:.9,depthWrite:false}));
+  m.position.copy(a).addScaledVector(d,.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
+  scene.add(m); fx.push({m,life:.1,max:.1,kind:'line'});
+}
 function tracer(a,b){
   const g=new THREE.BufferGeometry().setFromPoints([a,b]);
   const l=new THREE.Line(g,new THREE.LineBasicMaterial({color:0xfde68a,transparent:true,opacity:.8}));
@@ -1865,22 +1871,24 @@ function shootRay(yaw,pitch,dmgNear,dmgFar,range){
   let tb=80; for(const b of bricks){ const t=rayBox({x:_o.x,y:_o.y,z:_o.z},_d,b,tb); if(t<tb) tb=t; }
   for(const b of edgeSolids){ const t=rayBox({x:_o.x,y:_o.y,z:_o.z},_d,b,tb); if(t<tb) tb=t; }
   let hit=null, tz=tb;
-  for(const z of S.zombies){ if(z.hp<=0) continue; const t=rayZombie(_o,_d,z); if(t<tz){tz=t;hit=z;} }
+  const big=S.weapon==='minigun'&&U('cooling')?.2:0;
+  for(const z of S.zombies){ if(z.hp<=0) continue; const t=rayZombie(_o,_d,z,big); if(t<tz){tz=t;hit=z;} }
   const end=hit?tz:tb;
-  gunMuzzle.getWorldPosition(_m); _e.copy(_o).addScaledVector(_d,end); tracer(_m.clone(),_e.clone()); netShot({k:'t',a:[_m.x,_m.y,_m.z],b:[_e.x,_e.y,_e.z]});
+  gunMuzzle.getWorldPosition(_m); _e.copy(_o).addScaledVector(_d,end); (big?thickTracer:tracer)(_m.clone(),_e.clone()); netShot({k:'t',a:[_m.x,_m.y,_m.z],b:[_e.x,_e.y,_e.z]});
   if(hit){
     let dmg=dmgNear; if(dmgFar!==dmgNear) dmg=dmgNear+(dmgFar-dmgNear)*Math.min(1,tz/range);
     hurtZombie(hit,dmg,_e.clone().setY(Math.min(hit.height,_e.y+.2)));
     hitMarker();
   }
 }
-function heatTime(w){ return w.id==='minigun'?(U('cooling')?7:MINI_HEAT_TIME):RAIL_HEAT_TIME; }
+function heatTime(w){ return w.id==='minigun'?MINI_HEAT_TIME:RAIL_HEAT_TIME; }
 function ew(w){
   const e={...w};
   if(w.id==='glock'&&U('grip')) e.cd=.75;
   if(w.id==='rifle'&&U('ammo')) e.dmg=50;
   if(w.id==='mg'&&U('fingers')) e.cd=.05;
   if(w.id==='shotgun'&&U('shells')) e.pellets=15;
+  if(w.id==='minigun'&&U('cooling')) e.dmg=30;
   return e;
 }
 function fireSfx(w){ const id=w.id; if(id==='lava') sfx('lava'); else if(id==='orbital') sfx('orbital'); else if(id==='railgun') sfx(S.railMode==='blaster'?'blaster':'railgun'); else sfx(WSOUND[id]||'glock'); }
