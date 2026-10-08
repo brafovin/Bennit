@@ -104,6 +104,11 @@
   #sndBtn{position:fixed;top:10px;right:138px;width:54px;height:54px;border-radius:12px;border:2px solid #94a3b8;background:#1e293bcc;font-size:26px;cursor:pointer}
   #up{position:fixed;inset:0;background:radial-gradient(#2a1a05ee,#000d);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;backdrop-filter:blur(4px)}
   #up.open{opacity:1}
+  #ws{position:fixed;inset:0;background:radial-gradient(#2a1a05ee,#000d);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;backdrop-filter:blur(4px)}
+  #ws.open{opacity:1}
+  #wsPanel{background:linear-gradient(#1a1409,#0d0a05);border:1px solid #f59e0b88;box-shadow:0 20px 80px #000a;border-radius:18px;padding:18px;width:min(1000px,96vw);max-height:92vh;overflow:auto}
+  #wsGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;margin-top:10px}
+  #wsClose{background:#dc2626;color:#fff;border:0;border-radius:10px;padding:6px 12px;cursor:pointer;font-weight:800;font-size:15px}
   #upPanel{background:linear-gradient(#1a1409,#0d0a05);border:1px solid #f59e0b88;box-shadow:0 20px 80px #000a;border-radius:18px;padding:18px;width:min(1000px,96vw);max-height:92vh;overflow:auto}
   #upGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;margin-top:10px}
   .ucard{background:#1f1a10;border:1px solid #3a2e16;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;transition:transform .15s,border-color .15s,box-shadow .15s}
@@ -187,6 +192,11 @@
   <div id="upGrid"></div>
   <div style="margin-top:12px;font-size:12px;color:#9ca3af"><a href="#" id="upExport" style="color:#9ca3af">Copy save code</a> · <a href="#" id="upImport" style="color:#9ca3af">Load save code</a> · <a href="#" id="upReset" style="color:#9ca3af">Remove all upgrades & boosts</a><div style="margin-top:4px">The save code includes your rebirths, weapon upgrades and cash boosts.</div></div>
 </div></div>
+<div id="ws"><div id="wsPanel">
+  <div class="sh-head"><h2>🔫 Weapon Shop</h2><span class="chip" id="wsChip"></span><button id="wsClose">✕</button></div>
+  <div style="font-size:12.5px;color:#9ca3af;margin-top:6px">Buy a weapon once with tokens and it is added <b>permanently</b> to your normal in-run weapon shop (you still pay its cash price during a run).</div>
+  <div id="wsGrid"></div>
+</div></div>
 <div id="shop"><div id="panel">
   <div class="sh-head"><h2>🛒 Shop</h2><span class="chip" id="mulChip"></span><span class="chip" id="cashTxt"></span><button id="close">✕</button></div>
   <div class="sh-sub">Weapons <span style="letter-spacing:0;text-transform:none;font-weight:600">· press 1-9 / 0 in game to switch</span></div>
@@ -237,6 +247,7 @@ const WEAPONS = [
   {id:'rifle',  name:'Rifle',      cost:100,  dmg:34, cd:0.5,  desc:'34 dmg / 0.5s'},
   {id:'mg',     name:'Machine Gun',cost:500,  dmg:20, cd:0.15, desc:'20 dmg / 0.15s'},
   {id:'shotgun',name:'Shotgun',    cost:1500, dmg:20, cd:0.75,  pellets:9, spread:0.07, far:10, range:8, desc:'9 pellets, 20 dmg close → 10 far / 1s'},
+  {id:'autoshot',name:'Automatic Shotgun',cost:2350,dmg:20,cd:0.25,pellets:6,spread:0.07,far:20,range:8,tokens:30,desc:'6 pellets, 20 dmg each / 0.25s'},
   {id:'minigun',name:'Minigun',    cost:3000, dmg:15, cd:0.05, desc:'15 dmg / 0.05s, overheats after 6s (3s lockout)'},
   {id:'flame', name:'Flamethrower',cost:6000,dmg:50, cd:0.1,  range:7, cone:0.3, burn:3, rebirth:1, desc:'50 dmg / 0.1s in a cone, sets enemies on fire (50 dmg / 0.5s)'},
   {id:'lava',   name:'Lava Blaster',cost:10000,dmg:250,cd:1.0,  rebirth:2, desc:'Lava balls: 250 explosion dmg, leave a giant lava puddle (10 dmg / 0.1s + burning)'},
@@ -249,6 +260,7 @@ const BLADE={blood:{cd:.66,dmg:6666,name:'Vampire Blade'},wing:{cd:.25,dmg:2500,
 const WIND_R=5, WIND_PUSH=13, MELEE_R=3.3, MELEE_ARC=.95, EARTH_R=8, BLADE_ORDER=['blood','wing','earth'];
 const heated=w=>w.id==='minigun'||(w.id==='railgun'&&S.railMode==='laser');
 const WEAPONS_IDS=WEAPONS.map(w=>w.id);
+const SHOPW=()=>WEAPONS.filter(w=>!w.tokens||S.wu[w.id]);
 const UPG=[
   {id:'grip',w:'glock',name:'Better Grip',desc:'Glock cooldown 1.0s → 0.75s.'},
   {id:'ammo',w:'rifle',name:'Stronger Ammo',desc:'Each rifle shot deals 50 damage (was 34).'},
@@ -314,7 +326,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, hc:false, vc:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, hc:false, vc:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -327,7 +339,7 @@ function runSnapshot(){
   const busy=S.toSpawn>0||S.zombies.length>0;
   return {re:S.runEarned,rt:S.runTok,cash:S.cash,owned:S.owned,weapon:S.weapon,hpBuys:S.hpBuys,wave:busy?Math.max(0,S.wave-1):S.wave,cleared:S.cleared,railMode:S.railMode,bladeMode:S.bladeMode};
 }
-function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,cl:S.cashLv,tk:S.tokens,run:(S.mode==='game'&&!NET.active&&!S.hc&&!S.vc)?runSnapshot():S.savedRun}; }
+function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,cl:S.cashLv,tk:S.tokens,wu:S.wu,run:(S.mode==='game'&&!NET.active&&!S.hc&&!S.vc)?runSnapshot():S.savedRun}; }
 function saveGame(){
   const js=JSON.stringify(savePayload()); let ok=false;
   try{ localStorage.setItem(SAVE_KEY,js); ok=localStorage.getItem(SAVE_KEY)===js; }catch(e){}
@@ -337,7 +349,7 @@ function saveGame(){
 }
 function parseSave(js){ try{ const d=JSON.parse(js); return d&&d.v===1?d:null; }catch(e){ return null; } }
 function applySave(d){
-  S.rebirths=Math.min(6,Math.max(0,d.rebirths|0)); S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true;
+  S.rebirths=Math.min(6,Math.max(0,d.rebirths|0)); S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.wu={}; if(d.wu&&typeof d.wu==='object') for(const w of WEAPONS) if(w.tokens&&d.wu[w.id]) S.wu[w.id]=true; buildShop(); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true;
   if(r&&r.owned&&r.owned.glock&&WEAPONS_IDS.includes(r.weapon)) S.savedRun={re:+r.re||0,rt:r.rt|0,cash:+r.cash||0,owned:r.owned,weapon:r.weapon,hpBuys:r.hpBuys|0,wave:r.wave|0,cleared:r.cleared|0,railMode:r.railMode==='blaster'?'blaster':'laser',bladeMode:['blood','wing','earth'].includes(r.bladeMode)?r.bladeMode:'blood'};
 }
 function loadGame(){
@@ -350,7 +362,7 @@ function loadGame(){
   else { try{ S.rebirths=Math.min(6,Math.max(0,parseInt(localStorage.getItem('zs_rebirths'))||0)); }catch(e){} } // very old save format
   saveGame(); // write everything back (also tests whether saving works)
 }
-function resetProgress(){ S.rebirths=0; S.up={}; S.cashLv=0; S.tokens=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
+function resetProgress(){ S.rebirths=0; S.wu={}; S.up={}; S.cashLv=0; S.tokens=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
 function exportCode(){ return btoa(unescape(encodeURIComponent(JSON.stringify(savePayload())))); }
 function importCode(txt){
   txt=(txt||'').trim(); if(!txt) return false;
@@ -407,7 +419,7 @@ function skyDome(kind){
 
 /* --- lobby: floating sci-fi platform --- */
 lobbyG.add(skyDome('void'));
-const LOBBY = { rects:[{x0:-26,x1:26,z0:-21,z1:21}], hub:{x:0,z:0,r:5}, spawn:{x:-12,z:0}, pads:{up:{x:-8,z:-14,r:2.7},play:{x:18,z:-12,r:2.7},hc:{x:18,z:-4,r:2.7},vc:{x:18,z:4,r:2.7},mp:{x:18,z:12,r:2.7}} };
+const LOBBY = { rects:[{x0:-26,x1:26,z0:-21,z1:21}], hub:{x:0,z:0,r:5}, spawn:{x:-12,z:0}, pads:{up:{x:-8,z:-14,r:2.7},ws:{x:-16,z:-14,r:2.7},play:{x:18,z:-12,r:2.7},hc:{x:18,z:-4,r:2.7},vc:{x:18,z:4,r:2.7},mp:{x:18,z:12,r:2.7}} };
 const LOBBY_ANIM={rocks:[],crystals:[],chevrons:[],pads:[],signs:[],gyro:[]};
 {
   const tileTex=canvasTex(256,256,(g,w,h)=>{
@@ -453,6 +465,7 @@ const LOBBY_ANIM={rocks:[],crystals:[],chevrons:[],pads:[],signs:[],gyro:[]};
     up:{main:0xfbbf24,soft:0xfde68a,glow:0xf59e0b,c1:'#5a3a06',c2:'#b45309',c3:'#4a2c05',line:'rgba(255,230,170,.55)',tri:'rgba(255,230,170,.75)',txt:'#f59e0b',txt2:'#fff7e0',bar:'#fbbf24'},
     hc:{main:0xef4444,soft:0xfca5a5,glow:0xff2020,c1:'#3a0707',c2:'#b91c1c',c3:'#220404',line:'rgba(255,180,170,.55)',tri:'rgba(255,180,170,.75)',txt:'#ef4444',txt2:'#ffecec',bar:'#ef4444'},
     vc:{main:0xa855f7,soft:0xd8b4fe,glow:0x9333ea,c1:'#2e1065',c2:'#6d28d9',c3:'#1e0a40',line:'rgba(230,200,255,.55)',tri:'rgba(230,200,255,.75)',txt:'#a855f7',txt2:'#f5eaff',bar:'#a855f7'},
+    ws:{main:0x2dd4bf,soft:0x99f6e4,glow:0x14b8a6,c1:'#063a35',c2:'#0f766e',c3:'#042f2c',line:'rgba(190,255,240,.55)',tri:'rgba(190,255,240,.75)',txt:'#2dd4bf',txt2:'#e6fffb',bar:'#2dd4bf'},
     mp:{main:0x60a5fa,soft:0xbfdbfe,glow:0x3b82f6,c1:'#10306b',c2:'#1d56c8',c3:'#0b2557',line:'rgba(190,220,255,.55)',tri:'rgba(190,220,255,.75)',txt:'#3b82f6',txt2:'#eaf3ff',bar:'#60a5fa'},
   };
   const shp=new THREE.Shape(); shp.moveTo(-.35,-.55); shp.lineTo(.1,0); shp.lineTo(-.35,.55); shp.lineTo(-.12,.55); shp.lineTo(.33,0); shp.lineTo(-.12,-.55);
@@ -486,6 +499,7 @@ const LOBBY_ANIM={rocks:[],crystals:[],chevrons:[],pads:[],signs:[],gyro:[]};
   }
   makePad('play','NORMAL\nMODE',LOBBY.pads.play.x,LOBBY.pads.play.z);
   makePad('up','WEAPON UPGRADE\nSHOP',LOBBY.pads.up.x,LOBBY.pads.up.z,'n');
+  makePad('ws','WEAPON\nSHOP',LOBBY.pads.ws.x,LOBBY.pads.ws.z,'n');
   makePad('hc','HARDCORE\nMODE',LOBBY.pads.hc.x,LOBBY.pads.hc.z);
   makePad('vc','VOID CORE',LOBBY.pads.vc.x,LOBBY.pads.vc.z);
   makePad('mp','MULTIPLAYER',LOBBY.pads.mp.x,LOBBY.pads.mp.z);
@@ -503,7 +517,7 @@ const LOBBY_ANIM={rocks:[],crystals:[],chevrons:[],pads:[],signs:[],gyro:[]};
     grp.add(glowSprite(parseInt(cols[0].slice(1),16),w*1.1,0,0,-.3)); lobbyG.add(grp); LOBBY_ANIM.signs.push({g:grp,x,z,y0:y});
   }
   bigSign('PLAY','NORMAL  ·  HARDCORE  ·  VOID CORE  ·  MULTIPLAYER',['#4ade80','#ef4444','#a855f7','#60a5fa'],18,11,0,19,6.4);
-  bigSign('UPGRADES','WEAPON UPGRADE SHOP',['#fbbf24'],LOBBY.pads.up.x,10,LOBBY.pads.up.z,15,5.2);
+  bigSign('UPGRADES','WEAPON UPGRADE SHOP  ·  WEAPON SHOP',['#2dd4bf','#fbbf24'],-12,10,-14,17,5.4);
   // floating rocks + distant planet
   const rockM=new THREE.MeshLambertMaterial({color:0x2b2f45,flatShading:true});
   for(let i=0;i<26;i++){ const a=rnd(0,6.28), d=rnd(40,85), r=rnd(.8,3.5), m=new THREE.Mesh(new THREE.IcosahedronGeometry(r,0),rockM); m.position.set(Math.cos(a)*d,rnd(-12,8),Math.sin(a)*d); m.rotation.set(rnd(0,3),rnd(0,3),0); lobbyG.add(m); LOBBY_ANIM.rocks.push({m,y:m.position.y,s:rnd(.3,1),p:rnd(0,6)}); }
@@ -839,6 +853,15 @@ function buildGun(id,forAvatar){
       bx(.07,.11,.25,0x6a4325,0,-.06,.34,'matte',-.12), bx(.075,.14,.04,0x1a1a1a,0,-.07,.47,'matte',-.12), bx(.016,.02,.02,0xffd24a,0,.05,-1.15,'glow'));
     for(let i=0;i<6;i++) A(bx(.064,.058,.01,0x2c180a,0,-.04,-.5-i*.04,'matte'));
     tip=1.22;
+  } else if(id==='autoshot'){
+    A(cy(.026,.8,0x15171a,0,.03,-.62), cy(.02,.7,0x2a2d33,0,-.025,-.58), cy(.03,.025,0x0a0a0a,0,.03,-1.03), cy(.034,.3,0x23262c,0,.03,-.45),
+      bx(.075,.11,.4,0x1f2228,0,0,-.04), bx(.077,.02,.34,0x0b0b0b,0,.062,-.04), bx(.06,.05,.1,0xea580c,.043,.012,-.1,'metal'), bx(.082,.014,.3,0xea580c,0,.04,-.04,'metal'),
+      bx(.04,.03,.2,0x111111,0,.085,-.35), bx(.012,.03,.012,0xffffff,0,.108,-.45,'glow'), bx(.012,.03,.012,0xffffff,0,.108,-.2,'glow'),
+      bx(.055,.12,.07,0x15171a,0,-.1,.0,'matte',.2), bx(.07,.1,.26,0x2b2e35,0,-.04,.3,'matte',-.1), bx(.075,.14,.04,0x111111,0,-.07,.45,'matte',-.1),
+      bx(.06,.05,.3,0x2b2e35,0,-.045,-.5,'matte'), bx(.016,.02,.02,0xffd24a,0,.055,-1.02,'glow'));
+    A(cyv(.075,.075,0x1a1c20,0,-.12,-.18,'metal'), cyv(.08,.014,0xea580c,0,-.085,-.18,'metal'), cyv(.08,.014,0xea580c,0,-.155,-.18,'metal'));
+    for(let i=0;i<4;i++) A(bx(.066,.056,.012,0x0e0e10,0,-.12,-.24+i*.03,'matte'));
+    tip=1.04;
   } else if(id==='minigun'){
     g.scale.setScalar(.68); g.position.z=-.1;
     const olive=0x39402f, steel=0x4a4f58, dk=0x23262c, brass=0xc9a227;
@@ -1960,6 +1983,7 @@ function updateLobby(dt){
   const onMp=Math.hypot(P.x-pm.x,P.z-pm.z)<pm.r;
   if(onMp&&S.mpArmed){ S.mpArmed=false; openMultiplayer(); }
   if(!onMp&&Math.hypot(P.x-pm.x,P.z-pm.z)>pm.r+.6) S.mpArmed=true;
+  { const pw=LOBBY.pads.ws, onW=Math.hypot(P.x-pw.x,P.z-pw.z)<pw.r; if(onW&&S.wsArmed){ S.wsArmed=false; openWs(); } if(!onW&&Math.hypot(P.x-pw.x,P.z-pw.z)>pw.r+.6) S.wsArmed=true; }
   const onUp=Math.hypot(P.x-pu.x,P.z-pu.z)<pu.r;
   if(onUp&&S.upArmed){ S.upArmed=false; openUpgrades(); }
   if(!onUp&&Math.hypot(P.x-pu.x,P.z-pu.z)>pu.r+.6) S.upArmed=true;
@@ -2032,6 +2056,7 @@ const WINFO={
   rifle:{ico:'🎯',tags:['Accurate'],note:'Hard-hitting rifle, solid all-rounder.'},
   mg:{ico:'⚙️',tags:['Full-auto'],note:'Fast and steady fire.'},
   shotgun:{ico:'💥',tags:['9 pellets','Spread','Falloff'],note:'Devastating up close: 20 dmg per pellet, dropping to 10 at 8 m.'},
+  autoshot:{ico:'🧨',tags:['6 pellets','Full-auto','No falloff'],note:'Rapid-fire shotgun: 6 pellets of 20 dmg every 0.25 s.'},
   minigun:{ico:'🌀',tags:['Full-auto','Overheats'],note:'Overcharges after 5 s of fire, then 3 s lockout (smokes).'},
   flame:{ico:'🔥',tags:['Cone','Burn'],note:'Ignites enemies: +50 dmg every 0.5 s for 3 s.'},
   lava:{ico:'🌋',tags:['Explosion','Lava pool','Burn'],note:'Lobbed lava balls explode (3 m) and leave a pool: 10 dmg / 0.1 s + burning.'},
@@ -2045,9 +2070,9 @@ const MAXD=Math.max(...WEAPONS.map(w=>w.dmg)), MAXR=Math.max(...WEAPONS.map(w=>1
 const fmtN=n=>n>=1e4?(n/1e3).toFixed(n>=1e5?0:1)+'k':Math.round(n).toLocaleString();
 function buildShop(){
   const g=$('wgrid'); g.innerHTML='';
-  WEAPONS.forEach((w,i)=>{
+  SHOPW().forEach((w,i)=>{
     const f=WINFO[w.id], c=document.createElement('div'); c.className='card'; c.id='card-'+w.id;
-    c.innerHTML=`<div class="ctop"><div class="ico">${f.ico}</div><div><div class="nm">${w.name}</div><div class="tags">${f.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div><span class="key">${(i+1)%10}</span></div>
+    c.innerHTML=`<div class="ctop"><div class="ico">${f.ico}</div><div><div class="nm">${w.name}</div><div class="tags">${f.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div><span class="key">${i<10?(i+1)%10:""}</span></div>
       <div class="st d"><span>Damage</span><div class="bar"><i style="width:${lg(w.dmg,MAXD)}%"></i></div><b class="vd"></b></div>
       <div class="st r"><span>Fire rate</span><div class="bar"><i style="width:${lg(1/w.cd,MAXR)}%"></i></div><b class="vr"></b></div>
       <div class="st p"><span>DPS</span><div class="bar"><i style="width:${lg(wDps(w),MAXP)}%"></i></div><b class="vp"></b></div>
@@ -2071,11 +2096,11 @@ function updateShop(){
   const m=mult(), r=x=>Math.round(x*m.dmg);
   $('cashTxt').textContent='$ '+S.cash.toLocaleString();
   $('mulChip').textContent=S.rebirths||S.cashLv?`${S.rebirths?'♻ '+S.rebirths+' · ':''}x${m.dmg} dmg · x${+(m.cash*cashBoost()).toFixed(2)} cash · x${m.hp} HP`:'♻ No bonuses yet';
-  for(const w of WEAPONS){
+  for(const w of SHOPW()){
     const c=$('card-'+w.id), locked=w.rebirth&&S.rebirths<w.rebirth, owned=S.owned[w.id], eq=S.weapon===w.id, b=c.querySelector('button.buy');
     c.classList.toggle('locked',!!locked); c.classList.toggle('eq',eq&&!locked);
     c.querySelector('.lockov').textContent=locked?`🔒 Unlocks at Rebirth ${w.rebirth}`:'';
-    const e=ew(w); c.querySelector('.vd').textContent=e.pellets?`${r(e.dmg)}→${r(e.far)} ×${e.pellets}`:fmtN(r(e.dmg));
+    const e=ew(w); c.querySelector('.vd').textContent=e.pellets?`${r(e.dmg)}${e.far!==e.dmg?'→'+r(e.far):''} ×${e.pellets}`:fmtN(r(e.dmg));
     c.querySelector('.vr').textContent=(1/e.cd>=10?(1/e.cd).toFixed(0):(1/e.cd).toFixed(1))+'/s';
     c.querySelector('.vp').textContent=fmtN(r(wDps(e)));
     b.className='buy'; b.disabled=false;
@@ -2133,14 +2158,14 @@ $('rbBtn').addEventListener('click',()=>S.rebirthOpen?closeRebirth():openRebirth
 addEventListener('keydown',e=>{
   const k=e.key.toLowerCase(); keys[k]=true; if(e.shiftKey) keys.shift=true;
   if(k==='b'&&!e.repeat) S.shopOpen?closeShop():openShop();
-  if(/^[0-9]$/.test(k)&&S.mode==='game'&&!S.rebirthOpen){ const w=WEAPONS[k==='0'?9:+k-1]; if(w&&S.owned[w.id]&&!(w.rebirth&&S.rebirths<w.rebirth)){ equip(w.id); if(S.shopOpen) updateShop(); } }
+  if(/^[0-9]$/.test(k)&&S.mode==='game'&&!S.rebirthOpen){ const w=SHOPW()[k==='0'?9:+k-1]; if(w&&S.owned[w.id]&&!(w.rebirth&&S.rebirths<w.rebirth)){ equip(w.id); if(S.shopOpen) updateShop(); } }
   if(k==='e'&&!e.repeat&&S.mode==='game'&&!S.shopOpen&&!S.rebirthOpen&&S.weapon==='vampire'){ S.bladeMode=BLADE_ORDER[(BLADE_ORDER.indexOf(S.bladeMode)+1)%3]; buildGun('vampire'); S.fireCd=Math.max(S.fireCd,.3); say(BLADE[S.bladeMode].name,1.2); }
   if(k==='e'&&!e.repeat&&S.mode==='game'&&!S.shopOpen&&!S.rebirthOpen&&S.weapon==='railgun'){ S.railMode=S.railMode==='laser'?'blaster':'laser'; buildGun('railgun'); S.fireCd=Math.max(S.fireCd,.3); say(S.railMode==='laser'?'Railgun – laser mode':'Railblaster mode',1.2); }
   if(k==='m'&&!e.repeat) setMuted(!AUD.muted);
   if(k==='q'&&!e.repeat) useAbility();
   if(k==='t'&&!e.repeat) useSkip();
   if(k==='g'&&!e.repeat) S.rebirthOpen?closeRebirth():openRebirth();
-  if(k==='escape'){ closeShop(); closeRebirth(); if(S.mpOpen) closeMultiplayer(); if(S.upOpen) closeUpgrades(); }
+  if(k==='escape'){ closeShop(); closeRebirth(); if(S.mpOpen) closeMultiplayer(); if(S.upOpen) S.wsOpen?closeWs():closeUpgrades(); }
   if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
 });
 document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('button'); if(b&&!b.closest('.card')&&b.id!=='sndBtn') sfx('click'); });
@@ -2582,7 +2607,7 @@ function audAmbience(){
   AUD.amb={lg,gg}; audAmbMode(S.mode);
 }
 function audAmbMode(m){ if(!AUD.amb) return; const t=AUD.ctx.currentTime; AUD.amb.lg.gain.setTargetAtTime(m==='lobby'?.6:0,t,.5); AUD.amb.gg.gain.setTargetAtTime(m==='game'?.12:0,t,.5); }
-const WSOUND={glock:'glock',rifle:'rifle',mg:'mg',shotgun:'shotgun',minigun:'minigun',flame:'flame'};
+const WSOUND={glock:'glock',rifle:'rifle',mg:'mg',shotgun:'shotgun',autoshot:'shotgun',minigun:'minigun',flame:'flame'};
 function zPitch(z){ const s=z.desc?z.desc.s:1; let p=1.25/Math.pow(Math.max(.6,s),.6); if(z.desc&&z.desc.n&&z.desc.n.indexOf('Fast')===0) p*=1.35; if(z.brute) p*=.72; return p; }
 
 
@@ -2617,6 +2642,24 @@ $('upExport').addEventListener('click',e=>{ e.preventDefault(); const c=exportCo
 $('upImport').addEventListener('click',e=>{ e.preventDefault(); const t=prompt('Paste your save code here:'); if(t===null) return; if(importCode(t)){ saveGame(); updateUpgrades(); say('Save loaded',2.5); } else alert('That save code is not valid.'); });
 $('upReset').addEventListener('click',e=>{ e.preventDefault(); S.up={}; S.cashLv=0; saveGame(); updateUpgrades(); });
 buildUpgrades();
+function buildWs(){
+  const g=$('wsGrid'); g.innerHTML='';
+  for(const w of WEAPONS.filter(x=>x.tokens)){
+    const wi=WINFO[w.id], after=WEAPONS[WEAPONS.indexOf(w)-1], c=document.createElement('div'); c.className='ucard'; c.id='ws-'+w.id;
+    c.innerHTML=`<div class="ctop"><div class="ico">${wi.ico}</div><div><div class="wn">${wi.tags.join(' · ')}</div><div class="un">${w.name}</div></div></div><div class="ud">${w.desc}. In a run it becomes buyable right after the ${after.name} for $${w.cost.toLocaleString()}.</div><button></button>`;
+    c.querySelector('button').onclick=()=>{ if(S.wu[w.id]||S.tokens<w.tokens) return; S.tokens-=w.tokens; S.wu[w.id]=true; sfx('buy'); pop(c); buildShop(); saveGame(); updateWs(); };
+    g.appendChild(c);
+  }
+}
+function updateWs(){
+  $('wsChip').textContent=`🪙 ${S.tokens} tokens`;
+  for(const w of WEAPONS.filter(x=>x.tokens)){ const c=$('ws-'+w.id), b=c.querySelector('button'), own=!!S.wu[w.id]; c.classList.toggle('owned',own);
+    b.textContent=own?'Owned ✓ (in your weapon shop)':'Buy — '+w.tokens+' 🪙 tokens'; b.disabled=!own&&S.tokens<w.tokens; b.style.opacity=b.disabled&&!own?.5:1; }
+}
+function openWs(){ if(S.mode!=='lobby') return; sfx('open'); S.upOpen=true; S.wsOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('ws').style.display='flex'; requestAnimationFrame(()=>$('ws').classList.add('open')); updateWs(); }
+function closeWs(){ S.upOpen=false; S.wsOpen=false; $('ws').classList.remove('open'); setTimeout(()=>{ if(!S.upOpen) $('ws').style.display='none'; },200); const pw=LOBBY.pads.ws; P.x=pw.x; P.z=pw.z+4.6; }
+$('wsClose').addEventListener('click',closeWs);
+buildWs(); buildShop();
 
 /* ---------- Loop ---------- */
 let last=performance.now();
