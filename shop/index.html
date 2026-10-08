@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PixelCrate – Game Shop (Test)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="test-banner">🧪 TEST SHOP — all games are fictional, no real payments are processed.</div>
+<header>
+  <div class="bar">
+    <div class="logo">Pixel<span>Crate</span></div>
+    <div class="search"><input id="search" type="search" placeholder="Search games…" aria-label="Search games"></div>
+    <button class="cart-btn" id="open-cart">🛒 <span class="lbl">Cart</span> (<span id="cart-count">0</span>)</button>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>Level up your library.</h1>
+    <p>Discover made-up games at very real* prices. Use code <b>WELCOME10</b> for 10% off your first order.</p>
+  </section>
+
+  <div class="toolbar">
+    <div class="chips" id="chips"></div>
+    <label>Sort
+      <select id="sort">
+        <option value="featured">Featured</option>
+        <option value="price-asc">Price: low to high</option>
+        <option value="price-desc">Price: high to low</option>
+        <option value="rating">Top rated</option>
+        <option value="name">Name A–Z</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <p class="empty" id="empty" hidden>No games match your search.</p>
+</main>
+
+<footer>PixelCrate test shop · *prices are pretend · built for testing</footer>
+
+<div class="overlay" id="overlay"></div>
+
+<aside class="drawer" id="drawer" aria-label="Shopping cart">
+  <header><h2>Your cart</h2><button class="x" data-close aria-label="Close cart">×</button></header>
+  <div class="lines" id="lines"></div>
+  <div class="cart-foot" id="cart-foot">
+    <div class="promo"><input id="promo" placeholder="Promo code"><button class="btn ghost" id="apply-promo">Apply</button></div>
+    <div class="msg" id="promo-msg"></div>
+    <div class="row"><span>Subtotal</span><span id="subtotal"></span></div>
+    <div class="row" id="discount-row" hidden><span>Discount</span><span id="discount"></span></div>
+    <div class="row total"><span>Total</span><span id="total"></span></div>
+    <button class="btn green" id="checkout-btn">Checkout</button>
+  </div>
+</aside>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+
+<div class="toast" id="toast"></div>
+
+<script src="games.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
