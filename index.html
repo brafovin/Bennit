@@ -346,7 +346,13 @@ function addCash(n){
 }
 const CASH_MAX=100, cashBoost=()=>1+.05*S.cashLv;
 const cashMul=()=>mult().cash*cashBoost();
-const REQ=[10,20,30,40,50,99]; // wave to defeat for rebirth 1..6 (6 = special)
+const MAX_REB=8;
+// requirement for rebirth 1..8: waves 10-50 (any mode), 6 = beat the Hardcore boss, 7 = wave 30 in VOIDCORE MODE, 8 = beat the Void Master
+const RQ=[{k:'w',w:10},{k:'w',w:20},{k:'w',w:30},{k:'w',w:40},{k:'w',w:50},{k:'h'},{k:'v',w:30},{k:'vb'}];
+const rqMet=()=>{ const r=RQ[S.rebirths]; if(!r) return false; if(r.k==='w') return S.mode==='game'&&S.cleared>=r.w; if(r.k==='h') return !!S.goals.h; if(r.k==='v') return !!S.goals.v; return !!S.goals.vb; };
+function rebirthHint(){ if(!NET.active&&S.rebirths<MAX_REB&&rqMet()) say('Rebirth available! Press G',3.5); }
+function checkGoals(){ if(S.vc&&S.cleared>=30&&!S.goals.v){ S.goals.v=true; saveGame(); } }
+function goalKill(z){ let hit=false; if(z.hboss&&S.hc&&!S.goals.h){ S.goals.h=true; hit=true; } if(z.vmaster&&S.vc&&!S.goals.vb){ S.goals.vb=true; hit=true; } if(hit){ saveGame(); setTimeout(rebirthHint,1500); } }
 const mult=(n=S.rebirths)=>n<=0?{cash:1,dmg:1,hp:1}:{cash:1+.5*n,dmg:1+.25*n,hp:2*n};
 const hpMax=()=>(100+10*S.hpBuys)*mult().hp;
 const MINI_HEAT_TIME = 5, RAIL_HEAT_TIME = 4, MINI_LOCK = 3;
@@ -386,7 +392,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -399,7 +405,7 @@ function runSnapshot(){
   const busy=S.toSpawn>0||S.zombies.length>0;
   return {re:S.runEarned,rt:S.runTok,cash:S.cash,owned:S.owned,weapon:S.weapon,hpBuys:S.hpBuys,wave:busy?Math.max(0,S.wave-1):S.wave,cleared:S.cleared,railMode:S.railMode,bladeMode:S.bladeMode};
 }
-function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,cl:S.cashLv,tk:S.tokens,wu:S.wu,sec:S.sec,se:S.secEq,kills:S.kills,run:(S.mode==='game'&&!NET.active&&!S.hc&&!S.vc)?runSnapshot():S.savedRun}; }
+function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,cl:S.cashLv,tk:S.tokens,wu:S.wu,gl:S.goals,sec:S.sec,se:S.secEq,kills:S.kills,run:(S.mode==='game'&&!NET.active&&!S.hc&&!S.vc)?runSnapshot():S.savedRun}; }
 function saveGame(){
   const js=JSON.stringify(savePayload()); let ok=false;
   try{ localStorage.setItem(SAVE_KEY,js); ok=localStorage.getItem(SAVE_KEY)===js; }catch(e){}
@@ -409,7 +415,7 @@ function saveGame(){
 }
 function parseSave(js){ try{ const d=JSON.parse(js); return d&&d.v===1?d:null; }catch(e){ return null; } }
 function applySave(d){
-  S.rebirths=Math.min(6,Math.max(0,d.rebirths|0)); S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.sec={}; if(d.sec&&typeof d.sec==='object') for(const o of SECONDARIES) if(d.sec[o.id]) S.sec[o.id]=true; S.secEq=(d.se&&S.sec[d.se])?d.se:null; S.kills={}; if(d.kills&&typeof d.kills==='object') for(const k in d.kills) S.kills[k]=Math.max(0,Math.min(1e7,d.kills[k]|0)); S.wu={}; if(d.wu&&typeof d.wu==='object') for(const w of WEAPONS) if(w.tokens&&d.wu[w.id]) S.wu[w.id]=true; buildShop(); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true;
+  S.rebirths=Math.min(MAX_REB,Math.max(0,d.rebirths|0)); S.goals={}; if(d.gl&&typeof d.gl==='object') for(const k of ['h','v','vb']) if(d.gl[k]) S.goals[k]=true; S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.sec={}; if(d.sec&&typeof d.sec==='object') for(const o of SECONDARIES) if(d.sec[o.id]) S.sec[o.id]=true; S.secEq=(d.se&&S.sec[d.se])?d.se:null; S.kills={}; if(d.kills&&typeof d.kills==='object') for(const k in d.kills) S.kills[k]=Math.max(0,Math.min(1e7,d.kills[k]|0)); S.wu={}; if(d.wu&&typeof d.wu==='object') for(const w of WEAPONS) if(w.tokens&&d.wu[w.id]) S.wu[w.id]=true; buildShop(); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true;
   if(r&&r.owned&&r.owned.glock&&WEAPONS_IDS.includes(r.weapon)) S.savedRun={re:+r.re||0,rt:r.rt|0,cash:+r.cash||0,owned:r.owned,weapon:r.weapon,hpBuys:r.hpBuys|0,wave:r.wave|0,cleared:r.cleared|0,railMode:r.railMode==='blaster'?'blaster':'laser',bladeMode:['blood','wing','earth'].includes(r.bladeMode)?r.bladeMode:'blood'};
 }
 function loadGame(){
@@ -419,14 +425,14 @@ function loadGame(){
   try{ cands.push(parseSave(sessionStorage.getItem(SAVE_KEY))); }catch(e){}
   const best=cands.filter(Boolean).sort((x,y)=>(y.t||0)-(x.t||0)||y.rebirths-x.rebirths)[0];
   if(best) applySave(best);
-  else { try{ S.rebirths=Math.min(6,Math.max(0,parseInt(localStorage.getItem('zs_rebirths'))||0)); }catch(e){} } // very old save format
+  else { try{ S.rebirths=Math.min(MAX_REB,Math.max(0,parseInt(localStorage.getItem('zs_rebirths'))||0)); }catch(e){} } // very old save format
   saveGame(); // write everything back (also tests whether saving works)
 }
-function resetProgress(){ S.sec={}; S.secEq=null; S.kills={}; S.rebirths=0; S.wu={}; S.up={}; S.cashLv=0; S.tokens=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
+function resetProgress(){ S.goals={}; S.sec={}; S.secEq=null; S.kills={}; S.rebirths=0; S.wu={}; S.up={}; S.cashLv=0; S.tokens=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
 function exportCode(){ return btoa(unescape(encodeURIComponent(JSON.stringify(savePayload())))); }
 function importCode(txt){
   txt=(txt||'').trim(); if(!txt) return false;
-  if(/^[0-6]$/.test(txt)){ S.rebirths=+txt; S.savedRun=null; return true; }
+  if(/^[0-8]$/.test(txt)){ S.rebirths=+txt; S.savedRun=null; return true; }
   try{ const d=parseSave(decodeURIComponent(escape(atob(txt)))); if(!d) return false; applySave(d); return true; }catch(e){ return false; }
 }
 addEventListener('pagehide',saveGame); document.addEventListener('visibilitychange',()=>{ if(document.hidden) saveGame(); });
@@ -1705,7 +1711,7 @@ function applyDamage(z,dmg,by){ // solo / host: authoritative damage
   if(dmg>0) z.hp-=dmg;
   if(z.crier&&z.cst===0&&z.hp>0&&z.hp<=z.max*.8) rageCrier(z);
   if(z.hp<=0){
-    z.dead=true; if(by===NET.pid) recordKill(z); if(by===NET.pid&&S.reapDmg) reaperKill();
+    z.dead=true; if(by===NET.pid){ recordKill(z); goalKill(z); } if(by===NET.pid&&S.reapDmg) reaperKill();
     if(by===NET.pid){ const c=Math.round(z.cash*cashMul()*(S.hc||S.vc?.5:1)); addCash(c); floatText(new THREE.Vector3(z.x,(z.y0||0)+z.height+.3,z.z),'+$'+c,'#facc15'); }
     if(NET.role==='host') netBroadcast({t:'dead',id:z.id,by});
   }
@@ -1804,7 +1810,7 @@ function useSkip(){
 function doSkip(){
   // the wave counts as done, but the zombies that are still alive stay alive: the next wave starts right away
   S.cleared=Math.max(S.cleared,S.wave); S.hp=Math.min(S.maxHp,S.hp+Math.ceil(S.maxHp*.1));
-  if(!NET.active&&S.rebirths<6&&S.cleared>=REQ[S.rebirths]) say('Rebirth available! Press G',3.5);
+  checkGoals(); rebirthHint();
   if(NET.role==='host') netBroadcast({t:'clear',n:S.wave});
   S.toSpawn=0; S.bossSpawned=false; S.breakT=0; startWave(); say('Wave skipped!',2); sfx('clear');
 }
@@ -2468,7 +2474,7 @@ function update(dt){
       S.toSpawn--; S.spawnT=Math.max(.3,1.4-S.wave*.02)*(S.hc||S.vc?.5:1);
     }
   } else if(S.zombies.length===0){
-    if(S.breakT<=0){ if(S.wave>0){ S.hp=Math.min(S.maxHp,S.hp+Math.ceil(S.maxHp*.1)); S.cleared=Math.max(S.cleared,S.wave); if(!NET.active&&S.rebirths<6&&S.cleared>=REQ[S.rebirths]) say('Rebirth available! Press G',3.5); if(NET.role==='host') netBroadcast({t:'clear',n:S.wave}); sfx('clear'); } S.breakT=3.5; }
+    if(S.breakT<=0){ if(S.wave>0){ S.hp=Math.min(S.maxHp,S.hp+Math.ceil(S.maxHp*.1)); S.cleared=Math.max(S.cleared,S.wave); checkGoals(); rebirthHint(); if(NET.role==='host') netBroadcast({t:'clear',n:S.wave}); sfx('clear'); } S.breakT=3.5; }
     else { S.breakT-=dt; if(S.breakT<=0){ S.bossSpawned=false; startWave(); } }
   }
   if(NET.role==='host') hostTick(dt);
@@ -2654,22 +2660,25 @@ $('shopBtn').addEventListener('click',()=>S.shopOpen?closeShop():openShop());
 $('close').addEventListener('click',closeShop);
 
 /* ---------- Rebirth ---------- */
-const canRebirth=()=>S.mode==='game'&&!NET.active&&S.rebirths<6&&S.cleared>=REQ[S.rebirths];
+const canRebirth=()=>!NET.active&&S.rebirths<MAX_REB&&rqMet();
 function openRebirth(){ sfx('open'); closeShop(); S.rebirthOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('rebirth').style.display='flex'; renderRebirth(); }
 function closeRebirth(){ S.rebirthOpen=false; $('rebirth').style.display='none'; }
 function renderRebirth(){
   const n=S.rebirths, m=mult(), fmt=x=>`<b>x${x}</b>`;
-  let h=`Rebirths: <b>${n} / 6</b><br>Current bonus: ${fmt(m.cash)} cash · ${fmt(m.dmg)} damage · ${fmt(m.hp)} health<br>`;
-  if(n<6){
-    const nm=mult(n+1), req=REQ[n];
-    h+=`<br>${n===5?'<b>SPECIAL REBIRTH</b><br>Defeat <b>wave 99</b> and the final boss':'Defeat <b>wave '+req+'</b>'} to rebirth.<br>Best this run: <b>wave ${S.mode==='game'?S.cleared:0}</b> defeated<br>`;
+  let h=`Rebirths: <b>${n} / ${MAX_REB}</b><br>Current bonus: ${fmt(m.cash)} cash · ${fmt(m.dmg)} damage · ${fmt(m.hp)} health<br>`;
+  if(n<MAX_REB){
+    const nm=mult(n+1), r=RQ[n], ok=x=>x?'<span style="color:#86efac">✔ done</span>':'<span style="color:#fca5a5">not yet</span>';
+    if(r.k==='w') h+=`<br>Defeat <b>wave ${r.w}</b> to rebirth.<br>Best this run: <b>wave ${S.mode==='game'?S.cleared:0}</b> defeated<br>`;
+    else if(r.k==='h') h+=`<br><b>SPECIAL REBIRTH</b><br>Defeat the <b>Howler Overlord</b> boss in <b>HARDCORE MODE</b> – ${ok(S.goals.h)}<br>`;
+    else if(r.k==='v') h+=`<br><b>SPECIAL REBIRTH</b><br>Defeat <b>wave 30</b> in <b>VOIDCORE MODE</b> – ${ok(S.goals.v)}<br>`+(S.mode==='game'&&S.vc?`Best this run: <b>wave ${S.cleared}</b> defeated<br>`:'');
+    else h+=`<br><b>SPECIAL REBIRTH</b><br>Defeat the <b>Void Master</b> boss in <b>VOIDCORE MODE</b> – ${ok(S.goals.vb)}<br>`;
     h+=`<br>Next rebirth: ${fmt(nm.cash)} cash · ${fmt(nm.dmg)} damage · ${fmt(nm.hp)} health`;
-    const UNLOCK=['Flamethrower','Lava Blaster','Railgun','Orbital Cannon','Vampire Blade']; if(UNLOCK[n]) h+=`<br>Unlocks the <b>${UNLOCK[n]}</b> in the shop`+(n===1?` and the <b>Skip Wave</b> ability (press T)`:'');
+    const UNLOCK=['Flamethrower','Lava Blaster','Railgun','Orbital Cannon','Vampire Blade','Orbital Strike']; if(UNLOCK[n]) h+=`<br>Unlocks the <b>${UNLOCK[n]}</b> in the shop`+(n===1?` and the <b>Skip Wave</b> ability (press T)`:'');
     h+=`<br><small>Rebirthing resets your cash, weapons and upgrades and sends you back to the void.</small>`;
   } else h+=`<br><b>MAX REBIRTH reached!</b>`;
   $('rbody').innerHTML=h;
   $('saveInfo').innerHTML=S.saveOK?'💾 Auto-save is working in this browser.':'<span style="color:#fca5a5">⚠ This browser is blocking saving (private mode or blocked storage). Use "Copy save code" to keep your progress.</span>';
-  const go=$('rbGo'); go.textContent=n>=6?'MAXED':(n===5?'SPECIAL REBIRTH':'REBIRTH'); go.disabled=!canRebirth();
+  const go=$('rbGo'); go.textContent=n>=MAX_REB?'MAXED':(n>=5?'SPECIAL REBIRTH':'REBIRTH'); go.disabled=!canRebirth();
 }
 function doRebirth(){
   if(!canRebirth()) return; sfx('rebirth');
@@ -2679,7 +2688,7 @@ function doRebirth(){
 }
 $('rbGo').addEventListener('click',doRebirth);
 $('rbExport').addEventListener('click',e=>{ e.preventDefault(); const c=exportCode(); if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(c).catch(()=>{}); prompt('Your save code (copied if possible). Keep it somewhere safe:',c); });
-$('rbImport').addEventListener('click',e=>{ e.preventDefault(); const t=prompt('Paste your save code here (or a number 0-6 to set your rebirths):'); if(t===null) return; if(importCode(t)){ saveGame(); closeRebirth(); enterLobby(); say(`Save loaded – rebirths: ${S.rebirths}`,3); } else alert('That save code is not valid.'); });
+$('rbImport').addEventListener('click',e=>{ e.preventDefault(); const t=prompt('Paste your save code here (or a number 0-8 to set your rebirths):'); if(t===null) return; if(importCode(t)){ saveGame(); closeRebirth(); enterLobby(); say(`Save loaded – rebirths: ${S.rebirths}`,3); } else alert('That save code is not valid.'); });
 $('rbReset').addEventListener('click',e=>{ e.preventDefault(); if(confirm('Delete ALL saved progress (rebirths, weapons, cash)?')){ resetProgress(); closeRebirth(); enterLobby(); say('Progress reset',2.5); } });
 $('rclose').addEventListener('click',closeRebirth);
 $('rbBtn').addEventListener('click',()=>S.rebirthOpen?closeRebirth():openRebirth());
@@ -2945,7 +2954,7 @@ function clientSnapshot(m){
 function clientDead(m){
   const z=NET.ghosts[m.id]; if(!z) return; delete NET.ghosts[m.id]; const i=S.zombies.indexOf(z); if(i>=0) S.zombies.splice(i,1);
   if(m.quiet){ removeZombie(z); return; }
-  z.dead=true; z.hp=0; if(m.by===NET.pid) recordKill(z); if(m.by===NET.pid&&S.weapon==='reaper') reaperKill();
+  z.dead=true; z.hp=0; if(m.by===NET.pid){ recordKill(z); goalKill(z); } if(m.by===NET.pid&&S.weapon==='reaper') reaperKill();
   if(m.by===NET.pid){ const c=Math.round(z.cash*cashMul()*(S.hc||S.vc?.5:1)); addCash(c); floatText(new THREE.Vector3(z.x,(z.y0||0)+z.height+.3,z.z),'+$'+c,'#facc15'); }
   killZombie(z);
 }
@@ -3252,7 +3261,7 @@ const BEST=[
   {id:'colossus',cat:'b',name:'Colossus',ico:'🦣',st:{hp:5000,spd:1.3,dmg:'40 melee, 25 per ground smash',cash:3000,wave:'16+ (Normal mode)'},desc:'A giant, spiked brute that shakes the whole arena.',ab:['Takes 25% less damage.','Pounds the ground 3 times in a row – each slam shakes the screen and hits everyone within 9 m for 25 damage. Jump to avoid it.','Slow, but hits hard in melee.']},
   {id:'hboss',cat:'b',name:'Howler Overlord',ico:'👁️',st:{hp:'20,000',spd:1.7,dmg:'45 melee ×3 (Hardcore)',cash:8000,wave:'16+ (Hardcore)'},desc:'A huge, scarred howler wearing a bone crown.',ab:['Screams every 8 s.','Every zombie within 16 m gets 2× health and 2× damage (only once each).','Players near the scream take 75× the damage multiplier and get blurred vision for 3 s.']},
   {id:'vmaster',cat:'b',name:'Void Master',ico:'🌑',st:{hp:'250,000',spd:1.5,dmg:'100 ×5 melee',cash:20000,wave:'16+ (VOIDCORE MODE)'},desc:'A towering armoured lord with a glowing core, a halo and orbiting shards.',ab:['Summons 3 void zombies every 10 s (max 12).','Fires void balls that explode every 0.5 s while flying – 50 ×5 damage each, 3.4 m radius.','Appears only in VOIDCORE MODE.']},
-  {id:'boss99',cat:'b',name:'The Final Boss',ico:'💀',st:{hp:'100,000',spd:1.9,dmg:'huge',cash:10000,wave:99},desc:'The guardian of wave 99.',ab:['The last test before the final rebirth.']},
+  {id:'boss99',cat:'b',name:'The Final Boss',ico:'💀',st:{hp:'100,000',spd:1.9,dmg:'huge',cash:10000,wave:99},desc:'The guardian of wave 99 – it no longer gives a rebirth.',ab:['An optional end-game challenge.']},
 ];
 let diaryTab='z', diarySel=null;
 function diaryWeapons(){ return WEAPONS.filter(w=>(!w.tokens||S.wu[w.id])&&(!w.rebirth||S.rebirths>=w.rebirth)); }
