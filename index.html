@@ -327,7 +327,7 @@ const UPG=[
   {id:'lava',w:'lava',name:'More Lava',desc:'Bigger explosion and pool, the pool stays 3s longer and the lava deals 2x damage.'},
   {id:'laser',w:'railgun',mode:'Laser mode',name:'Stronger Laser',desc:'A wider, real continuous laser beam instead of many single shots.'},
   {id:'balls',w:'railgun',mode:'Railblaster mode',name:'Stronger Laserballs',desc:'Bigger balls with a bigger explosion.'},
-  {id:'hyper',w:'ostrike',name:'Hypercharge',desc:'After its 5 seconds the beam turns purple-red for 2 more seconds and deals 200 damage every 0.01s. The cooldown afterwards grows to 7 seconds.'},
+  {id:'hyper',w:'ostrike',name:'Hypercharge',desc:'After its 5 seconds the beam turns purple-red for 2 more seconds and deals 300 damage every 0.01s. The cooldown afterwards grows to 7 seconds.'},
   {id:'hypersonic',w:'sonic',name:'Hypersonic',desc:'Unlocks a third mode for the Sonic Blaster: big, fast, pulsing balls that pierce and explode on walls (both modes combined).'},
   {id:'chain',w:'chainsaw',name:'Stronger Chain',desc:'The chainsaw deals 20 damage per tick instead of 10.'},
   {id:'throw',w:'reaper',name:'Scythe Throw',desc:'Press C to throw the scythe. It spins while flying and deals 2500 damage every 0.25s, then returns to you.'},
@@ -2014,7 +2014,7 @@ function updateOS(dt){
   if(o.ph==='idle'){ return; }
   o.t-=dt;
   if(o.ph==='fire'||o.ph==='hyper'){
-    const hy=o.ph==='hyper', dmg=hy?200:150;
+    const hy=o.ph==='hyper', dmg=hy?300:150;
     _o.set(P.x,EYE,P.z); dirFrom(P.yaw,P.pitch,_d); gunMuzzle.getWorldPosition(_m); const _b=_o.clone().addScaledVector(_d,90);
     osBeam(_m,_b,hy);
     o.acc+=dt; let n=Math.floor(o.acc/.01); o.acc-=n*.01; n=Math.min(n,8);
