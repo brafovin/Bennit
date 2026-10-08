@@ -1865,6 +1865,16 @@ function meleeAttack(){
   else groundRing(P.x+hx*1.6,P.z+hz*1.6,1.3,0xef4444,.25);
 }
 const CHAIN_R=3, REAP_R=4.2;
+const slashTex=canvasTex(256,128,(g,w,h)=>{ g.shadowColor='#ff2030'; g.shadowBlur=22; const gr=g.createLinearGradient(0,0,w,0); gr.addColorStop(0,'rgba(255,60,70,0)'); gr.addColorStop(.25,'rgba(255,70,80,.85)'); gr.addColorStop(.5,'rgba(255,255,255,1)'); gr.addColorStop(.75,'rgba(255,70,80,.85)'); gr.addColorStop(1,'rgba(255,60,70,0)');
+  g.strokeStyle=gr; g.lineCap='round'; g.lineWidth=16; g.beginPath(); g.arc(128,150,112,Math.PI*1.12,Math.PI*1.88); g.stroke(); g.lineWidth=6; g.strokeStyle='#fff'; g.beginPath(); g.arc(128,150,112,Math.PI*1.2,Math.PI*1.8); g.stroke(); });
+const slashFx=new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.3),new THREE.MeshBasicMaterial({map:slashTex,transparent:true,opacity:0,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false}));
+slashFx.position.set(0,-.05,-1.05); slashFx.renderOrder=40; slashFx.visible=false; camera.add(slashFx);
+function reaperHit(dmg){
+  S.reapDmg=true; let any=false;
+  for(const z of S.zombies){ if(!inMelee(z,REAP_R,MELEE_ARC)) continue; hurtZombie(z,dmg,new THREE.Vector3(z.x,z.height*.7,z.z)); any=true; }
+  S.reapDmg=false; if(any){ hitMarker(); sfx('slash'); }
+  const hx=-Math.sin(P.yaw), hz=-Math.cos(P.yaw); groundRing(P.x+hx*1.8,P.z+hz*1.8,1.6,S.ghoul>0?0xff2a2a:0xdc2626,.3);
+}
 function inMelee(z,range,arc){
   if(z.dead||(z.y0||0)>P.y+(z.archer?4.6:2.4)) return false;
   const arch=!!z.archer, hx=-Math.sin(P.yaw), hz=-Math.cos(P.yaw), dx=z.x-P.x, dz=z.z-P.z, dist=Math.hypot(dx,dz);
@@ -1891,12 +1901,10 @@ function updateDots(dt){
 function reaperKill(){ if(S.ghoul>0) return; if(S.souls<10){ S.souls++; if(S.souls===10){ say('10 souls – press E to release them!',2.5); sfx('open'); } } }
 function releaseSouls(){ if(S.ghoul>0) return; if(S.souls<10){ say(`Souls ${S.souls}/10`,1); return; } S.souls=0; S.ghoul=12; sfx('roar'); say('GHOUL STATE!',2); }
 function reaperSlash(){
-  const gh=S.ghoul>0, dmg=gh?7500:5000, hx=-Math.sin(P.yaw), hz=-Math.cos(P.yaw);
-  S.fireCd=gh?.5:.75; S.swing=.24; S.swingMax=.24; sfx('swing',undefined,undefined,1,.8);
-  S.reapDmg=true; let any=false;
-  for(const z of S.zombies){ if(!inMelee(z,REAP_R,MELEE_ARC)) continue; hurtZombie(z,dmg,new THREE.Vector3(z.x,z.height*.7,z.z)); any=true; }
-  S.reapDmg=false; if(any){ hitMarker(); sfx('slash'); }
-  groundRing(P.x+hx*1.8,P.z+hz*1.8,1.6,gh?0xff2a2a:0xdc2626,.3);
+  const gh=S.ghoul>0, dmg=gh?7500:5000;
+  S.fireCd=gh?.5:.75; S.swing=.42; S.swingMax=.42; S.reapDir=-(S.reapDir||1);
+  S.delayed.push({t:.15,fn:()=>reaperHit(dmg)});
+  setTimeout(()=>{ if(S.mode==='game') sfx('swing',undefined,undefined,1,.8); },90);
 }
 function reaperSpin(){
   S.abCd=8; S.spin=.55; sfx('swing',undefined,undefined,1,.6); sfx('slam',undefined,undefined,.6);
@@ -2430,7 +2438,19 @@ function render(dt){
     gunRoot.rotation.x=kick*.6; gunRoot.rotation.y=0; gunRoot.rotation.z=0;
     if(S.swing>0){ const k=1-S.swing/S.swingMax, sn=Math.sin(k*Math.PI);
       if(S.bladeMode==='earth'&&S.weapon==='vampire'){ gunRoot.rotation.x=(k<.45?-(k/.45)*.9:-.9+((k-.45)/.55)*1.5); gunRoot.position.y+=(k<.45?k/.45*.15:.15-(k-.45)/.55*.3); }
+      else if(S.weapon==='reaper'){
+        const u=k, d=S.reapDir||1, E=t=>t*t*(3-2*t); let rz,ry,rx,px,py;
+        const A={rz:1.05,ry:-.55,rx:-.5,px:.28,py:.24}, B={rz:-1.55,ry:.95,rx:.45,px:-.8,py:-.14};
+        const mix=(a,b,t)=>a+(b-a)*t;
+        if(u<.3){ const e=1-Math.pow(1-u/.3,2); rz=A.rz*e; ry=A.ry*e; rx=A.rx*e; px=A.px*e; py=A.py*e; }
+        else if(u<.62){ const t=E((u-.3)/.32); rz=mix(A.rz,B.rz,t); ry=mix(A.ry,B.ry,t); rx=mix(A.rx,B.rx,t); px=mix(A.px,B.px,t); py=mix(A.py,B.py,t); }
+        else { const t=E((u-.62)/.38); rz=mix(B.rz,0,t); ry=mix(B.ry,0,t); rx=mix(B.rx,0,t); px=mix(B.px,0,t); py=mix(B.py,0,t); }
+        gunRoot.rotation.z=rz*d; gunRoot.rotation.y=ry*d; gunRoot.rotation.x=rx; gunRoot.position.x+=px*d; gunRoot.position.y+=py;
+        if(u>.3&&u<.7){ const t=(u-.3)/.4; slashFx.visible=true; slashFx.material.opacity=Math.sin(Math.min(1,t)*Math.PI)*.8; slashFx.rotation.z=mix(1.1,-1.1,t)*d; slashFx.scale.set(.8+t*.2,.8+t*.2,1); slashFx.material.color.setHex(S.ghoul>0?0xff6060:0xffffff); }
+        else slashFx.visible=false;
+      }
       else { gunRoot.rotation.z=-sn*1.3; gunRoot.rotation.y=sn*.5; gunRoot.rotation.x=-sn*.4; gunRoot.position.x-=sn*.4; gunRoot.position.y+=sn*.05; } }
+    else slashFx.visible=false;
     if(gunSpin){ spinV+=((IN.down&&S.lock<=0?28:0)-spinV)*Math.min(1,dt*6); gunSpin.rotation.z+=spinV*dt; }
     for(const z of S.zombies){
       z.g.position.set(z.x,z.y0||0,z.z); z.g.rotation.y=z.face!==undefined?z.face:Math.atan2(P.x-z.x,P.z-z.z);
