@@ -1960,7 +1960,7 @@ function dashStep(dt){
   P.x+=d.dx*41*dt; P.z+=d.dz*41*dt; P.x=Math.max(.4,Math.min(MAP.w-.4,P.x)); P.z=Math.max(.4,Math.min(MAP.h-.4,P.z)); collide(P,.4,bricks);
   for(let i=0;i<2;i++){ const sp=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0xb91c1c,transparent:true,depthWrite:false})); sp.scale.setScalar(.35); sp.position.set(P.x,.5+Math.random()*1.2,P.z); scene.add(sp); fx.push({m:sp,life:.5,max:.5,vel:new THREE.Vector3(0,.4,0),kind:'spark'}); }
   S.ls=.05;
-  for(const z of S.zombies){ if(z.dead||d.hit.has(z)||(z.y0||0)>P.y+(z.archer?4.6:2.2)) continue; if(Math.hypot(z.x-P.x,z.z-P.z)<z.r+1.1+(z.archer?1.6:0)){ d.hit.add(z); hurtZombie(z,5000,new THREE.Vector3(z.x,z.height*.6,z.z)); hitMarker(); sfx('slash'); S.shake=Math.max(S.shake,.35); groundRing(z.x,z.z,2,0xef4444,.35); } }
+  for(const z of S.zombies){ if(z.dead||d.hit.has(z)||(z.y0||0)>P.y+(z.archer?9:2.2)) continue; if(Math.hypot(z.x-P.x,z.z-P.z)<z.r+1.1+(z.archer?3.2:0)){ d.hit.add(z); hurtZombie(z,5000,new THREE.Vector3(z.x,z.height*.6,z.z)); hitMarker(); sfx('slash'); S.shake=Math.max(S.shake,.35); groundRing(z.x,z.z,2,0xef4444,.35); } }
   S.ls=0;
   if(d.t<=0) S.dash=null;
 }
@@ -2000,12 +2000,12 @@ function meleeAttack(){
     if(z.dead) continue;
     const arch=!!z.archer; // bow zombies stand on bricks, so every blade gets extra reach against them
     const dx=z.x-P.x, dz=z.z-P.z, dist=Math.hypot(dx,dz);
-    if((z.y0||0)>P.y+(arch?4.6:2.4)) continue;
+    if((z.y0||0)>P.y+(arch?9:2.4)) continue;
     if(earth){ if(dist-z.r>(U('smash')?12:EARTH_R)+(arch?2:0)) continue; }
     else {
-      if(dist-z.r>MELEE_R+(arch?4.2:0)) continue;
+      if(dist-z.r>MELEE_R+(arch?8:0)) continue;
       const ang=dist<.05?0:Math.acos(Math.max(-1,Math.min(1,(dx*hx+dz*hz)/dist)));
-      if(ang-Math.atan2(z.r,dist)>MELEE_ARC+(arch?.9:0)) continue;
+      if(ang-Math.atan2(z.r,dist)>MELEE_ARC+(arch?1.6:0)) continue;
       const nd={x:dx/dist,y:0,z:dz/dist}; let blocked=false;
       for(const b of bricks){ if(arch) break; if(rayBox(o,nd,{x:b.x,z:b.z,w:b.w,d:b.d,h:10},dist)!==Infinity){blocked=true;break;} }
       if(blocked) continue;
@@ -2142,10 +2142,10 @@ function reaperHit(dmg){
   const hx=-Math.sin(P.yaw), hz=-Math.cos(P.yaw); groundRing(P.x+hx*1.8,P.z+hz*1.8,1.6,S.ghoul>0?0xff2a2a:0xdc2626,.3);
 }
 function inMelee(z,range,arc){
-  if(z.dead||(z.y0||0)>P.y+(z.archer?4.6:2.4)) return false;
+  if(z.dead||(z.y0||0)>P.y+(z.archer?9:2.4)) return false;
   const arch=!!z.archer, hx=-Math.sin(P.yaw), hz=-Math.cos(P.yaw), dx=z.x-P.x, dz=z.z-P.z, dist=Math.hypot(dx,dz);
-  if(dist-z.r>range+(arch?4.2:0)) return false;
-  const ang=dist<.05?0:Math.acos(Math.max(-1,Math.min(1,(dx*hx+dz*hz)/dist))); if(ang-Math.atan2(z.r,dist)>arc+(arch?.9:0)) return false;
+  if(dist-z.r>range+(arch?8:0)) return false;
+  const ang=dist<.05?0:Math.acos(Math.max(-1,Math.min(1,(dx*hx+dz*hz)/dist))); if(ang-Math.atan2(z.r,dist)>arc+(arch?1.6:0)) return false;
   const o={x:P.x,y:EYE,z:P.z}, nd={x:dx/(dist||1),y:0,z:dz/(dist||1)};
   if(!arch) for(const b of bricks){ if(rayBox(o,nd,{x:b.x,z:b.z,w:b.w,d:b.d,h:10},dist)!==Infinity) return false; }
   return true;
