@@ -33,7 +33,6 @@
   #dClose{background:#dc2626;color:#fff;border:0;border-radius:10px;padding:6px 12px;cursor:pointer;font-weight:800;font-size:15px}
   #osFx{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity .08s;background:radial-gradient(circle at 50% 58%,rgba(255,255,255,.55) 0%,rgba(190,230,255,.22) 16%,rgba(255,255,255,0) 46%)}
   #osFx.hy{background:radial-gradient(circle at 50% 58%,rgba(255,80,120,.55) 0%,rgba(192,38,211,.25) 18%,rgba(120,0,60,0) 50%)}
-  #passBtn{position:fixed;top:10px;right:202px;width:54px;height:54px;border-radius:12px;border:2px solid #34d399;background:#1e293bcc;font-size:24px;cursor:pointer;display:none}
   #pass{position:fixed;inset:0;background:radial-gradient(#2a1a05ee,#000d);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;backdrop-filter:blur(4px)}
   #pass.open{opacity:1}
   #passPanel{background:linear-gradient(#1a1409,#0d0a05);border:1px solid #f59e0b88;box-shadow:0 20px 80px #000a;border-radius:18px;padding:18px;width:min(1000px,96vw);max-height:92vh;overflow:auto}
@@ -204,7 +203,6 @@
   <div id="hint"></div>
 </div>
 <button id="shopBtn" title="Shop (B)">🛒</button>
-<button id="passBtn" title="Passives">✨</button>
 <button id="diaryBtn" title="Bestiary (B)">📖</button>
 <button id="rbBtn" title="Rebirth (G)">♻</button>
 <button id="pauseBtn" title="Pause (Esc)">⏸</button>
@@ -417,7 +415,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -510,7 +508,7 @@ function skyDome(kind){
 
 /* --- lobby: floating sci-fi platform --- */
 lobbyG.add(skyDome('void'));
-const LOBBY = { rects:[{x0:-26,x1:26,z0:-21,z1:21}], hub:{x:0,z:0,r:5}, spawn:{x:-12,z:0}, pads:{up:{x:-8,z:-14,r:2.7},ws:{x:-16,z:-14,r:2.7},play:{x:18,z:-12,r:2.7},hc:{x:18,z:-4,r:2.7},vc:{x:18,z:4,r:2.7},mp:{x:18,z:12,r:2.7}} };
+const LOBBY = { rects:[{x0:-26,x1:26,z0:-21,z1:21}], hub:{x:0,z:0,r:5}, spawn:{x:-12,z:0}, pads:{up:{x:-8,z:-14,r:2.7},ws:{x:-16,z:-14,r:2.7},ps:{x:0,z:-14,r:2.7},play:{x:18,z:-12,r:2.7},hc:{x:18,z:-4,r:2.7},vc:{x:18,z:4,r:2.7},mp:{x:18,z:12,r:2.7}} };
 const LOBBY_ANIM={rocks:[],crystals:[],chevrons:[],pads:[],signs:[],gyro:[]};
 {
   const tileTex=canvasTex(256,256,(g,w,h)=>{
@@ -557,6 +555,7 @@ const LOBBY_ANIM={rocks:[],crystals:[],chevrons:[],pads:[],signs:[],gyro:[]};
     hc:{main:0xef4444,soft:0xfca5a5,glow:0xff2020,c1:'#3a0707',c2:'#b91c1c',c3:'#220404',line:'rgba(255,180,170,.55)',tri:'rgba(255,180,170,.75)',txt:'#ef4444',txt2:'#ffecec',bar:'#ef4444'},
     vc:{main:0xa855f7,soft:0xd8b4fe,glow:0x9333ea,c1:'#2e1065',c2:'#6d28d9',c3:'#1e0a40',line:'rgba(230,200,255,.55)',tri:'rgba(230,200,255,.75)',txt:'#a855f7',txt2:'#f5eaff',bar:'#a855f7'},
     ws:{main:0x2dd4bf,soft:0x99f6e4,glow:0x14b8a6,c1:'#063a35',c2:'#0f766e',c3:'#042f2c',line:'rgba(190,255,240,.55)',tri:'rgba(190,255,240,.75)',txt:'#2dd4bf',txt2:'#e6fffb',bar:'#2dd4bf'},
+    ps:{main:0x34d399,soft:0xa7f3d0,glow:0x10b981,c1:'#053d2c',c2:'#047857',c3:'#032b20',line:'rgba(190,255,225,.55)',tri:'rgba(190,255,225,.75)',txt:'#34d399',txt2:'#eafff6',bar:'#34d399'},
     mp:{main:0x60a5fa,soft:0xbfdbfe,glow:0x3b82f6,c1:'#10306b',c2:'#1d56c8',c3:'#0b2557',line:'rgba(190,220,255,.55)',tri:'rgba(190,220,255,.75)',txt:'#3b82f6',txt2:'#eaf3ff',bar:'#60a5fa'},
   };
   const shp=new THREE.Shape(); shp.moveTo(-.35,-.55); shp.lineTo(.1,0); shp.lineTo(-.35,.55); shp.lineTo(-.12,.55); shp.lineTo(.33,0); shp.lineTo(-.12,-.55);
@@ -591,6 +590,7 @@ const LOBBY_ANIM={rocks:[],crystals:[],chevrons:[],pads:[],signs:[],gyro:[]};
   makePad('play','NORMAL\nMODE',LOBBY.pads.play.x,LOBBY.pads.play.z);
   makePad('up','WEAPON UPGRADE\nSHOP',LOBBY.pads.up.x,LOBBY.pads.up.z,'n');
   makePad('ws','WEAPON\nSHOP',LOBBY.pads.ws.x,LOBBY.pads.ws.z,'n');
+  makePad('ps','PASSIVES',LOBBY.pads.ps.x,LOBBY.pads.ps.z,'n');
   makePad('hc','HARDCORE\nMODE',LOBBY.pads.hc.x,LOBBY.pads.hc.z);
   makePad('vc','VOIDCORE\nMODE',LOBBY.pads.vc.x,LOBBY.pads.vc.z);
   makePad('mp','MULTIPLAYER',LOBBY.pads.mp.x,LOBBY.pads.mp.z);
@@ -608,7 +608,7 @@ const LOBBY_ANIM={rocks:[],crystals:[],chevrons:[],pads:[],signs:[],gyro:[]};
     grp.add(glowSprite(parseInt(cols[0].slice(1),16),w*1.1,0,0,-.3)); lobbyG.add(grp); LOBBY_ANIM.signs.push({g:grp,x,z,y0:y});
   }
   bigSign('PLAY','NORMAL  ·  HARDCORE  ·  VOIDCORE MODE  ·  MULTIPLAYER',['#4ade80','#ef4444','#a855f7','#60a5fa'],18,11,0,19,6.4);
-  bigSign('UPGRADES','WEAPON UPGRADE SHOP  ·  WEAPON SHOP',['#2dd4bf','#fbbf24'],-12,10,-14,17,5.4);
+  bigSign('UPGRADES','WEAPON SHOP  ·  UPGRADE SHOP  ·  PASSIVES',['#2dd4bf','#fbbf24','#34d399'],-8,10,-14,22,5.8);
   // floating rocks + distant planet
   const rockM=new THREE.MeshLambertMaterial({color:0x2b2f45,flatShading:true});
   for(let i=0;i<26;i++){ const a=rnd(0,6.28), d=rnd(40,85), r=rnd(.8,3.5), m=new THREE.Mesh(new THREE.IcosahedronGeometry(r,0),rockM); m.position.set(Math.cos(a)*d,rnd(-12,8),Math.sin(a)*d); m.rotation.set(rnd(0,3),rnd(0,3),0); lobbyG.add(m); LOBBY_ANIM.rocks.push({m,y:m.position.y,s:rnd(.3,1),p:rnd(0,6)}); }
@@ -1641,7 +1641,7 @@ function setMode(m){
   scene.fog=m==='game'?new THREE.Fog(fogC,hcm?7:10,hcm?42:48):null;
   sun.color.setHex(m==='game'?(hcm?0xff9070:(vcm?0xc4a0ff:0xaec6ff)):0xffffff); hemi.color.setHex(hcm?0xff9a80:(vcm?0xb89cff:0xaab8ff));
   hemi.intensity=m==='lobby'?0.8:(hcm?0.9:0.55); sun.intensity=m==='lobby'?0.5:(hcm?0.5:0.35);
-  $('diaryBtn').style.display=m==='lobby'?'block':'none'; $('passBtn').style.display=(m==='lobby'&&S.rebirths>=4)?'block':'none'; $('shopBtn').style.display=m==='game'?'block':'none'; $('pauseBtn').style.display=m==='game'?'block':'none'; closePause();
+  $('diaryBtn').style.display=m==='lobby'?'block':'none'; $('shopBtn').style.display=m==='game'?'block':'none'; $('pauseBtn').style.display=m==='game'?'block':'none'; closePause();
   gunRoot.visible=m==='game';
   ['hpWrap','cashTxtHud','waveTxt','wpnTxt'].forEach(i=>$(i).style.display=m==='game'?'block':'none');
   $('tokTxt').style.display=m==='lobby'?'block':'none';
@@ -2592,6 +2592,7 @@ function updateLobby(dt){
   const onMp=Math.hypot(P.x-pm.x,P.z-pm.z)<pm.r;
   if(onMp&&S.mpArmed){ S.mpArmed=false; openMultiplayer(); }
   if(!onMp&&Math.hypot(P.x-pm.x,P.z-pm.z)>pm.r+.6) S.mpArmed=true;
+  { const pp2=LOBBY.pads.ps, onP=Math.hypot(P.x-pp2.x,P.z-pp2.z)<pp2.r; if(onP&&S.psArmed){ S.psArmed=false; if(S.rebirths>=4) openPass(); else say('🔒 Passives unlock at Rebirth 4',2.5); } if(!onP&&Math.hypot(P.x-pp2.x,P.z-pp2.z)>pp2.r+.6) S.psArmed=true; }
   { const pw=LOBBY.pads.ws, onW=Math.hypot(P.x-pw.x,P.z-pw.z)<pw.r; if(onW&&S.wsArmed){ S.wsArmed=false; openWs(); } if(!onW&&Math.hypot(P.x-pw.x,P.z-pw.z)>pw.r+.6) S.wsArmed=true; }
   const onUp=Math.hypot(P.x-pu.x,P.z-pu.z)<pu.r;
   if(onUp&&S.upArmed){ S.upArmed=false; openUpgrades(); }
@@ -3377,8 +3378,8 @@ function updatePass(){
     b.textContent=own?(on?'Equipped ✓ (click to unequip)':'Equip – only 1 passive at a time'):'Buy — '+o.tokens+' 🪙 tokens'; b.disabled=!own&&S.tokens<o.tokens; b.style.opacity=b.disabled&&!own?.5:1; }
 }
 function openPass(){ if(S.mode!=='lobby'||S.rebirths<4||S.passOpen) return; sfx('open'); S.passOpen=true; S.upOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('pass').style.display='flex'; requestAnimationFrame(()=>$('pass').classList.add('open')); updatePass(); }
-function closePass(){ if(!S.passOpen) return; S.passOpen=false; S.upOpen=false; $('pass').classList.remove('open'); setTimeout(()=>{ if(!S.passOpen) $('pass').style.display='none'; },200); }
-$('passClose').addEventListener('click',closePass); $('passBtn').addEventListener('click',e=>{ e.stopPropagation(); S.passOpen?closePass():openPass(); });
+function closePass(){ if(!S.passOpen) return; S.passOpen=false; S.upOpen=false; { const pq=LOBBY.pads.ps; P.x=pq.x; P.z=pq.z+4.6; } $('pass').classList.remove('open'); setTimeout(()=>{ if(!S.passOpen) $('pass').style.display='none'; },200); }
+$('passClose').addEventListener('click',closePass);
 buildPass();
 
 /* ---------- Bestiary ---------- */
