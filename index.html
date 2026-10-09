@@ -324,7 +324,7 @@ const WEAPONS = [
   {id:'chainsaw',name:'Chainsaw',cost:7500,dmg:10,cd:0.01,tokens:50,cat:'Melee',desc:'Hold to rev: 10 dmg every 0.01s, victims bleed for 3s (10 dmg / 0.05s)'},
   {id:'lava',   name:'Lava Blaster',cost:10000,dmg:250,cd:1.0,  rebirth:2, desc:'Lava balls: 250 explosion dmg, leave a giant lava puddle (10 dmg / 0.1s + burning)'},
   {id:'railgun',name:'Railgun',    cost:17500,dmg:75, cd:0.05,  rebirth:3, desc:'75 dmg / 0.05s piercing laser, overheats. Press E: Railblaster (1000 dmg explosive balls / 1s)'},
-  {id:'acid',name:'Acid Gun',cost:25000,dmg:0,cd:0.01,tokens:100,cat:'Guns',desc:'Sprays a toxic green fog. No direct damage: zombies touched by it are poisoned for 1250 dmg every 0.5 s for 3 s'},
+  {id:'acid',name:'Acid Gun',cost:25000,dmg:0,cd:0.01,tokens:100,cat:'Guns',desc:'Sprays a toxic green fog. No direct damage: zombies touched by it are poisoned for 1250 dmg every 0.5 s for 3 s (half against Toxic Zombies)'},
   {id:'orbital',name:'Orbital Cannon',cost:35000,dmg:5000,cd:2.0,rebirth:4, desc:'Giant red ball sucks enemies in, explodes after 1.5s for 5000 dmg / 2s'},
   {id:'vampire',name:'Vampire Blade',cost:50000,dmg:4000,cd:0.66,rebirth:5, desc:'Melee blade, 4000 dmg, heals 1% of damage dealt. E: Wind Blade / Earth Blade'},
   {id:'reaper',name:'Soul Reaper',cost:75000,dmg:5000,cd:0.75,tokens:300,cat:'Melee',desc:'5000 dmg per slice / 0.75s. 25 kills = E releases the souls: Ghoul state (7500 dmg / 0.25s, 1.5x speed, 0.1% life steal, all abilities 1.5x damage). Q: 360° spin with red slices'},
@@ -2430,7 +2430,7 @@ function updateFog(dt){
   if(S.fog.some(f=>f.t>=f.life)) S.fog=S.fog.filter(f=>{ if(f.t>=f.life){ gameG.remove(f.m); f.m.material.dispose(); return false; } return true; });
   for(const z of S.zombies){ if(!(z.poison>0)) continue; z.poison-=dt; z.poisonAcc=(z.poisonAcc||0)+dt;
     if(Math.random()<dt*10){ const sp=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0x84cc16,transparent:true,depthWrite:false})); sp.scale.setScalar(.9); sp.position.set(z.x+rnd(-z.r,z.r),(z.y0||0)+z.height*rnd(.2,1),z.z+rnd(-z.r,z.r)); scene.add(sp); fx.push({m:sp,life:.6,max:.6,vel:new THREE.Vector3(0,.9,0),kind:'spark'}); }
-    while(z.poisonAcc>=.5&&!z.dead){ z.poisonAcc-=.5; const pos=new THREE.Vector3(z.x,(z.y0||0)+z.height*.6,z.z); hurtZombie(z,1250,pos,'#84cc16',true); z.dotSum=(z.dotSum||0)+Math.round(1250*mult().dmg); z.dotPos=pos; } }
+    while(z.poisonAcc>=.5&&!z.dead){ z.poisonAcc-=.5; const pos=new THREE.Vector3(z.x,(z.y0||0)+z.height*.6,z.z); const ad=z.toxic?625:1250; hurtZombie(z,ad,pos,'#84cc16',true); z.dotSum=(z.dotSum||0)+Math.round(ad*mult().dmg); z.dotPos=pos; } }
 }
 function placeRift(){
   if(S.mode!=='game'||S.weapon!=='dagger'||S.downed||S.shopOpen||S.rebirthOpen||S.pauseOpen) return;
@@ -3322,7 +3322,7 @@ const WINFO={
   trident:{ico:'🔱',tags:['Melee','Q: Ocean\'s Wrath','C: Sharp Hook'],note:'30000 dmg / 0.5 s. Q: a giant wave sweeps forward for 3 s, then sinks while still moving; enemies it catches are dragged along and take 7500 dmg/s until it is gone. Sharp Hook upgrade: C throws the trident (10000 dmg out and back) and pulls caught enemies to you, stunned for 1.5 s.'},
   omni:{ico:'🌈',tags:['4 miniguns','24 lasers','Overheats'],note:'Four floating miniguns (red, blue, green, yellow), each firing 6 spinning lasers: 50 dmg per laser every 0.01 s. Overheats after 3 s of fire; release the trigger any time to stop.'},
   ovf:{ico:'🌋',tags:['Spools up','Bullets','Full-auto'],note:'Starts at 1 shot per second and spools up the longer you hold fire, reaching 1 shot every 0.01 s after 10 s. 225 dmg per shot. Release to wind down.'},
-  acid:{ico:'☣️',tags:['Poison fog','No direct damage','Hold to spray'],note:'Sprays a toxic fog. Touched zombies are poisoned: 1250 dmg every 0.5 s for 3 s (touching it again refreshes the poison).'},
+  acid:{ico:'☣️',tags:['Poison fog','No direct damage','Hold to spray'],note:'Sprays a toxic fog. Touched zombies are poisoned: 1250 dmg every 0.5 s for 3 s (touching it again refreshes the poison). Toxic Zombies take half.'},
   ripper:{ico:'🔭',tags:['Sniper','Pierces all','Marks'],note:'25000 dmg per shot, 1 shot / 2 s. Headshots deal 2x (3x with Sharpshooter). Pierces everything and leaves enemies Marked: visible through walls and burned by purple flames.'},
   dagger:{ico:'🗡️',tags:['Melee','Void blade','Q: Shadow Step'],note:'10000 dmg every 0.25 s. Q: Shadow Step – 2x speed for 5 s and zombies cannot hit you. C: Void Rift – open a portal (max 2) you can stand in to heal; it breaks after 15 s inside.'},
   sonic:{ico:'🔊',tags:['2 modes','Pierces','Explodes on walls','E: switch'],note:'Sonic Mode: fast piercing balls (5000 dmg, explode on walls for 5000 AoE, 0.5 s). Pulse Mode: slow huge ball pulsing 5000 dmg every 0.5 s (1 s cooldown). Hypersonic upgrade: third mode, both combined, pulsing every 0.25 s.'},
