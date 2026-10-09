@@ -335,6 +335,13 @@ const PASSIVES=[
   {id:'overkill',name:'Overkill',ico:'💢',tokens:100,desc:'Every kill makes you stronger: +5% damage per kill, capped at 1.5x. If you do not hit an enemy for 1 second the meter resets.'},
   {id:'rage',name:'Rage',ico:'😡',tokens:250,desc:'The lower your health, the harder you hit: up to 2x damage when you are under 10% health.'},
   {id:'stormking',name:'Storm King',ico:'⛈️',tokens:500,desc:'Every kill releases a small blast dealing 50% of your equipped weapon\'s damage per second. Every 15th kill a lightning bolt strikes for 200% of your DPS.'},
+  {id:'sharpshooter',name:'Sharpshooter',ico:'🎯',tokens:150,desc:'Headshots deal 2.5x damage instead of 1.5x (bullet weapons).'},
+  {id:'critical',name:'Critical Hitter',ico:'💥',tokens:250,desc:'Every hit has a 5% chance to crit for 2x damage. This passive raises your critical chance to 15%.'},
+  {id:'treasure',name:'Treasure Hunter',ico:'🧰',tokens:150,desc:'Loot chests spawn twice as often and give 50% more cash.'},
+  {id:'adrenaline',name:'Adrenaline',ico:'💉',tokens:200,desc:'Under 30% health you move 30% faster and your ability and secondary cooldowns recover 30% faster.'},
+  {id:'vampirism',name:'Vampirism',ico:'🧛',tokens:300,desc:'You heal 1% of the damage you deal, with every weapon.'},
+  {id:'titan',name:'Titan Slayer',ico:'🪓',tokens:300,desc:'+50% damage against bosses and Brutes. Normal zombies take normal damage.'},
+  {id:'secondwind',name:'Second Wind',ico:'🌬️',tokens:400,desc:'Once per run, a deadly hit leaves you alive with 30% health and a short shield.'},
   {id:'stormprince',name:'Storm Prince',ico:'⚡',tokens:200,desc:'Every time you hit an enemy a small lightning chain jumps to nearby enemies, dealing 5% of your equipped weapon\'s DPS to each.'},
 ];
 const SECONDARIES=[{id:'grenade',name:'Grenade',ico:'💣',tokens:10,key:'X',cd:10,dmg:250,desc:'Throw with X (10 s cooldown). Explodes after a short fuse for 250 damage in a 5 m radius. Works together with any weapon.'}];
@@ -396,12 +403,13 @@ const ARCHER_WAVE=10, ARCHER_CHANCE=.05, ARCHER_RANGE=32, ARROW_V=30, ARROW_G=8;
 const isPaused=()=>(S.shopOpen||S.rebirthOpen||S.pauseOpen)&&!NET.active;
 const incoming=[]; // damage dealt to the local player this frame
 function mpTargets(){
-  const T=[{pid:NET.pid,x:P.x,y:P.y,z:P.z,alive:!S.downed,sh:S.shadowT>0}];
+  const T=[{pid:NET.pid,x:P.x,y:P.y,z:P.z,alive:!S.downed,sh:S.shadowT>0||S.shieldT>0}];
   if(NET.active&&NET.role==='host') for(const pid in NET.players){ const p=NET.players[pid]; if(+pid===NET.pid||!p.live) continue; T.push({pid:+pid,x:p.x,y:p.y||0,z:p.z,alive:p.alive!==false,sh:!!p.sh}); }
   return T;
 }
+function secondWind(){ if(S.swUsed||!passOn('secondwind')||S.downed) return false; S.swUsed=true; S.hp=Math.max(1,S.maxHp*.3); S.shieldT=3; sfx('revive'); say('🌬️ SECOND WIND!',2.5); groundRing(P.x,P.z,6,0x93c5fd,.7); return true; }
 function hitPlayer(pid,dmg){
-  if(pid===NET.pid){ if(S.shadowT>0) return; S.hp-=dmg; incoming.push(dmg); }
+  if(pid===NET.pid){ if(S.shadowT>0||S.shieldT>0) return; S.hp-=dmg; incoming.push(dmg); if(S.hp<=0) secondWind(); }
   else { const p=NET.players[pid]; if(p&&!p.sh){ p.hp-=dmg; netSend(NET.conns[pid],{t:'dmg',n:dmg}); } }
 }
 const SCREAM_R=10, SCREAM_CD=12, SCREAM_T=1.6, BUFF_T=12;
@@ -415,7 +423,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, swUsed:false, shieldT:0, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -1807,10 +1815,13 @@ function passKill(z){
 function hurtZombie(z,base,pos,col,silent){ // damage dealt by the local player
   if(z.dead) return;
   if(!S.inPass) S.okT=0;
-  const dmg=Math.round(base*mult().dmg*passMul()); if(!col) z.flash=.1;
+  let cm=1, crit=false; if(!S.inPass&&Math.random()<(passOn('critical')?.15:.05)){ cm=2; crit=true; }
+  if(passOn('titan')&&(z.miniBoss||z.boss||z.brute)) cm*=1.5;
+  const dmg=Math.round(base*mult().dmg*passMul()*cm); if(crit&&!silent) col='#fbbf24';
+  if(passOn('vampirism')&&S.hp>0) S.hp=Math.min(S.maxHp,S.hp+dmg*.01); if(!col) z.flash=.1;
   if(S.ls) S.hp=Math.min(S.maxHp,S.hp+dmg*S.ls);
   if(z.y0&&pos.y<z.y0) pos.y+=z.y0;
-  if(!silent) floatText(pos,dmg,col);
+  if(!silent) floatText(pos,(crit?'★ ':'')+dmg,col);
   if(NET.role==='client'){ const e=NET.hitBuf[z.id]||(NET.hitBuf[z.id]={d:0,b:0}); e.d+=dmg; if(z.sh>0) z.sh=Math.max(0,z.sh-dmg); else z.hp-=dmg*(z.crier&&!z.cst?.25:1)*(z.brute?((S.hc||S.vc)?.5:.75):1)*(z.colossus?.75:1); return; }
   applyDamage(z,dmg,NET.pid); if(!S.inPass) passHit(z);
 }
@@ -2062,7 +2073,7 @@ function throwScythe(){
   S.thrown={g,dir:d,t:0,tick:.1,out:.9}; sfx('swing',undefined,undefined,1,.5); S.throwCd=999;
 }
 function updateScythe(dt){
-  if(S.throwCd<900) S.throwCd=Math.max(0,S.throwCd-dt*(S.ghoul>0?2:1));
+  if(S.throwCd<900) S.throwCd=Math.max(0,S.throwCd-dt*(S.ghoul>0?2:1)*(passOn('adrenaline')&&S.hp<S.maxHp*.3?1.3:1));
   const t=S.thrown; gunRoot.visible=S.mode==='game'&&!(t&&S.weapon==='reaper'); if(!t) return;
   t.t+=dt; t.g.rotation.y+=dt*30;
   if(t.t<t.out) t.g.position.addScaledVector(t.dir,40*dt);
@@ -2090,7 +2101,7 @@ function contBeam(a,b){
 }
 function updateCbeam(dt){ const cb=S.cbeam; if(cb){ cb.t-=dt; if(cb.t<=0){ scene.remove(cb.g); cb.outer.material.dispose(); cb.inner.material.dispose(); S.cbeam=null; } } }
 const OS_FIRE=5, OS_HYPER=2, OS_COOL=5, OS_COOL_H=7;
-function resetMelee(){ S.shadowT=0; $('shadowFx').style.opacity=0; S.okStacks=0; S.okT=9; S.kk=0; S.inPass=false; S.sonicMode=0; S.souls=0; S.ghoul=0; S.spin=0; S.throwCd=0; S.chAcc=0; if(S.thrown){ gameG.remove(S.thrown.g); S.thrown=null; } $('ghoulFx').style.opacity=0; }
+function resetMelee(){ S.swUsed=false; S.shieldT=0; S.shadowT=0; $('shadowFx').style.opacity=0; S.okStacks=0; S.okT=9; S.kk=0; S.inPass=false; S.sonicMode=0; S.souls=0; S.ghoul=0; S.spin=0; S.throwCd=0; S.chAcc=0; if(S.thrown){ gameG.remove(S.thrown.g); S.thrown=null; } $('ghoulFx').style.opacity=0; }
 function resetOS(){ resetMelee(); S.os={ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}; osBeamRemove(); }
 function startOS(){ S.os={ph:'fire',t:OS_FIRE,acc:0,ft:.3,nt:0,hm:0}; sfx('osfire'); say('ORBITAL STRIKE!',1.2); }
 function osBeamRemove(){ const ob=S.osbeam; if(!ob) return; scene.remove(ob.g); ob.o.material.dispose(); ob.i.material.dispose(); for(const sp of ob.sp) sp.material.dispose(); S.osbeam=null; }
@@ -2216,7 +2227,7 @@ function spawnGrenade(o,v,visual){
   g.position.set(o[0],o[1],o[2]); gameG.add(g); S.gr.push({g,led,vel:new THREE.Vector3(v[0],v[1],v[2]),t:0,visual:!!visual});
 }
 function updateGrenades(dt){
-  S.grCd=Math.max(0,S.grCd-dt);
+  S.grCd=Math.max(0,S.grCd-dt*(passOn('adrenaline')&&S.hp<S.maxHp*.3?1.3:1));
   for(const b of S.gr){ b.t+=dt; b.vel.y-=18*dt; const p=b.g.position, ox=p.x, oz=p.z; p.addScaledVector(b.vel,dt); b.g.rotation.x+=dt*9; b.g.rotation.z+=dt*6;
     if(p.y<.14){ p.y=.14; b.vel.y*=-.4; b.vel.x*=.7; b.vel.z*=.7; if(Math.abs(b.vel.y)<1) b.vel.y=0; }
     for(const w of bricks) if(p.x>w.x-.1&&p.x<w.x+w.w+.1&&p.z>w.z-.1&&p.z<w.z+w.d+.1&&p.y<w.h){ p.x=ox; p.z=oz; b.vel.x*=-.4; b.vel.z*=-.4; break; }
@@ -2398,12 +2409,12 @@ function addChest(id,type,x,z){
 function lootChest(ch,by){
   if(by===undefined) by=NET.pid;
   const c=CHESTS[ch.type]; ch.opened=true; ch.openT=0; sfx('chestopen',ch.x,ch.z,1,['wood','silver','gold','diamond','hyper'].indexOf(ch.type));
-  if(by===NET.pid){ const amt=Math.round(c.val*cashMul()); addCash(amt); floatText(new THREE.Vector3(ch.x,1.4,ch.z),'+$'+amt,'#facc15'); }
+  if(by===NET.pid){ const amt=Math.round(c.val*cashMul()*(passOn('treasure')?1.5:1)); addCash(amt); floatText(new THREE.Vector3(ch.x,1.4,ch.z),'+$'+amt,'#facc15'); }
   for(let i=0;i<18;i++){ const m=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:i%3?c.spark:0xfacc15,transparent:true,depthWrite:false})); m.scale.setScalar(.6);
     m.position.set(ch.x,.7,ch.z); scene.add(m); fx.push({m,life:.9,max:.9,vel:new THREE.Vector3((Math.random()-.5)*3,3+Math.random()*3,(Math.random()-.5)*3),kind:'spark'}); }
 }
 function updateChests(dt){
-  if(NET.role!=='client'){ S.chestT-=dt; if(S.chestT<=0){ S.chestT=CHEST_EVERY; spawnChest(); } }
+  if(NET.role!=='client'){ S.chestT-=dt; if(S.chestT<=0){ S.chestT=CHEST_EVERY*(passOn('treasure')?.5:1); spawnChest(); } }
   for(const ch of S.chests){
     ch.t+=dt;
     if(!ch.opened){
@@ -2431,7 +2442,7 @@ function shootRay(yaw,pitch,dmgNear,dmgFar,range){
   gunMuzzle.getWorldPosition(_m); _e.copy(_o).addScaledVector(_d,end); (big?thickTracer:tracer)(_m.clone(),_e.clone()); netShot({k:'t',a:[_m.x,_m.y,_m.z],b:[_e.x,_e.y,_e.z]});
   if(hit){
     let dmg=dmgNear; if(dmgFar!==dmgNear) dmg=dmgNear+(dmgFar-dmgNear)*Math.min(1,tz/range);
-    const head=(_o.y+_d.y*tz)>=(hit.y0||0)+hit.height*.82; if(head){ dmg*=1.5; hit.flash=.1; }
+    const head=(_o.y+_d.y*tz)>=(hit.y0||0)+hit.height*.82; if(head){ dmg*=(passOn('sharpshooter')?2.5:1.5); hit.flash=.1; }
     hurtZombie(hit,dmg,_e.clone().setY(Math.min((hit.y0||0)+hit.height,_e.y+.2)),head?'#ef4444':undefined);
     hitMarker();
   }
@@ -2486,7 +2497,7 @@ function update(dt){
   if(windBlade&&keys[' ']&&P.y<=0&&!inputOff&&!S.grab){ P.vy=JUMP_V; windWave(); }
   P.vy-=GRAV*dt; P.y+=P.vy*dt; if(P.y<=0){ P.y=0; P.vy=0; } EYE=EYE0+P.y-(S.downed?1.1:0);
   if(S.dash) dashStep(dt);
-  const mi=moveInput(), mx=(inputOff||S.dash)?0:mi.mx, my=(inputOff||S.dash)?0:mi.my, sprint=mi.sprint, sp=(sprint?SPRINT:WALK)*(windBlade?1.5:1)*(S.ghoul>0?1.5:1)*(S.shadowT>0?2:1);
+  const mi=moveInput(), mx=(inputOff||S.dash)?0:mi.mx, my=(inputOff||S.dash)?0:mi.my, sprint=mi.sprint, sp=(sprint?SPRINT:WALK)*(windBlade?1.5:1)*(S.ghoul>0?1.5:1)*(S.shadowT>0?2:1)*(passOn('adrenaline')&&S.hp<S.maxHp*.3?1.3:1);
   const fx_=-Math.sin(P.yaw), fz_=-Math.cos(P.yaw), rx=Math.cos(P.yaw), rz=-Math.sin(P.yaw);
   P.x+=(fx_*my+rx*mx)*sp*dt; P.z+=(fz_*my+rz*mx)*sp*dt;
   if((mx||my)&&P.y<=0&&!S.downed){ S.stepD=(S.stepD||0)+sp*dt; if(S.stepD>(sprint?2.3:1.8)){ S.stepD=0; sfx('step'); } }
@@ -2511,11 +2522,12 @@ function update(dt){
   if(S.spin>0){ P.yaw+=2*Math.PI/.55*dt; S.spin-=dt; }
   if(NET.role!=='client') for(let i=S.zombies.length-1;i>=0;i--) if(S.zombies[i].hp<=0){ killZombie(S.zombies[i]); S.zombies.splice(i,1); }
   updateProjs(dt); updateVB(dt); updateSonic(dt); updateGrenades(dt);
+  if(S.shieldT>0) S.shieldT=Math.max(0,S.shieldT-dt);
   if(S.shadowT>0){ S.shadowT=Math.max(0,S.shadowT-dt); if(Math.random()<dt*30){ const sp=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:Math.random()<.5?0x7c3aed:0x1a0b33,transparent:true,depthWrite:false})); sp.scale.setScalar(.25); sp.position.set(P.x+rnd(-.5,.5),rnd(.1,1.4),P.z+rnd(-.5,.5)); scene.add(sp); fx.push({m:sp,life:.6,max:.6,vel:new THREE.Vector3(rnd(-.5,.5),rnd(.2,1),rnd(-.5,.5)),kind:'spark'}); } }
-  $('shadowFx').style.opacity=S.shadowT>0?(S.shadowT<.6?S.shadowT/.6:1):0;
+  $('shadowFx').style.opacity=S.shadowT>0?(S.shadowT<.6?S.shadowT/.6:1):(S.shieldT>0?.5:0);
   S.okT+=dt; if(S.okT>1) S.okStacks=0; S.spT=Math.max(0,S.spT-dt); updatePuddles(dt); updateChests(dt); updateCbeam(dt); updateSpikes(dt);
   for(const d of S.delayed) d.t-=dt; { const due=S.delayed.filter(d=>d.t<=0); if(due.length){ S.delayed=S.delayed.filter(d=>d.t>0); for(const d of due) d.fn(); } }
-  S.abCd=Math.max(0,S.abCd-dt*(S.ghoul>0&&S.weapon==='reaper'?2:1)); S.skipCd=Math.max(0,S.skipCd-dt);
+  const adr=passOn('adrenaline')&&S.hp<S.maxHp*.3?1.3:1; S.abCd=Math.max(0,S.abCd-dt*(S.ghoul>0&&S.weapon==='reaper'?2:1)*adr); S.skipCd=Math.max(0,S.skipCd-dt*adr);
   if(S.skipT>=0){ S.skipT-=dt; if(S.skipT<0){ S.skipT=-1; if(NET.role!=='client') doSkip(); } }
   if(NET.role==='client'){ clientTick(dt); return; }
   for(const pl of S.pulls){ pl.t-=dt; for(const z of S.zombies){ if(z.dead||z.archer) continue; const dx=pl.x-z.x, dz=pl.z-z.z, d=Math.hypot(dx,dz); if(d<(pl.r||ORB_PULL)&&d>.05){ const m=Math.min(d,9*dt); z.x+=dx/d*m; z.z+=dz/d*m; } } } S.pulls=S.pulls.filter(p=>p.t>0);
@@ -2675,6 +2687,8 @@ function updateHud(){
     else { const ab=S.weapon==='vampire'&&((S.bladeMode==='blood'&&U('hook')&&'Blood Hook')||(S.bladeMode==='wing'&&U('wind')&&'Strong Wind')||(S.bladeMode==='earth'&&U('smash')&&'Earth Spikes')); if(ab) L.push('Q · '+ab+' · '+(S.abCd>0?S.abCd.toFixed(1)+'s':'READY')); }
     if(passOn('overkill')) L.push('Overkill · x'+(1+Math.min(.5,S.okStacks*.05)).toFixed(2)+(S.okStacks>=10?' (MAX)':''));
     if(passOn('rage')) L.push('Rage · x'+(1+Math.max(0,Math.min(1,(1-S.hp/S.maxHp)/.9))).toFixed(2));
+    if(passOn('adrenaline')) L.push('Adrenaline · '+(S.hp<S.maxHp*.3?'ACTIVE':'below 30% hp'));
+    if(passOn('secondwind')) L.push('Second Wind · '+(S.swUsed?'used':'READY'));
     if(passOn('stormking')) L.push('Storm King · '+(S.kk%15)+'/15 kills');
     if(S.secEq==='grenade') L.push('X · Grenade · '+(S.grCd>0?S.grCd.toFixed(1)+'s':'READY'));
     if(L.length){ el.style.display='block'; el.textContent=L.join('\n'); } else el.style.display='none'; }
@@ -3041,7 +3055,7 @@ function mpClientData(m){
       $('mp').classList.remove('open'); $('mp').style.display='none'; S.mpOpen=false; startGame({mp:true,bricks:m.bricks,hc:!!m.hc,vc:!!m.vc}); break;
     case 's': clientSnapshot(m); break;
     case 'dead': clientDead(m); break;
-    case 'dmg': S.hp-=m.n; incoming.push(m.n); break;
+    case 'dmg': if(S.shadowT>0||S.shieldT>0) break; S.hp-=m.n; incoming.push(m.n); if(S.hp<=0) secondWind(); break;
     case 'arrow': spawnVisualArrow(m.o,m.v); break;
     case 'vb': spawnVBall(m.o,m.v,true); break;
     case 'smash': smashFx(m.x,m.z); break;
@@ -3099,7 +3113,7 @@ function clientTick(dt){
   NET.sendT-=dt;
   if(NET.sendT<=0){
     NET.sendT=.05;
-    netSendHost({t:'p',sh:S.shadowT>0?1:0,x:r2(P.x),y:r2(P.y),z:r2(P.z),yw:r2(P.yaw),pt:r2(P.pitch),w:S.weapon,hp:Math.max(0,Math.ceil(S.hp)),mh:S.maxHp,a:S.downed?0:1,dm:mult().dmg,bd:U('flames')?200:50});
+    netSendHost({t:'p',sh:(S.shadowT>0||S.shieldT>0)?1:0,x:r2(P.x),y:r2(P.y),z:r2(P.z),yw:r2(P.yaw),pt:r2(P.pitch),w:S.weapon,hp:Math.max(0,Math.ceil(S.hp)),mh:S.maxHp,a:S.downed?0:1,dm:mult().dmg,bd:U('flames')?200:50});
     const arr=[]; for(const id in NET.hitBuf){ const e=NET.hitBuf[id]; arr.push([+id,e.d,e.b]); } if(arr.length){ netSendHost({t:'hit',h:arr}); NET.hitBuf={}; }
   }
 }
