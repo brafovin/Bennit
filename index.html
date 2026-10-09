@@ -162,6 +162,9 @@
   #cashCard{margin-top:10px;flex-direction:row;align-items:center;gap:14px;flex-wrap:wrap;border-color:#facc1566}
   #cashCard .big{font-size:30px;font-weight:900;color:#facc15} #cashCard .info{flex:1;min-width:200px} #cashCard .btns{display:flex;gap:8px;flex-wrap:wrap}
   #cashCard button{margin-top:0;padding:10px 14px}
+  #upTabs{display:flex;gap:8px;margin:10px 0} #upTabs button{border:1px solid #3a2e16;background:#1f1a10;color:#e5e7eb;border-radius:10px;padding:9px 16px;font-weight:800;cursor:pointer;font-size:14px} #upTabs button.on{background:linear-gradient(#f59e0b,#d97706);color:#1a1409;border-color:#f59e0b}
+  #upGen .ucard{margin-top:10px} #genGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:12px}
+  .boostCard{flex-direction:row;align-items:center;gap:14px;flex-wrap:wrap} .boostCard .big{font-size:30px;font-weight:900} .boostCard .info{flex:1;min-width:200px} .boostCard .btns{display:flex;gap:8px;flex-wrap:wrap} .boostCard button{margin-top:0;padding:10px 14px}
   .ucard .ctop{display:flex;align-items:center;gap:10px} .ucard .ico{font-size:28px;width:44px;height:44px;border-radius:12px;background:#0f0b05;display:grid;place-items:center;flex:none}
   .ucard .wn{font-size:11px;letter-spacing:1.5px;color:#fbbf24;text-transform:uppercase;font-weight:800} .ucard .un{font-weight:800;font-size:17px}
   .ucard .ud{font-size:12.5px;color:#cbd5e1;line-height:1.45;min-height:54px}
@@ -243,7 +246,8 @@
 </div></div>
 <div id="up"><div id="upPanel">
   <div class="sh-head"><h2>🛠 Weapon Upgrade Shop</h2><span class="chip" id="upChip">Permanent upgrades · free for now</span><button id="upClose">✕</button></div>
-  <div id="cashCard" class="ucard"></div>
+  <div id="upTabs"><button id="upTabW" class="on">🔫 Weapon Upgrades</button><button id="upTabG">⚙ General Upgrades</button></div>
+  <div id="upGen" style="display:none"><div id="cashCard" class="ucard"></div><div id="dmgCard" class="ucard boostCard"></div><div id="tokCard" class="ucard boostCard"></div><div id="genGrid"></div></div>
   <div id="upGrid"></div>
   <div style="margin-top:12px;font-size:12px;color:#9ca3af"><a href="#" id="upExport" style="color:#9ca3af">Copy save code</a> · <a href="#" id="upImport" style="color:#9ca3af">Load save code</a> · <a href="#" id="upReset" style="color:#9ca3af">Remove all upgrades & boosts</a><div style="margin-top:4px">The save code includes your rebirths, weapon upgrades and cash boosts.</div></div>
 </div></div>
@@ -390,10 +394,11 @@ const TOKEN_EVERY=1000;
 function addCash(n){
   S.cash+=n; S.runEarned+=n;
   // one token each time the cash earned in this run reaches 1000, 2000, 3000 ... (the cash itself is not converted)
-  let got=0; while(S.runEarned>=(S.runTok+1)*TOKEN_EVERY){ S.runTok++; S.tokens++; S.tokGain++; got++; }
+  let got=0; while(S.runEarned>=(S.runTok+1)*TOKEN_EVERY){ S.runTok++; S.tokAcc+=tokBoost(); const w=Math.floor(S.tokAcc+1e-9); S.tokAcc-=w; S.tokens+=w; S.tokGain+=w; got++; }
   if(got) saveGame();
 }
 const CASH_MAX=100, cashBoost=()=>1+.05*S.cashLv;
+const DMG_MAX=10, dmgBoost=()=>1+.05*S.dmgLv, TOK_MAX=40, tokBoost=()=>1+.1*S.tokLv;
 const cashMul=()=>mult().cash*cashBoost();
 const MAX_REB=8;
 // requirement for rebirth 1..8: waves 10-50 (any mode), 6 = beat the Hardcore boss, 7 = wave 30 in VOIDCORE MODE, 8 = beat the Void Master
@@ -402,7 +407,7 @@ const rqMet=()=>{ const r=RQ[S.rebirths]; if(!r) return false; if(r.k==='w') ret
 function rebirthHint(){ if(!NET.active&&S.rebirths<MAX_REB&&rqMet()) say('Rebirth available! Press G',3.5); }
 function checkGoals(){ if(S.vc&&S.cleared>=30&&!S.goals.v){ S.goals.v=true; saveGame(); } }
 function goalKill(z){ let hit=false; if(z.hboss&&S.hc&&!S.goals.h){ S.goals.h=true; hit=true; } if(z.vmaster&&S.vc&&!S.goals.vb){ S.goals.vb=true; hit=true; } if(hit){ saveGame(); setTimeout(rebirthHint,1500); } }
-const mult=(n=S.rebirths)=>n<=0?{cash:1,dmg:1,hp:1}:{cash:1+.5*n,dmg:1+.25*n,hp:2*n};
+const mult=n=>{ const d=n===undefined, db=d?dmgBoost():1; if(d) n=S.rebirths; return n<=0?{cash:1,dmg:+db.toFixed(3),hp:1}:{cash:1+.5*n,dmg:+((1+.25*n)*db).toFixed(3),hp:2*n}; };
 const hpMax=()=>(100+10*S.hpBuys)*mult().hp;
 const MINI_HEAT_TIME = 5, RAIL_HEAT_TIME = 4, MINI_LOCK = 3;
 // speed in m/s, size = scale of the humanoid model
@@ -454,7 +459,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, poison:null, zones:[], drone:null, waves:[], tt:null, ttCd:0, omFired:false, omAcc:0, omSpin:0, omHm:0, omSnd:0, omNet:0, ovT:0, ovIdle:0, ovHm:0, ovSnd:0, fog:[], fogAcc:0, fogSnd:0, rifts:[], riftIn:-1, riftLock:false, riftCd:0, ripFx:0, swUsed:false, shieldT:0, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, poison:null, zones:[], drone:null, waves:[], tt:null, ttCd:0, omFired:false, omAcc:0, omSpin:0, omHm:0, omSnd:0, omNet:0, ovT:0, ovIdle:0, ovHm:0, ovSnd:0, fog:[], fogAcc:0, fogSnd:0, rifts:[], riftIn:-1, riftLock:false, riftCd:0, ripFx:0, swUsed:false, shieldT:0, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, grCd2:0, pasEq2:null, secEq2:null, dmgLv:0, tokLv:0, tokAcc:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -467,7 +472,7 @@ function runSnapshot(){
   const busy=S.toSpawn>0||S.zombies.length>0;
   return {re:S.runEarned,rt:S.runTok,cash:S.cash,owned:S.owned,weapon:S.weapon,hpBuys:S.hpBuys,wave:busy?Math.max(0,S.wave-1):S.wave,cleared:S.cleared,railMode:S.railMode,bladeMode:S.bladeMode};
 }
-function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,cl:S.cashLv,tk:S.tokens,wu:S.wu,gl:S.goals,pa:S.pas,pe:S.pasEq,sec:S.sec,se:S.secEq,kills:S.kills,run:(S.mode==='game'&&!NET.active&&!S.hc&&!S.vc)?runSnapshot():S.savedRun}; }
+function savePayload(){ return {v:1,t:Date.now(),rebirths:S.rebirths,up:S.up,cl:S.cashLv,tk:S.tokens,wu:S.wu,gl:S.goals,pa:S.pas,pe:S.pasEq,pe2:S.pasEq2,sec:S.sec,se:S.secEq,se2:S.secEq2,dl:S.dmgLv,tl:S.tokLv,kills:S.kills,run:(S.mode==='game'&&!NET.active&&!S.hc&&!S.vc)?runSnapshot():S.savedRun}; }
 function saveGame(){
   const js=JSON.stringify(savePayload()); let ok=false;
   try{ localStorage.setItem(SAVE_KEY,js); ok=localStorage.getItem(SAVE_KEY)===js; }catch(e){}
@@ -477,7 +482,7 @@ function saveGame(){
 }
 function parseSave(js){ try{ const d=JSON.parse(js); return d&&d.v===1?d:null; }catch(e){ return null; } }
 function applySave(d){
-  S.rebirths=Math.min(MAX_REB,Math.max(0,d.rebirths|0)); S.pas={}; S.pasEq=null; if(d.pa&&typeof d.pa==='object') for(const o of PASSIVES) if(d.pa[o.id]){ S.pas[o.id]=true; if(d.pe===undefined&&!S.pasEq&&!(d.po&&d.po[o.id])) S.pasEq=o.id; } if(d.pe&&S.pas[d.pe]) S.pasEq=d.pe; S.goals={}; if(d.gl&&typeof d.gl==='object') for(const k of ['h','v','vb']) if(d.gl[k]) S.goals[k]=true; S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.sec={}; if(d.sec&&typeof d.sec==='object') for(const o of SECONDARIES) if(d.sec[o.id]) S.sec[o.id]=true; S.secEq=(d.se&&S.sec[d.se])?d.se:null; S.kills={}; if(d.kills&&typeof d.kills==='object') for(const k in d.kills) S.kills[k]=Math.max(0,Math.min(1e7,d.kills[k]|0)); S.wu={}; if(d.wu&&typeof d.wu==='object') for(const w of WEAPONS) if(w.tokens&&d.wu[w.id]) S.wu[w.id]=true; buildShop(); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true;
+  S.rebirths=Math.min(MAX_REB,Math.max(0,d.rebirths|0)); S.pas={}; S.pasEq=null; if(d.pa&&typeof d.pa==='object') for(const o of PASSIVES) if(d.pa[o.id]){ S.pas[o.id]=true; if(d.pe===undefined&&!S.pasEq&&!(d.po&&d.po[o.id])) S.pasEq=o.id; } if(d.pe&&S.pas[d.pe]) S.pasEq=d.pe; S.goals={}; if(d.gl&&typeof d.gl==='object') for(const k of ['h','v','vb']) if(d.gl[k]) S.goals[k]=true; S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.sec={}; if(d.sec&&typeof d.sec==='object') for(const o of SECONDARIES) if(d.sec[o.id]) S.sec[o.id]=true; S.secEq=(d.se&&S.sec[d.se])?d.se:null; S.kills={}; if(d.kills&&typeof d.kills==='object') for(const k in d.kills) S.kills[k]=Math.max(0,Math.min(1e7,d.kills[k]|0)); S.wu={}; if(d.wu&&typeof d.wu==='object') for(const w of WEAPONS) if(w.tokens&&d.wu[w.id]) S.wu[w.id]=true; buildShop(); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true; for(const gid of ['pas2','sec2']) if(d.up&&d.up[gid]) S.up[gid]=true; S.pasEq2=(d.pe2&&S.pas[d.pe2]&&d.pe2!==S.pasEq)?d.pe2:null; S.secEq2=(d.se2&&S.sec[d.se2]&&d.se2!==S.secEq)?d.se2:null; S.dmgLv=Math.max(0,Math.min(DMG_MAX,d.dl|0)); S.tokLv=Math.max(0,Math.min(TOK_MAX,d.tl|0)); S.tokAcc=0;
   if(r&&r.owned&&r.owned.glock&&WEAPONS_IDS.includes(r.weapon)) S.savedRun={re:+r.re||0,rt:r.rt|0,cash:+r.cash||0,owned:r.owned,weapon:r.weapon,hpBuys:r.hpBuys|0,wave:r.wave|0,cleared:r.cleared|0,railMode:r.railMode==='blaster'?'blaster':'laser',bladeMode:['blood','wing','earth'].includes(r.bladeMode)?r.bladeMode:'blood'};
 }
 function loadGame(){
@@ -490,7 +495,7 @@ function loadGame(){
   else { try{ S.rebirths=Math.min(MAX_REB,Math.max(0,parseInt(localStorage.getItem('zs_rebirths'))||0)); }catch(e){} } // very old save format
   saveGame(); // write everything back (also tests whether saving works)
 }
-function resetProgress(){ S.pas={}; S.pasEq=null; S.goals={}; S.sec={}; S.secEq=null; S.kills={}; S.rebirths=0; S.wu={}; S.up={}; S.cashLv=0; S.tokens=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
+function resetProgress(){ S.pas={}; S.pasEq=null; S.pasEq2=null; S.secEq2=null; S.dmgLv=0; S.tokLv=0; S.goals={}; S.sec={}; S.secEq=null; S.kills={}; S.rebirths=0; S.wu={}; S.up={}; S.cashLv=0; S.tokens=0; S.savedRun=null; try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('zs_rebirths'); sessionStorage.removeItem(SAVE_KEY); }catch(e){} try{ document.cookie=COOKIE_KEY+'=;max-age=0;path=/'; }catch(e){} }
 function exportCode(){ return btoa(unescape(encodeURIComponent(JSON.stringify(savePayload())))); }
 function importCode(txt){
   txt=(txt||'').trim(); if(!txt) return false;
@@ -2046,8 +2051,10 @@ function igniteZombie(z,t){
   if(NET.role==='client'){ const e=NET.hitBuf[z.id]||(NET.hitBuf[z.id]={d:0,b:0}); e.b=1; z.burn=t; return; }
   if(z.burn<=0) z.burnT=0; z.burn=t; z.burnBy=NET.pid;
 }
-const passOn=id=>S.pasEq===id&&!!S.pas[id]&&S.rebirths>=4;
-function passMul(){ if(S.inPass) return 1; let m=S.secEq==='boost'&&inBoost()?1.15:1; if(passOn('overkill')) m*=1+Math.min(.5,S.okStacks*.05); if(passOn('rage')){ const f=S.maxHp>0?S.hp/S.maxHp:1; m*=1+Math.max(0,Math.min(1,(1-f)/.9)); } return m; }
+const passOn=id=>(S.pasEq===id||(U('pas2')&&S.pasEq2===id))&&!!S.pas[id]&&S.rebirths>=4;
+const secOn=id=>S.secEq===id||(U('sec2')&&S.secEq2===id);
+function equipSlot(a,two,id){ const b=a+'2'; if(S[a]===id){ S[a]=(two&&S[b])?S[b]:null; S[b]=null; return; } if(two&&S[b]===id){ S[b]=null; return; } if(!S[a]) S[a]=id; else if(two) S[b]=id; else S[a]=id; }
+function passMul(){ if(S.inPass) return 1; let m=secOn('boost')&&inBoost()?1.15:1; if(passOn('overkill')) m*=1+Math.min(.5,S.okStacks*.05); if(passOn('rage')){ const f=S.maxHp>0?S.hp/S.maxHp:1; m*=1+Math.max(0,Math.min(1,(1-f)/.9)); } return m; }
 function curDps(){ const w=ew(wpn()); let base; if(w.id==='acid') return 2500; if(w.id==='vampire'){ const b=BLADE[S.bladeMode]; base=b.dmg/b.cd; } else if(w.id==='railgun'&&S.railMode==='blaster') base=1000; else base=w.dmg*(w.pellets||1)/Math.max(.01,w.cd); return Math.min(base,60000); }
 function boltFx(a,b,col,thick){
   const pts=[a.clone()], n=7, d=b.clone().sub(a); for(let i=1;i<n;i++){ const p=a.clone().addScaledVector(d,i/n); p.x+=rnd(-.5,.5)*(thick?1.2:.6); p.z+=rnd(-.5,.5)*(thick?1.2:.6); pts.push(p); } pts.push(b.clone());
@@ -2744,9 +2751,10 @@ function colossusStep(z,dt,d){
       z.smN--; z.smT=SM_T; if(z.smN===0) z.smCd=7; } }
   else { z.smCd-=dt; if(z.smCd<=0&&d<16){ z.smN=3; z.smT=SM_T; sfx('roar',z.x,z.z); } }
 }
-function throwGrenade(){
-  if(S.mode!=='game'||!THROWN.includes(S.secEq)||S.downed||S.shopOpen||S.rebirthOpen||S.pauseOpen||S.grCd>0) return;
-  const kind=S.secEq; S.grCd=SECONDARIES.find(o=>o.id===kind).cd; _o.set(P.x,EYE,P.z); dirFrom(P.yaw,P.pitch,_d);
+function throwGrenade(slot){
+  const kind=slot===2?(U('sec2')?S.secEq2:null):S.secEq, cdk=slot===2?'grCd2':'grCd';
+  if(S.mode!=='game'||!kind||!THROWN.includes(kind)||S.downed||S.shopOpen||S.rebirthOpen||S.pauseOpen||S[cdk]>0) return;
+  S[cdk]=SECONDARIES.find(o=>o.id===kind).cd; _o.set(P.x,EYE,P.z); dirFrom(P.yaw,P.pitch,_d);
   const o=[_o.x+_d.x*.6,_o.y-.2+_d.y*.6,_o.z+_d.z*.6], v=[_d.x*17,_d.y*17+4,_d.z*17];
   spawnGrenade(o,v,false,kind); netShot({k:'gr',o,v,kind}); sfx('swing',undefined,undefined,.6,1.3);
 }
@@ -2778,7 +2786,7 @@ function iceBlast(x,z,visual){
   if(visual) return; for(const q of S.zombies){ if(q.dead||q.boss||q.miniBoss) continue; if(Math.hypot(q.x-x,q.z-z)-q.r<=6){ q.freeze=3; q.iceT=3; q.kvx=q.kvz=0; } }
 }
 function updateGrenades(dt){
-  S.grCd=Math.max(0,S.grCd-dt*(passOn('adrenaline')&&S.hp<S.maxHp*.3?1.3:1));
+  { const ad=passOn('adrenaline')&&S.hp<S.maxHp*.3?1.3:1; S.grCd=Math.max(0,S.grCd-dt*ad); S.grCd2=Math.max(0,S.grCd2-dt*ad); }
   for(const b of S.gr){ b.t+=dt; b.vel.y-=18*dt; const p=b.g.position, ox=p.x, oz=p.z; p.addScaledVector(b.vel,dt); b.g.rotation.x+=dt*9; b.g.rotation.z+=dt*6;
     if(p.y<.14){ p.y=.14; b.vel.y*=-.4; b.vel.x*=.7; b.vel.z*=.7; if(Math.abs(b.vel.y)<1) b.vel.y=0; }
     for(const w of bricks) if(p.x>w.x-.1&&p.x<w.x+w.w+.1&&p.z>w.z-.1&&p.z<w.z+w.d+.1&&p.y<w.h){ p.x=ox; p.z=oz; b.vel.x*=-.4; b.vel.z*=-.4; break; }
@@ -2804,7 +2812,7 @@ function updateZones(dt){
   }
 }
 function updateDrone(dt){
-  const want=S.mode==='game'&&S.secEq==='drone'&&!S.downed; 
+  const want=S.mode==='game'&&secOn('drone')&&!S.downed; 
   if(!want){ if(S.drone){ gameG.remove(S.drone.g); S.drone=null; } return; }
   if(!S.drone){ const g=new THREE.Group(), body=zbox(.34,.12,.34,mat(0x2b3040,'metal'),0,0,0); g.add(body, zbox(.16,.16,.16,mat(0x1f2430,'metal'),0,.1,0), zbox(.1,.04,.02,mat(0x22d3ee,'glow'),0,.06,-.17)); const eye=new THREE.Mesh(sphGeo,new THREE.MeshBasicMaterial({color:0x22d3ee})); eye.scale.setScalar(.05); eye.position.set(0,.02,-.19); g.add(eye);
     const rot=[]; for(const [x,z] of [[-.22,-.22],[.22,-.22],[-.22,.22],[.22,.22]]){ g.add(zbox(.05,.06,.05,mat(0x111111,'metal'),x,.05,z)); const r=zbox(.3,.012,.04,mat(0x9ca3af,'metal'),x,.1,z); g.add(r); rot.push(r); }
@@ -3295,8 +3303,9 @@ function updateHud(){
     if(passOn('stormking')) L.push('Storm King · '+(S.kk%15)+'/15 kills');
     if(S.poison) L.push('☠ POISONED · '+Math.max(0,S.poison.t).toFixed(1)+'s');
     if(THROWN.includes(S.secEq)){ const so=SECONDARIES.find(o=>o.id===S.secEq); L.push('X · '+so.name+' · '+(S.grCd>0?S.grCd.toFixed(1)+'s':'READY')); }
-    if(S.secEq==='drone'&&S.drone) L.push('Drone · '+(S.drone.od?'OVERDRIVE '+(3-S.drone.cycle).toFixed(1)+'s':'overdrive in '+(10-S.drone.cycle).toFixed(0)+'s'));
-    if(S.secEq==='boost') L.push('Damage Projector · '+(inBoost()?'+15% ACTIVE':'stand in the field'));
+    if(U('sec2')&&THROWN.includes(S.secEq2)){ const so=SECONDARIES.find(o=>o.id===S.secEq2); L.push('Y · '+so.name+' · '+(S.grCd2>0?S.grCd2.toFixed(1)+'s':'READY')); }
+    if(secOn('drone')&&S.drone) L.push('Drone · '+(S.drone.od?'OVERDRIVE '+(3-S.drone.cycle).toFixed(1)+'s':'overdrive in '+(10-S.drone.cycle).toFixed(0)+'s'));
+    if(secOn('boost')) L.push('Damage Projector · '+(inBoost()?'+15% ACTIVE':'stand in the field'));
     if(L.length){ el.style.display='block'; el.textContent=L.join('\n'); } else el.style.display='none'; }
   { const el=$('skipTxt'); if(S.rebirths>=2&&S.mode==='game'){ el.style.display='block'; el.textContent=S.skipT>=0?'⏩ Skipping wave in '+S.skipT.toFixed(1)+'s…':'T · Skip Wave · '+(S.skipCd>0?S.skipCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; }
   { const bz=S.zombies.find(z=>(z.vmaster||z.colossus||z.hboss||z.warden)&&!z.dead), bb=$('bossBar'); if(bz){ bb.style.display='block'; $('bossName').textContent=bz.vmaster?'VOID MASTER':(bz.hboss?'HOWLER OVERLORD':(bz.warden?'THE WARDEN':'COLOSSUS')); $('bossFill').style.background=bz.vmaster?'linear-gradient(90deg,#7e22ce,#d946ef)':'linear-gradient(90deg,#991b1b,#f97316)'; $('bossFill').style.width=Math.max(0,bz.hp/bz.max*100)+'%'; } else bb.style.display='none'; }
@@ -3392,7 +3401,7 @@ function shopAction(w,c){
 function updateShop(){
   const m=mult(), r=x=>Math.round(x*m.dmg);
   $('cashTxt').textContent='$ '+S.cash.toLocaleString();
-  $('mulChip').textContent=S.rebirths||S.cashLv?`${S.rebirths?'♻ '+S.rebirths+' · ':''}x${m.dmg} dmg · x${+(m.cash*cashBoost()).toFixed(2)} cash · x${m.hp} HP`:'♻ No bonuses yet';
+  $('mulChip').textContent=S.rebirths||S.cashLv||S.dmgLv||S.tokLv?`${S.rebirths?'♻ '+S.rebirths+' · ':''}x${m.dmg} dmg · x${+(m.cash*cashBoost()).toFixed(2)} cash · x${m.hp} HP`:'♻ No bonuses yet';
   for(const w of SHOPW()){
     const c=$('card-'+w.id), locked=w.rebirth&&S.rebirths<w.rebirth, owned=S.owned[w.id], eq=S.weapon===w.id, b=c.querySelector('button.buy');
     c.classList.toggle('locked',!!locked); c.classList.toggle('eq',eq&&!locked);
@@ -3466,7 +3475,8 @@ addEventListener('keydown',e=>{
   if(k==='q'&&!e.repeat) useAbility();
   if(k==='t'&&!e.repeat) useSkip();
   if(k==='c'&&!e.repeat){ throwScythe(); placeRift(); throwTrident(); }
-  if(k==='x'&&!e.repeat) throwGrenade();
+  if(k==='x'&&!e.repeat) throwGrenade(1);
+  if(k==='y'&&!e.repeat) throwGrenade(2);
   if(k==='e'&&!e.repeat&&S.mode==='game'&&!S.shopOpen&&!S.rebirthOpen&&S.weapon==='sonic'){ S.sonicMode=(S.sonicMode+1)%sonicModes(); buildGun('sonic'); S.fireCd=Math.max(S.fireCd,.3); say(SB_MODES[S.sonicMode].name,1.2); sfx('equip'); }
   if(k==='e'&&!e.repeat&&S.mode==='game'&&!S.shopOpen&&!S.rebirthOpen&&S.weapon==='reaper') releaseSouls();
   if(k===' '&&!e.repeat&&S.mode==='game') grabPress();
@@ -3980,8 +3990,31 @@ function updateCash(){
   const set=n=>{ S.cashLv=Math.max(0,Math.min(CASH_MAX,S.cashLv+n)); if(n>0) sfx('buy'); saveGame(); updateCash(); };
   $('cb1').onclick=()=>set(1); $('cb10').onclick=()=>set(10); $('cbm').onclick=()=>set(-1);
 }
+const GEN=[{id:'pas2',ico:'🧬',name:'Equip 2 passives',desc:'Lets you equip two passives at the same time (pick both in the Passives shop).'},{id:'sec2',ico:'🎒',name:'Equip 2 secondaries',desc:'Lets you equip two secondaries at once. The first is used with X, the second with Y (each has its own cooldown).'}];
+function buildGen(){
+  const g=$('genGrid'); g.innerHTML='';
+  for(const u of GEN){ const c=document.createElement('div'); c.className='ucard'; c.id='g-'+u.id;
+    c.innerHTML=`<div class="ctop"><div class="ico">${u.ico}</div><div><div class="wn">General upgrade</div><div class="un">${u.name}</div></div></div><div class="ud">${u.desc}</div><button></button>`;
+    c.querySelector('button').onclick=()=>{ if(U(u.id)) delete S.up[u.id]; else { S.up[u.id]=true; sfx('buy'); pop(c); } saveGame(); updateUpgrades(); if(typeof updateWs==='function') updateWs(); if(typeof updatePass==='function') updatePass(); };
+    g.appendChild(c); }
+}
+function boostCard(id,ico,name,lv,max,valTxt,desc,col,key,bgc){
+  const c=$(id), pre=id+'_';
+  c.style.borderColor=col+'66';
+  c.innerHTML=`<div class="ico" style="font-size:34px;width:56px;height:56px;border-radius:14px;background:#0f0b05;display:grid;place-items:center">${ico}</div>
+    <div class="info"><div class="wn">${name}</div><div class="un">Level ${lv}${lv>=max?' (max)':''} · <span class="big" style="color:${col}">${valTxt}</span></div><div class="ud" style="min-height:0">${desc}</div></div>
+    <div class="btns"><button id="${pre}1">+1 level</button><button id="${pre}10">+10 levels</button><button id="${pre}m" style="background:#3a2e16;color:#fcd34d">-1</button></div>`;
+  const set=n=>{ S[key]=Math.max(0,Math.min(max,S[key]+n)); if(n>0) sfx('buy'); saveGame(); updateBoosts(); };
+  $(pre+'1').onclick=()=>set(1); $(pre+'10').onclick=()=>set(10); $(pre+'m').onclick=()=>set(-1);
+}
+function updateBoosts(){
+  boostCard('dmgCard','⚔️','Damage Boost',S.dmgLv,DMG_MAX,'x'+dmgBoost().toFixed(2)+' damage','Each level gives +0.05x damage with every weapon, up to x1.5 at level 10. Permanent, free for now.','#f87171','dmgLv');
+  boostCard('tokCard','🪙','Token Multiplier',S.tokLv,TOK_MAX,'x'+tokBoost().toFixed(1)+' tokens','Each level gives +0.1x tokens from every 1000 cash you earn in a run, up to x5 at level 40. Permanent, free for now.','#38bdf8','tokLv');
+}
+function setUpTab(t){ $('upGen').style.display=t==='g'?'block':'none'; $('upGrid').style.display=t==='g'?'none':''; $('upTabW').classList.toggle('on',t!=='g'); $('upTabG').classList.toggle('on',t==='g'); }
 function updateUpgrades(){
-  updateCash();
+  updateCash(); updateBoosts();
+  for(const u of GEN){ const c=$('g-'+u.id), own=U(u.id); c.classList.toggle('owned',own); c.querySelector('button').textContent=own?'Owned ✓ (click to remove)':'Get upgrade — FREE'; }
   for(const u of UPG){ const c=$('u-'+u.id), own=U(u.id); c.classList.toggle('owned',own); c.querySelector('button').textContent=own?'Owned ✓ (click to remove)':'Get upgrade — FREE'; }
   const n=UPG.filter(u=>U(u.id)).length; $('upChip').textContent=`🪙 ${S.tokens} tokens · ${n}/${UPG.length} upgrades · free for now`;
 }
@@ -3990,8 +4023,8 @@ function closeUpgrades(){ S.upOpen=false; $('up').classList.remove('open'); setT
 $('upClose').addEventListener('click',closeUpgrades);
 $('upExport').addEventListener('click',e=>{ e.preventDefault(); const c=exportCode(); if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(c).catch(()=>{}); prompt('Your save code (copied if possible). It includes rebirths, upgrades and cash boosts:',c); });
 $('upImport').addEventListener('click',e=>{ e.preventDefault(); const t=prompt('Paste your save code here:'); if(t===null) return; if(importCode(t)){ saveGame(); updateUpgrades(); say('Save loaded',2.5); } else alert('That save code is not valid.'); });
-$('upReset').addEventListener('click',e=>{ e.preventDefault(); S.up={}; S.cashLv=0; saveGame(); updateUpgrades(); });
-buildUpgrades();
+$('upReset').addEventListener('click',e=>{ e.preventDefault(); S.up={}; S.cashLv=0; S.dmgLv=0; S.tokLv=0; S.pasEq2=null; S.secEq2=null; saveGame(); updateUpgrades(); });
+buildUpgrades(); buildGen(); $('upTabW').onclick=()=>setUpTab('w'); $('upTabG').onclick=()=>setUpTab('g');
 function buildWs(){
   const g=$('wsGrid'); g.innerHTML='';
   const cats=[...new Set(WEAPONS.filter(x=>x.tokens).map(x=>x.cat||'Guns'))];
@@ -4005,14 +4038,14 @@ function buildWs(){
   { const hd=document.createElement('div'); hd.style.cssText='grid-column:1/-1;font-size:13px;letter-spacing:3px;color:#fbbf24;font-weight:800;margin-top:8px;border-bottom:1px solid #3a2e16;padding-bottom:4px'; hd.textContent='SECONDARY – equip 1 in the lobby, used together with any weapon'; g.appendChild(hd);
     for(const o of SECONDARIES){ const c=document.createElement('div'); c.className='ucard'; c.id='wsec-'+o.id;
       c.innerHTML=`<div class="ctop"><div class="ico">${o.ico}</div><div><div class="wn">${o.auto?'Automatic · always active':'Press '+o.key+' · '+o.cd+' s cooldown'}</div><div class="un">${o.name}</div></div></div><div class="ud">${o.desc}</div><button></button>`;
-      c.querySelector('button').onclick=()=>{ if(S.sec[o.id]){ S.secEq=(S.secEq===o.id)?null:o.id; sfx('equip'); saveGame(); updateWs(); return; } if(S.tokens<o.tokens) return; S.tokens-=o.tokens; S.sec[o.id]=true; if(!S.secEq) S.secEq=o.id; sfx('buy'); pop(c); saveGame(); updateWs(); };
+      c.querySelector('button').onclick=()=>{ if(S.sec[o.id]){ equipSlot('secEq',U('sec2'),o.id); sfx('equip'); saveGame(); updateWs(); return; } if(S.tokens<o.tokens) return; S.tokens-=o.tokens; S.sec[o.id]=true; if(!S.secEq) S.secEq=o.id; sfx('buy'); pop(c); saveGame(); updateWs(); };
       g.appendChild(c); } }
 }
 function updateWs(){
   $('wsChip').textContent=`🪙 ${S.tokens} tokens`;
   for(const w of WEAPONS.filter(x=>x.tokens)){ const c=$('ws-'+w.id), b=c.querySelector('button'), own=!!S.wu[w.id]; c.classList.toggle('owned',own);
     b.textContent=own?'Owned ✓ (in your weapon shop)':'Buy — '+w.tokens+' 🪙 tokens'; b.disabled=!own&&S.tokens<w.tokens; b.style.opacity=b.disabled&&!own?.5:1; }
-  for(const o of SECONDARIES){ const c=$('wsec-'+o.id), b=c.querySelector('button'), own=!!S.sec[o.id]; c.classList.toggle('owned',S.secEq===o.id); b.textContent=own?(S.secEq===o.id?'Equipped ✓ (click to unequip)'+(o.auto?'':' – press '+o.key+' in a run'):'Equip – only 1 secondary at a time'):'Buy — '+o.tokens+' 🪙 tokens'; b.disabled=!own&&S.tokens<o.tokens; b.style.opacity=b.disabled&&!own?.5:1; }
+  for(const o of SECONDARIES){ const c=$('wsec-'+o.id), b=c.querySelector('button'), own=!!S.sec[o.id]; const two=U('sec2'), e1=S.secEq===o.id, e2=two&&S.secEq2===o.id; c.classList.toggle('owned',e1||e2); b.textContent=own?((e1||e2)?'Equipped ✓ (click to unequip)'+(o.auto?'':' – press '+(e2?'Y':o.key)+' in a run'):'Equip – '+(two?'2 secondaries (X and Y)':'only 1 secondary')+' at a time'):'Buy — '+o.tokens+' 🪙 tokens'; b.disabled=!own&&S.tokens<o.tokens; b.style.opacity=b.disabled&&!own?.5:1; }
 }
 function openWs(){ if(S.mode!=='lobby') return; sfx('open'); S.upOpen=true; S.wsOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('ws').style.display='flex'; requestAnimationFrame(()=>$('ws').classList.add('open')); updateWs(); }
 function closeWs(){ S.upOpen=false; S.wsOpen=false; $('ws').classList.remove('open'); setTimeout(()=>{ if(!S.upOpen) $('ws').style.display='none'; },200); const pw=LOBBY.pads.ws; P.x=pw.x; P.z=pw.z+4.6; }
@@ -4024,13 +4057,13 @@ function buildPass(){
   const g=$('passGrid'); g.innerHTML='';
   for(const o of PASSIVES){ const c=document.createElement('div'); c.className='ucard'; c.id='pass-'+o.id;
     c.innerHTML=`<div class="ctop"><div class="ico">${o.ico}</div><div><div class="wn">Passive</div><div class="un">${o.name}</div></div></div><div class="ud">${o.desc}</div><button></button>`;
-    c.querySelector('button').onclick=()=>{ if(S.pas[o.id]){ S.pasEq=(S.pasEq===o.id)?null:o.id; sfx('equip'); saveGame(); updatePass(); return; } if(S.tokens<o.tokens) return; S.tokens-=o.tokens; S.pas[o.id]=true; if(!S.pasEq) S.pasEq=o.id; sfx('buy'); pop(c); saveGame(); updatePass(); };
+    c.querySelector('button').onclick=()=>{ if(S.pas[o.id]){ equipSlot('pasEq',U('pas2'),o.id); sfx('equip'); saveGame(); updatePass(); return; } if(S.tokens<o.tokens) return; S.tokens-=o.tokens; S.pas[o.id]=true; if(!S.pasEq) S.pasEq=o.id; sfx('buy'); pop(c); saveGame(); updatePass(); };
     g.appendChild(c); }
 }
 function updatePass(){
   $('passChip').textContent=`🪙 ${S.tokens} tokens`;
-  for(const o of PASSIVES){ const c=$('pass-'+o.id), b=c.querySelector('button'), own=!!S.pas[o.id], on=S.pasEq===o.id; c.classList.toggle('owned',on);
-    b.textContent=own?(on?'Equipped ✓ (click to unequip)':'Equip – only 1 passive at a time'):'Buy — '+o.tokens+' 🪙 tokens'; b.disabled=!own&&S.tokens<o.tokens; b.style.opacity=b.disabled&&!own?.5:1; }
+  for(const o of PASSIVES){ const c=$('pass-'+o.id), b=c.querySelector('button'), own=!!S.pas[o.id], on=S.pasEq===o.id||(U('pas2')&&S.pasEq2===o.id); c.classList.toggle('owned',on);
+    b.textContent=own?(on?'Equipped ✓ (click to unequip)':'Equip – '+(U('pas2')?'2 passives':'only 1 passive')+' at a time'):'Buy — '+o.tokens+' 🪙 tokens'; b.disabled=!own&&S.tokens<o.tokens; b.style.opacity=b.disabled&&!own?.5:1; }
 }
 function openPass(){ if(S.mode!=='lobby'||S.rebirths<4||S.passOpen) return; sfx('open'); S.passOpen=true; S.upOpen=true; IN.down=false; if(document.pointerLockElement) document.exitPointerLock(); $('pass').style.display='flex'; requestAnimationFrame(()=>$('pass').classList.add('open')); updatePass(); }
 function closePass(){ if(!S.passOpen) return; S.passOpen=false; S.upOpen=false; { const pq=LOBBY.pads.ps; P.x=pq.x; P.z=pq.z+4.6; } $('pass').classList.remove('open'); setTimeout(()=>{ if(!S.passOpen) $('pass').style.display='none'; },200); }
