@@ -331,6 +331,7 @@ const WEAPONS = [
   {id:'dagger',name:'Shadow Dagger',cost:200000,dmg:10000,cd:0.25,tokens:1000,cat:'Melee',desc:'Fast void blade: 10000 dmg / 0.25s. Q: Shadow Step – 2x speed for 5 s and zombies cannot hit you. C: Void Rift – a healing portal that breaks if you stay too long'},
   {id:'ovf',name:'Overflow',cost:250000,dmg:225,cd:1,tokens:1500,cat:'Guns',desc:'Starts at 1 shot/s and speeds up while you hold the trigger until it reaches 1 shot every 0.01 s after 10 s. 225 dmg per shot'},
   {id:'ripper',name:'Void Ripper',cost:350000,dmg:25000,cd:2,tokens:2500,cat:'Guns',desc:'Void sniper: 25000 dmg, 1 shot / 2 s, pierces every enemy and leaves them Marked (visible through walls, slowly burned by purple flames)'},
+  {id:'trident',name:'Abyssal Trident',cost:500000,dmg:30000,cd:0.5,tokens:5000,cat:'Melee',desc:'Sea-cursed trident: 30000 dmg / 0.5 s. Q: Ocean\'s Wrath – a giant wave drags enemies along for 7500 dmg/s. Upgrade Sharp Hook: C throws the trident (10000 dmg each way) and pulls enemies in'},
   {id:'omni',name:'Omnifire',cost:999999,dmg:50,cd:0.01,tokens:9999,cat:'Ultimate',desc:'4 floating miniguns (red, blue, green, yellow) each firing 6 spinning lasers: 50 dmg per laser every 0.01 s. Overheats after 3 s of fire, but you can stop any time'},
 ];
 const LAVA_R=4, ORB_PULL=10, ORB_R=6;
@@ -369,6 +370,7 @@ const UPG=[
   {id:'hyper',w:'ostrike',name:'Hypercharge',desc:'After its 5 seconds the beam turns purple-red for 2 more seconds and deals 300 damage every 0.01s. The cooldown afterwards grows to 7 seconds.'},
   {id:'hypersonic',w:'sonic',name:'Hypersonic',desc:'Unlocks a third mode for the Sonic Blaster: big, fast, pulsing balls that pierce and explode on walls (both modes combined).'},
   {id:'chain',w:'chainsaw',name:'Stronger Chain',desc:'The chainsaw deals 20 damage per tick instead of 10.'},
+  {id:'sharphook',w:'trident',name:'Sharp Hook',desc:'Press C to throw the trident: it deals 10000 damage once on the way out and once on the way back. Enemies it catches are pulled to you and stunned for 1.5 seconds.'},
   {id:'throw',w:'reaper',name:'Scythe Throw',desc:'Press C to throw the scythe. It spins while flying and deals 2500 damage every 0.25s, then returns to you.'},
   {id:'hole',w:'orbital',name:'Black Hole',desc:'Red-purple theme, colour-changing ball, longer pull range and a second explosion (2000 dmg) 0.5s later.'},
   {id:'hook',w:'vampire',mode:'Blood mode',name:'Blood Hook',desc:'Press Q: dash forward and stab enemies for 5000 damage each. Lifesteal 5% (was 1%).'},
@@ -432,7 +434,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, omFired:false, omAcc:0, omSpin:0, omHm:0, omSnd:0, omNet:0, ovT:0, ovIdle:0, ovHm:0, ovSnd:0, fog:[], fogAcc:0, fogSnd:0, rifts:[], riftIn:-1, riftLock:false, riftCd:0, ripFx:0, swUsed:false, shieldT:0, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, waves:[], tt:null, ttCd:0, omFired:false, omAcc:0, omSpin:0, omHm:0, omSnd:0, omNet:0, ovT:0, ovIdle:0, ovHm:0, ovSnd:0, fog:[], fogAcc:0, fogSnd:0, rifts:[], riftIn:-1, riftLock:false, riftCd:0, ripFx:0, swUsed:false, shieldT:0, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -1052,6 +1054,9 @@ function buildGun(id,forAvatar){
     g.scale.setScalar(.62); g.position.set(.12,-.12,.05);
     const sc=scytheModel(); sc.rotation.set(-1.0,.18,.12); sc.position.set(.18,-.25,.35); A(sc);
     tip=1.3;
+  } else if(id==='trident'){
+    g.scale.setScalar(1.15); g.position.set(-.02,-.05,.55); g.rotation.set(.22,.18,.0);
+    g.add(tridentModel()); tip=1.5;
   } else if(id==='omni'){
     g.scale.setScalar(.5); g.position.set(-.3,.1,-.05); gunMuz4=[]; gunSpins=[];
     const place=[[-1.45,.05],[1.45,.05],[-.85,.98],[.85,.98]];
@@ -2050,7 +2055,8 @@ function doSkip(){
   S.toSpawn=0; S.bossSpawned=false; S.breakT=0; startWave(); say('Wave skipped!',2); sfx('clear');
 }
 function useAbility(){
-  if(S.mode!=='game'||S.downed||S.shopOpen||S.rebirthOpen||S.abCd>0||(S.weapon!=='vampire'&&S.weapon!=='reaper'&&S.weapon!=='dagger')) return;
+  if(S.mode!=='game'||S.downed||S.shopOpen||S.rebirthOpen||S.abCd>0||(S.weapon!=='vampire'&&S.weapon!=='reaper'&&S.weapon!=='dagger'&&S.weapon!=='trident')) return;
+  if(S.weapon==='trident'){ oceansWrath(); return; }
   if(S.weapon==='dagger'){ shadowStep(); return; }
   if(S.weapon==='reaper'){ if(!S.thrown) reaperSpin(); return; }
   if(S.bladeMode==='blood'&&U('hook')) abHook(); else if(S.bladeMode==='wing'&&U('wind')) abWind(); else if(S.bladeMode==='earth'&&U('smash')) abSpikes();
@@ -2160,6 +2166,88 @@ function fireRipper(){
   beam(_m.clone(),end,0xa855f7,.12); beam(_m.clone(),end,0xf5d0fe,.04); blast(end.clone(),1.2,0xa855f7,.3);
   netShot({k:'b',big:1,c:0xa855f7,w:.12,a:[_m.x,_m.y,_m.z],b:[end.x,end.y,end.z]});
 }
+function tridentStab(){
+  S.fireCd=.5; S.swing=.32; S.swingMax=.32; sfx('swing',undefined,undefined,1,.7);
+  S.delayed.push({t:.1,fn:()=>{ let any=false; for(const z of S.zombies){ if(!inMelee(z,4.2,.85)) continue; hurtZombie(z,30000,new THREE.Vector3(z.x,(z.y0||0)+z.height*.7,z.z),'#38bdf8'); any=true; }
+    if(any){ hitMarker(); sfx('slash'); sfx('splash'); const hx=-Math.sin(P.yaw), hz=-Math.cos(P.yaw); blast(new THREE.Vector3(P.x+hx*2.6,1.1,P.z+hz*2.6),1.4,0x38bdf8,.3); } }});
+}
+/* ----- Ocean's Wrath ----- */
+const WAVE_FWD=3, WAVE_SINK=2.6, WAVE_SPD=10, WAVE_W=13, WAVE_CD=20;
+function makeWaveMesh(){
+  const g=new THREE.Group(), N=22, wm=new THREE.MeshPhongMaterial({color:0x1d6fa5,emissive:0x0a3d62,emissiveIntensity:.7,transparent:true,opacity:.72,shininess:90,specular:0xbfe9ff,flatShading:true}), foam=new THREE.MeshBasicMaterial({color:0xe0f7ff,transparent:true,opacity:.85});
+  g.userData.cols=[];
+  for(let i=0;i<N;i++){ const u=i/(N-1), x=(u-.5)*WAVE_W, hh=3.4+Math.sin(u*9)*.5+Math.sin(u*23)*.25, col=new THREE.Group(); col.position.set(x,0,0); g.add(col);
+    const body=new THREE.Mesh(new THREE.BoxGeometry(WAVE_W/N*1.06,hh,2.2),wm); body.position.set(0,hh/2,0); col.add(body);
+    const crest=new THREE.Mesh(new THREE.BoxGeometry(WAVE_W/N*1.1,.5,2.3),wm); crest.position.set(0,hh+.1,-.9); crest.rotation.x=.5; col.add(crest);
+    const cap=new THREE.Mesh(new THREE.BoxGeometry(WAVE_W/N*.9,.22,.9),foam); cap.position.set(0,hh+.35,-1.25); col.add(cap);
+    g.userData.cols.push({col,hh,ph:i*.7}); }
+  g.add(glowSprite(0x38bdf8,16,0,1.8,0)); const L=new THREE.PointLight(0x38bdf8,1.6,16); L.position.set(0,2,-1.5); g.add(L);
+  return g;
+}
+function spawnWaveVisual(x,z,dx,dz,t){ const g=makeWaveMesh(); g.position.set(x,0,z); g.rotation.y=Math.atan2(dx,dz); gameG.add(g); return {g,x,z,dx,dz,t,cap:new Map(),acc:0,total:WAVE_FWD+WAVE_SINK}; }
+function oceansWrath(){
+  if(S.abCd>0||S.downed) return; S.abCd=WAVE_CD; const dx=-Math.sin(P.yaw), dz=-Math.cos(P.yaw), sx=P.x-dx*4.5, sz=P.z-dz*4.5;
+  const w=spawnWaveVisual(sx,sz,dx,dz,0); S.waves.push(w); sfx('oceanwave'); say("🌊 OCEAN'S WRATH",1.5); S.shake=Math.max(S.shake,.6); netShot({k:'wv',x:sx,z:sz,dx,dz});
+}
+function releaseWave(w){ for(const [z] of w.cap){ z.waved=null; } w.cap.clear(); }
+function killWave(w){ releaseWave(w); gameG.remove(w.g); w.g.traverse(o=>{ if(o.material) o.material.dispose(); if(o.geometry&&o.geometry.type==='BoxGeometry') o.geometry.dispose(); }); }
+function updateWaves(dt){
+  for(let i=S.waves.length-1;i>=0;i--){ const w=S.waves[i]; w.t+=dt; const sink=Math.max(0,Math.min(1,(w.t-WAVE_FWD)/WAVE_SINK));
+    w.x=Math.max(.5,Math.min(MAP.w-.5,w.x+w.dx*WAVE_SPD*dt)); w.z=Math.max(.5,Math.min(MAP.h-.5,w.z+w.dz*WAVE_SPD*dt));
+    w.g.position.set(w.x,-sink*4.2,w.z); w.g.userData.cols.forEach((c,k)=>{ c.col.scale.y=1+.12*Math.sin(clock*5+c.ph); c.col.position.z=Math.sin(clock*3+c.ph)*.12; });
+    if(Math.random()<dt*30){ const sp=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0xcff1ff,transparent:true,depthWrite:false})); sp.scale.setScalar(.7); sp.position.set(w.x+rnd(-WAVE_W/2,WAVE_W/2)*Math.abs(w.dz)+rnd(-1,1),(1-sink)*3.5,w.z+rnd(-WAVE_W/2,WAVE_W/2)*Math.abs(w.dx)); scene.add(sp); fx.push({m:sp,life:.5,max:.5,vel:new THREE.Vector3(rnd(-1,1),rnd(.5,2),rnd(-1,1)),kind:'spark'}); }
+    if(NET.role!=='client'&&!w.visual){
+      const px=-w.dz, pz=w.dx; // lateral axis
+      for(const z of S.zombies){ if(z.dead||z.archer||z.waved||(z.y0||0)>.5) continue; const rx=z.x-w.x, rz=z.z-w.z, a=rx*w.dx+rz*w.dz, l=rx*px+rz*pz;
+        if(sink<.45&&Math.abs(a)<1.6+z.r&&Math.abs(l)<WAVE_W/2+z.r){ z.waved=w; w.cap.set(z,{a:Math.max(-.8,Math.min(.8,a)),l}); sfx('splash',z.x,z.z,.6); } }
+      w.acc+=dt; const tick=w.acc>=.25; if(tick) w.acc-=.25;
+      for(const [z,o] of w.cap){ if(z.dead||z.hp<=0){ w.cap.delete(z); z.waved=null; continue; }
+        z.x=w.x+w.dx*o.a+px*o.l; z.z=w.z+w.dz*o.a+pz*o.l; z.x=Math.max(.4,Math.min(MAP.w-.4,z.x)); z.z=Math.max(.4,Math.min(MAP.h-.4,z.z)); collide(z,z.r,bricks);
+        if(tick){ const pos=new THREE.Vector3(z.x,(z.y0||0)+z.height*.6,z.z); hurtZombie(z,1875,pos,'#7dd3fc',true); z.dotSum=(z.dotSum||0)+Math.round(1875*mult().dmg); z.dotPos=pos; } }
+    } else if(NET.role==='client'&&!w.visual){
+      const px=-w.dz, pz=w.dx; w.acc+=dt; const tick=w.acc>=.25; if(tick) w.acc-=.25;
+      if(sink<.45) for(const z of S.zombies){ if(z.dead||z.archer||(z.y0||0)>.5||w.cap.has(z)) continue; const rx=z.x-w.x, rz=z.z-w.z, a=rx*w.dx+rz*w.dz, l=rx*px+rz*pz; if(Math.abs(a)<1.6+z.r&&Math.abs(l)<WAVE_W/2+z.r) w.cap.set(z,{a:0,l}); }
+      if(tick) for(const [z] of w.cap){ if(z.dead||z.hp<=0){ w.cap.delete(z); continue; } hurtZombie(z,1875,new THREE.Vector3(z.x,z.height*.6,z.z),'#7dd3fc',true); z.dotSum=(z.dotSum||0)+Math.round(1875*mult().dmg); z.dotPos=new THREE.Vector3(z.x,z.height*.6,z.z); }
+    }
+    if(w.t>=w.total){ killWave(w); S.waves.splice(i,1); }
+  }
+}
+function clearWaves(){ for(const w of S.waves) killWave(w); S.waves=[]; }
+/* ----- Sharp Hook (thrown trident) ----- */
+function tridentModel(){
+  const sc=new THREE.Group(), navy=mat(0x0b2a4a,'metal'), navy2=mat(0x123a63,'metal'), gold=mat(0xe3b341,'metal'), gold2=mat(0xb7860f,'metal'), alg=mat(0x2f7d32,'matte'), alg2=mat(0x14532d,'matte'), kelp=mat(0x65a30d,'matte'), shell=mat(0xd6cdb5,'matte'), aqua=mat(0x22d3ee,'glow');
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.028,.034,1.7,8),navy); shaft.rotation.x=Math.PI/2; shaft.position.z=-.3; sc.add(shaft);
+  for(const z0 of [.45,.1,-.25,-.6,-.95]){ const r=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.05,10),gold); r.rotation.x=Math.PI/2; r.position.z=z0; sc.add(r); }
+  const pommel=new THREE.Mesh(new THREE.OctahedronGeometry(.06),aqua); pommel.position.z=.6; pommel.scale.z=1.4; sc.add(pommel); sc.add(zbox(.1,.1,.08,gold2,0,0,.53));
+  // trident head: crossbar + 3 barbed prongs
+  sc.add(zbox(.46,.06,.07,gold,0,0,-1.12), zbox(.1,.1,.12,gold2,0,0,-1.08));
+  const prong=(x,len,zS)=>{ const c=new THREE.Mesh(new THREE.ConeGeometry(.036,len,6),gold); c.rotation.x=-Math.PI/2; c.position.set(x,0,zS-len/2); sc.add(c); const stem=new THREE.Mesh(new THREE.CylinderGeometry(.02,.026,.22,6),gold2); stem.rotation.x=Math.PI/2; stem.position.set(x,0,zS+.05); sc.add(stem);
+    for(const sg of [-1,1]){ const b=new THREE.Mesh(new THREE.ConeGeometry(.02,.1,5),gold); b.rotation.set(-Math.PI/2,0,sg*.9); b.position.set(x+sg*.035,0,zS-len*.62); sc.add(b); } };
+  prong(0,.5,-1.15); prong(.21,.36,-1.13); prong(-.21,.36,-1.13);
+  sc.add(zbox(.04,.06,.2,gold,.21,0,-1.0), zbox(.04,.06,.2,gold,-.21,0,-1.0));
+  // algae, kelp, barnacles
+  for(let i=0;i<18;i++){ const zz=rnd(-.9,.55), a=rnd(0,6.28), len=rnd(.12,.34), m=zbox(.02,.02,len,i%3?alg:alg2,Math.cos(a)*.04,Math.sin(a)*.04,zz); m.rotation.set(rnd(-.5,.5),rnd(-.5,.5),0); sc.add(m); }
+  for(let i=0;i<7;i++){ const zz=rnd(-.8,.1), a=rnd(0,6.28), l=zbox(.035,.14+Math.random()*.1,.01,kelp,Math.cos(a)*.05,Math.sin(a)*.05-.08,zz); l.rotation.z=rnd(-.6,.6); sc.add(l); }
+  for(let i=0;i<5;i++){ const zz=rnd(-1.0,.3), a=rnd(0,6.28), c=new THREE.Mesh(new THREE.ConeGeometry(.02,.035,5),shell); c.position.set(Math.cos(a)*.04,Math.sin(a)*.04,zz); c.rotation.set(Math.sin(a)*1.4,0,-Math.cos(a)*1.4); sc.add(c); }
+  for(const [x,y,z0] of [[.18,.04,-1.0],[-.17,.05,-.98],[.0,.05,-1.0]]){ for(let k=0;k<4;k++) sc.add(zbox(.015,.1+.04*k,.012,k%2?alg:kelp,x+rnd(-.03,.03),y-.05,z0+rnd(-.05,.05))); }
+  sc.add(glowSprite(0x22d3ee,.35,0,0,-.2));
+  return sc;
+}
+function throwTrident(){
+  if(S.mode!=='game'||S.downed||S.shopOpen||S.rebirthOpen||S.pauseOpen||S.weapon!=='trident'||!U('sharphook')||S.tt||S.ttCd>0) return;
+  const d=dirFrom(P.yaw,P.pitch,new THREE.Vector3()); const g=tridentModel(), wrap=new THREE.Group(); wrap.add(g); wrap.scale.setScalar(1.3); wrap.position.set(P.x+d.x*.8,EYE-.3,P.z+d.z*.8); wrap.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,-1),d); gameG.add(wrap);
+  S.tt={g:wrap,inner:g,dir:d.clone(),t:0,ph:'out',hit1:new Set(),hit2:new Set(),caught:new Set(),spin:0}; sfx('swing',undefined,undefined,1,.5); S.ttCd=999; netShot({k:'tt',o:[wrap.position.x,wrap.position.y,wrap.position.z],v:[d.x,d.y,d.z]});
+}
+function updateTrident(dt){
+  if(S.ttCd<900) S.ttCd=Math.max(0,S.ttCd-dt); const t=S.tt; gunRoot.visible=S.mode==='game'&&!(t&&S.weapon==='trident'); if(!t) return;
+  t.t+=dt; t.spin+=dt*16; t.inner.rotation.z=t.spin; const p=t.g.position;
+  const hitCheck=(set,onHit)=>{ for(const z of S.zombies){ if(z.dead||set.has(z)) continue; if(Math.hypot(z.x-p.x,z.z-p.z)<1.4+z.r&&p.y>(z.y0||0)-1&&p.y<(z.y0||0)+z.height+1.2){ set.add(z); hurtZombie(z,10000,new THREE.Vector3(z.x,(z.y0||0)+z.height*.7,z.z),'#22d3ee'); hitMarker(); t.caught.add(z); if(onHit) onHit(z); } } };
+  if(t.ph==='out'){ p.addScaledVector(t.dir,44*dt); hitCheck(t.hit1); let blocked=false; for(const b of bricks) if(p.x>b.x&&p.x<b.x+b.w&&p.z>b.z&&p.z<b.z+b.d&&p.y<b.h){ blocked=true; break; } if(t.t>=.7||blocked||p.y<.1||p.x<0||p.z<0||p.x>MAP.w||p.z>MAP.h){ t.ph='back'; sfx('splash',p.x,p.z); } }
+  else { const tx=P.x-p.x, ty=EYE-.4-p.y, tz=P.z-p.z, l=Math.hypot(tx,ty,tz)||1; p.x+=tx/l*52*dt; p.y+=ty/l*52*dt; p.z+=tz/l*52*dt; t.g.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,-1),new THREE.Vector3(-tx/l,-ty/l,-tz/l));
+    hitCheck(t.hit2); for(const z of t.caught){ if(z.dead||z.hp<=0){ t.caught.delete(z); continue; } z.hooked=t; const k=Math.min(1,dt*14); z.x+=(p.x-z.x)*k; z.z+=(p.z-z.z)*k; collide(z,z.r,bricks); }
+    if(l<1.5||t.t>5){ for(const z of t.caught){ z.hooked=null; if(!z.dead){ z.freeze=1.5; const a=Math.atan2(z.x-P.x,z.z-P.z); z.x=P.x+Math.sin(a)*2; z.z=P.z+Math.cos(a)*2; collide(z,z.r,bricks); } } gameG.remove(t.g); t.g.traverse(o=>{ if(o.material&&o.material.dispose&&!o.material.map) {} }); S.tt=null; S.ttCd=10; gunRoot.visible=S.mode==='game'; sfx('equip'); blast(new THREE.Vector3(P.x,1.2,P.z),3.5,0x22d3ee,.3); } }
+}
+function clearTrident(){ if(S.tt){ for(const z of S.tt.caught){ z.hooked=null; } gameG.remove(S.tt.g); S.tt=null; } S.ttCd=0; }
 function daggerStab(){
   S.fireCd=.25; S.swing=.2; S.swingMax=.2; S.dagDir=-(S.dagDir||1); sfx('swing',undefined,undefined,.9,1.5);
   S.delayed.push({t:.06,fn:()=>{ let any=false; for(const z of S.zombies){ if(!inMelee(z,3.1,.75)) continue; hurtZombie(z,10000,new THREE.Vector3(z.x,(z.y0||0)+z.height*.7,z.z),'#c084fc'); any=true; }
@@ -2371,7 +2459,7 @@ function contBeam(a,b){
 }
 function updateCbeam(dt){ const cb=S.cbeam; if(cb){ cb.t-=dt; if(cb.t<=0){ scene.remove(cb.g); cb.outer.material.dispose(); cb.inner.material.dispose(); S.cbeam=null; } } }
 const OS_FIRE=5, OS_HYPER=2, OS_COOL=5, OS_COOL_H=7;
-function resetMelee(){ clearRifts(); S.riftLock=false; S.riftCd=0; S.swUsed=false; S.shieldT=0; S.shadowT=0; $('shadowFx').style.opacity=0; S.okStacks=0; S.okT=9; S.kk=0; S.inPass=false; S.sonicMode=0; S.souls=0; S.ghoul=0; S.spin=0; S.throwCd=0; S.chAcc=0; if(S.thrown){ gameG.remove(S.thrown.g); S.thrown=null; } $('ghoulFx').style.opacity=0; }
+function resetMelee(){ clearWaves(); clearTrident(); clearRifts(); S.riftLock=false; S.riftCd=0; S.swUsed=false; S.shieldT=0; S.shadowT=0; $('shadowFx').style.opacity=0; S.okStacks=0; S.okT=9; S.kk=0; S.inPass=false; S.sonicMode=0; S.souls=0; S.ghoul=0; S.spin=0; S.throwCd=0; S.chAcc=0; if(S.thrown){ gameG.remove(S.thrown.g); S.thrown=null; } $('ghoulFx').style.opacity=0; }
 function resetOS(){ resetMelee(); S.os={ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}; osBeamRemove(); }
 function startOS(){ S.os={ph:'fire',t:OS_FIRE,acc:0,ft:.3,nt:0,hm:0}; sfx('osfire'); say('ORBITAL STRIKE!',1.2); }
 function osBeamRemove(){ const ob=S.osbeam; if(!ob) return; scene.remove(ob.g); ob.o.material.dispose(); ob.i.material.dispose(); for(const sp of ob.sp) sp.material.dispose(); S.osbeam=null; }
@@ -2737,6 +2825,7 @@ function fire(){
   if(w.id==='vampire'){ meleeAttack(); return; }
   if(w.id==='sonic'){ fireSonic(); return; }
   if(w.id==='dagger'){ daggerStab(); return; }
+  if(w.id==='trident'){ if(!S.tt) tridentStab(); return; }
   if(w.id==='ripper'){ fireRipper(); return; }
   if(w.id==='acid'){ fireAcid(); return; }
   if(w.id==='ovf'){ fireOverflow(); return; }
@@ -2793,6 +2882,7 @@ function update(dt){
   } else S.heat=0;
 
   if(!S.omFired) hideOmni(); S.omFired=false;
+  updateWaves(dt); updateTrident(dt);
   updateOS(dt); updateGrab(dt); updateDots(dt); updateMarked(dt); updateFog(dt); updateRifts(dt); updateScythe(dt);
   if(S.ghoul>0){ S.ghoul=Math.max(0,S.ghoul-dt); if(S.ghoul===0) say('Ghoul state ended',1.5); } $('ghoulFx').style.opacity=S.ghoul>0?.9:0;
   if(S.spin>0){ P.yaw+=2*Math.PI/.55*dt; S.spin-=dt; }
@@ -2828,9 +2918,9 @@ function update(dt){
     if(z.colossus) colossusStep(z,dt,d);
     if(z.crawler) crawlerStep(z,dt,d,T);
     if(z.archer) archerStep(z,dt,d);
-    if(z.stun>0) z.stun-=dt;
+    if(z.stun>0) z.stun-=dt; if(z.freeze>0) z.freeze-=dt;
     if(!z.archer){
-    z.spdMul=d>FAR_DIST?(S.vc?1.4:2):1; const mv=(z.swing>0?.2:1)*(z.stun>0?.15:1)*(z.scream>0?0:1)*(z.crier&&z.cst!==2?0:1)*(z.smN>0?0:1)*(z.crawler&&z.cs>=1?0:1)*z.spdMul; z.x+=tx*z.spd*mv*dt; z.z+=tz*z.spd*mv*dt;
+    z.spdMul=d>FAR_DIST?(S.vc?1.4:2):1; const mv=(z.swing>0?.2:1)*(z.stun>0?.15:1)*(z.scream>0?0:1)*(z.crier&&z.cst!==2?0:1)*(z.smN>0?0:1)*(z.crawler&&z.cs>=1?0:1)*((z.waved||z.hooked||z.freeze>0)?0:1)*z.spdMul; z.x+=tx*z.spd*mv*dt; z.z+=tz*z.spd*mv*dt;
     if(z.kvx||z.kvz){ z.x+=z.kvx*dt; z.z+=z.kvz*dt; const f=Math.max(0,1-5*dt); z.kvx*=f; z.kvz*=f; if(Math.abs(z.kvx)+Math.abs(z.kvz)<.1) z.kvx=z.kvz=0; }
     for(const o of S.zombies) if(o!==z&&!o.archer){ const ox=z.x-o.x, oz=z.z-o.z, od=Math.hypot(ox,oz), m=z.r+o.r;
       if(od>0&&od<m){ const p=(m-od)*.5*Math.min(1,dt*8); z.x+=ox/od*p; z.z+=oz/od*p; } }
@@ -2843,7 +2933,7 @@ function update(dt){
     }
     z.atk-=dt;
     if(z.swing>0){ z.swing-=dt; if(!z.hitDone&&z.swing<=.3){ z.hitDone=true; if(d<z.r+.4+.7) hitPlayer(T.pid,Math.round(z.dmg)); } }
-    else if(!z.archer&&!z.crawler&&!(z.smN>0)&&(!z.crier||z.cst===2)&&d<z.r+.4+.4&&z.atk<=0){ z.atk=1; z.swing=.6; z.hitDone=false; sfx('zatk',z.x,z.z,1,zPitch(z)); }
+    else if(!z.archer&&!z.crawler&&!(z.smN>0)&&!z.waved&&!z.hooked&&!(z.freeze>0)&&(!z.crier||z.cst===2)&&d<z.r+.4+.4&&z.atk<=0){ z.atk=1; z.swing=.6; z.hitDone=false; sfx('zatk',z.x,z.z,1,zPitch(z)); }
   }
   hurt.push(...incoming.splice(0));
   if(hurt.length){ sfx('hurt'); $('hurt').style.opacity=1; setTimeout(()=>$('hurt').style.opacity=0,150); }
@@ -2906,6 +2996,7 @@ function render(dt){
     gunRoot.rotation.x=kick*.6; gunRoot.rotation.y=0; gunRoot.rotation.z=0;
     if(S.swing>0){ const k=1-S.swing/S.swingMax, sn=Math.sin(k*Math.PI);
       if(S.bladeMode==='earth'&&S.weapon==='vampire'){ gunRoot.rotation.x=(k<.45?-(k/.45)*.9:-.9+((k-.45)/.55)*1.5); gunRoot.position.y+=(k<.45?k/.45*.15:.15-(k-.45)/.55*.3); }
+      else if(S.weapon==='trident'){ const st=Math.sin(Math.min(1,k)*Math.PI); gunRoot.position.z-=st*.7; gunRoot.position.y+=st*.04; gunRoot.rotation.x=st*.12; }
       else if(S.weapon==='dagger'){
         const d=S.dagDir||1, st=Math.sin(Math.min(1,k)*Math.PI); gunRoot.position.z-=st*.45; gunRoot.position.x-=st*.12*d; gunRoot.rotation.x=-st*.5; gunRoot.rotation.z=st*.9*d; gunRoot.rotation.y=st*.4*d;
       }
@@ -2960,6 +3051,7 @@ function updateHud(){
     if(S.weapon==='reaper'){ L.push('Q · Spin Slash · '+(S.abCd>0?S.abCd.toFixed(1)+'s':(S.thrown?'scythe is away':'READY')));
       L.push('E · Release Souls · '+(S.ghoul>0?'GHOUL '+S.ghoul.toFixed(0)+'s':(S.souls>=SOULS_NEED?'READY':S.souls+'/'+SOULS_NEED+' souls')));
       if(U('throw')) L.push('C · Scythe Throw · '+(S.thrown?'flying…':(S.throwCd>0?S.throwCd.toFixed(1)+'s':'READY'))); }
+    else if(S.weapon==='trident'){ L.push("Q · Ocean's Wrath · "+(S.waves.some(w=>!w.visual)?'ACTIVE':(S.abCd>0?S.abCd.toFixed(1)+'s':'READY'))); if(U('sharphook')) L.push('C · Sharp Hook · '+(S.tt?'flying…':(S.ttCd>0?S.ttCd.toFixed(1)+'s':'READY'))); }
     else if(S.weapon==='dagger'){ L.push('Q · Shadow Step · '+(S.shadowT>0?'ACTIVE '+S.shadowT.toFixed(1)+'s':(S.abCd>0?S.abCd.toFixed(1)+'s':'READY'))); L.push('C · Void Rift · '+(S.riftLock?'SEALED':(S.rifts.filter(q=>!q.visual).length+'/2 rifts'))+(S.riftIn>=0?' · INSIDE':'')); }
     else { const ab=S.weapon==='vampire'&&((S.bladeMode==='blood'&&U('hook')&&'Blood Hook')||(S.bladeMode==='wing'&&U('wind')&&'Strong Wind')||(S.bladeMode==='earth'&&U('smash')&&'Earth Spikes')); if(ab) L.push('Q · '+ab+' · '+(S.abCd>0?S.abCd.toFixed(1)+'s':'READY')); }
     if(passOn('overkill')) L.push('Overkill · x'+(1+Math.min(.5,S.okStacks*.05)).toFixed(2)+(S.okStacks>=10?' (MAX)':''));
@@ -2998,6 +3090,7 @@ const WINFO={
   vampire:{ico:'🗡️',tags:['Melee','Lifesteal','E: 3 modes'],note:'Blood: 4000 dmg / 0.66 s, heals 1% of damage. Wind (E): 1500 / 0.25 s, +50% speed, SPACE = high jump + wind wave. Earth (E): 6000 / 2 s, 360° shockwave.'},
   chainsaw:{ico:'🪚',tags:['Melee','Bleed','Hold to rev'],note:'Rips through enemies: 10 dmg every 0.01 s and a 3 s bleed (10 dmg / 0.05 s).'},
   reaper:{ico:'💀',tags:['Melee','Souls','Q: 360° spin'],note:'5000 dmg slices. 25 kills = E: Ghoul state (7500 dmg / 0.25 s, +50% speed, 0.1% life steal, abilities +50% damage). Q: spin that sends red slices in all directions.'},
+  trident:{ico:'🔱',tags:['Melee','Q: Ocean\'s Wrath','C: Sharp Hook'],note:'30000 dmg / 0.5 s. Q: a giant wave sweeps forward for 3 s, then sinks while still moving; enemies it catches are dragged along and take 7500 dmg/s until it is gone. Sharp Hook upgrade: C throws the trident (10000 dmg out and back) and pulls caught enemies to you, stunned for 1.5 s.'},
   omni:{ico:'🌈',tags:['4 miniguns','24 lasers','Overheats'],note:'Four floating miniguns (red, blue, green, yellow), each firing 6 spinning lasers: 50 dmg per laser every 0.01 s. Overheats after 3 s of fire; release the trigger any time to stop.'},
   ovf:{ico:'🌋',tags:['Spools up','Bullets','Full-auto'],note:'Starts at 1 shot per second and spools up the longer you hold fire, reaching 1 shot every 0.01 s after 10 s. 225 dmg per shot. Release to wind down.'},
   acid:{ico:'☣️',tags:['Poison fog','No direct damage','Hold to spray'],note:'Sprays a toxic fog. Touched zombies are poisoned: 1250 dmg every 0.5 s for 3 s (touching it again refreshes the poison).'},
@@ -3027,6 +3120,7 @@ const WTHEME={
   reaper:{a:'#b91c1c',a2:'#c084fc',bg:'#1c1020',bg2:'#251228',bd:'#3f1c3d',ib:'#100814'},
   ostrike:{a:'#7dd3fc',a2:'#ffffff',bt:'#0b1220',bg:'#141d2e',bg2:'#182540',bd:'#2a3f66',ib:'#0a1120'},
   sonic:{a:'#38bdf8',a2:'#818cf8',bg:'#0c1630',bg2:'#0f1c40',bd:'#1c3166',ib:'#060b1a'},
+  trident:{a:'#0e7490',a2:'#fbbf24',bg:'#08182b',bg2:'#0b2240',bd:'#14456e',ib:'#040d19'},
   omni:{a:'#a855f7',a2:'#22d3ee',bg:'#12122a',bg2:'#181838',bd:'#2f2f6a',ib:'#0a0a1a'},
   ovf:{a:'#e11d48',a2:'#fb923c',bg:'#1f0d1e',bg2:'#2b1026',bd:'#4d1a3c',ib:'#12060f'},
   acid:{a:'#84cc16',a2:'#d9f99d',bg:'#121f0a',bg2:'#172a0c',bd:'#2b4a14',ib:'#0a1205'},
@@ -3134,7 +3228,7 @@ addEventListener('keydown',e=>{
   if(k==='m'&&!e.repeat) setMuted(!AUD.muted);
   if(k==='q'&&!e.repeat) useAbility();
   if(k==='t'&&!e.repeat) useSkip();
-  if(k==='c'&&!e.repeat){ throwScythe(); placeRift(); }
+  if(k==='c'&&!e.repeat){ throwScythe(); placeRift(); throwTrident(); }
   if(k==='x'&&!e.repeat) throwGrenade();
   if(k==='e'&&!e.repeat&&S.mode==='game'&&!S.shopOpen&&!S.rebirthOpen&&S.weapon==='sonic'){ S.sonicMode=(S.sonicMode+1)%sonicModes(); buildGun('sonic'); S.fireCd=Math.max(S.fireCd,.3); say(SB_MODES[S.sonicMode].name,1.2); sfx('equip'); }
   if(k==='e'&&!e.repeat&&S.mode==='game'&&!S.shopOpen&&!S.rebirthOpen&&S.weapon==='reaper') releaseSouls();
@@ -3411,6 +3505,8 @@ function handleShot(m){
   if(m.k==='t') tracer(new THREE.Vector3(...m.a),new THREE.Vector3(...m.b));
   else if(m.k==='b') m.big?(beam(new THREE.Vector3(...m.a),new THREE.Vector3(...m.b),m.c||(m.hy?0xff3b6b:0xffffff),m.w||.4)):beam(new THREE.Vector3(...m.a),new THREE.Vector3(...m.b),0x38bdf8,.04);
   else if(m.k==='fog'){ spawnFog(m.o,m.v,true); }
+  else if(m.k==='wv'){ const w=spawnWaveVisual(m.x,m.z,m.dx,m.dz,0); w.visual=true; S.waves.push(w); sfx('oceanwave',m.x,m.z); }
+  else if(m.k==='tt'){ const g=tridentModel(), wrap=new THREE.Group(); wrap.add(g); wrap.scale.setScalar(1.3); wrap.position.set(...m.o); const d=new THREE.Vector3(...m.v); wrap.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,-1),d); gameG.add(wrap); const o={g:wrap,t:0}; (S.ttv=S.ttv||[]).push(o); setTimeout(()=>{ gameG.remove(wrap); S.ttv=S.ttv.filter(x=>x!==o); },1600); const vel=d.multiplyScalar(44); const step=()=>{ if(!wrap.parent) return; o.t+=.016; if(o.t<.7) wrap.position.addScaledVector(vel,.016); else wrap.position.addScaledVector(vel,-.016*1.2); g.rotation.z+=.25; requestAnimationFrame(step); }; step(); }
   else if(m.k==='rf'){ const r=spawnRiftVisual(m.x,m.z,RIFT_LIFE); r.visual=true; S.rifts.push(r); }
   else if(m.k==='gr'){ spawnGrenade(m.o,m.v,true); }
   else if(m.k==='sb'){ spawnSonic(m.m,m.o,m.v,true); sfx(m.m===1?'sonicpulse':'sonicshot',m.o[0],m.o[2]); }
@@ -3541,6 +3637,8 @@ const SND={
   vsummon:{v:.9,range:80,f:o=>{ tone({f:80,f2:400,dur:1.0,type:'sawtooth',vol:.35,lp:1800,att:.1,out:o}); tone({f:1200,f2:300,dur:.9,type:'triangle',vol:.12,out:o}); noise({dur:.8,vol:.2,ft:'bandpass',f:600,f2:2000,out:o}); }},
   riftopen:{v:.8,range:60,f:o=>{ tone({f:120,f2:520,dur:.6,type:'sawtooth',vol:.3,lp:1500,att:.05,out:o}); tone({f:900,f2:200,dur:.5,type:'sine',vol:.15,out:o}); noise({dur:.5,vol:.2,ft:'bandpass',f:700,f2:2200,out:o}); }},
   riftbreak:{v:1,range:100,f:o=>{ tone({f:60,f2:25,dur:.9,type:'sawtooth',vol:.55,lp:700,out:o}); noise({dur:.8,vol:.5,ft:'lowpass',f:2000,f2:100,out:o}); tone({f:1500,f2:200,dur:.4,type:'square',vol:.15,out:o}); }},
+  oceanwave:{v:1,range:110,f:o=>{ noise({dur:1.4,vol:.55,ft:'bandpass',f:500,f2:1800,out:o}); tone({f:70,f2:40,dur:1.3,type:'sine',vol:.5,att:.2,out:o}); tone({f:300,f2:120,dur:1.1,type:'triangle',vol:.15,out:o}); }},
+  splash:{v:.5,range:50,f:o=>{ noise({dur:.28,vol:.4,ft:'bandpass',f:1800,f2:600,out:o}); tone({f:400,f2:120,dur:.2,type:'sine',vol:.15,out:o}); }},
   omnifire:{v:.55,range:70,f:o=>{ tone({f:880,f2:700,dur:.12,type:'sawtooth',vol:.18,lp:3500,out:o}); tone({f:1320,f2:1000,dur:.12,type:'square',vol:.08,out:o}); tone({f:440,f2:360,dur:.12,type:'triangle',vol:.15,out:o}); noise({dur:.1,vol:.18,ft:'bandpass',f:3500,f2:2500,out:o}); }},
   overflow:{v:.4,range:60,f:o=>{ tone({f:520,f2:180,dur:.06,type:'sawtooth',vol:.25,lp:2500,out:o}); noise({dur:.05,vol:.25,ft:'bandpass',f:2200,f2:1200,out:o}); }},
   acid:{v:.35,range:40,f:o=>{ noise({dur:.16,vol:.5,ft:'highpass',f:2500,f2:1500,out:o}); tone({f:260,f2:140,dur:.14,type:'sawtooth',vol:.07,lp:900,out:o}); }},
