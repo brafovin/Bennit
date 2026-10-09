@@ -1828,6 +1828,7 @@ function rayBox(o,d,b,maxT){
   return t0;
 }
 function rayZombie(o,d,z,ex){
+  if(crawlerLocked(z)) return Infinity;
   if(z.phantom&&!phVuln(z)) return Infinity;
   ex=ex||0; const rr=z.r+ex, px=o.x-z.x, pz=o.z-z.z, a=d.x*d.x+d.z*d.z; if(a<1e-9) return Infinity;
   const b=px*d.x+pz*d.z, c=px*px+pz*pz-rr*rr, disc=b*b-a*c; if(disc<0) return Infinity;
@@ -2070,8 +2071,11 @@ function passKill(z){
     S.inPass=false; sfx('zap',z.x,z.z);
   }
 }
+const MELEE_IDS=['chainsaw','reaper','dagger','trident','vampire'];
+const crawlerLocked=z=>z.crawler&&z.cs===4&&!(S.explT>0)&&!MELEE_IDS.includes(S.weapon);
 function hurtZombie(z,base,pos,col,silent){ // damage dealt by the local player
   if(z.dead) return;
+  if(crawlerLocked(z)){ if(!silent&&Math.random()<.3) floatText(pos,'SHAKE IT OFF!','#fca5a5'); return; }
   if(z.phantom&&!phVuln(z)){ if(!silent&&Math.random()<.3) floatText(pos,'MISS','#93c5fd'); return; }
   if(!S.inPass) S.okT=0;
   let cm=1, crit=false; if(!S.inPass&&Math.random()<(passOn('critical')?.15:.05)){ cm=2; crit=true; }
@@ -2559,10 +2563,12 @@ function updateScythe(dt){
 }
 function explode(pos,radius,base,color,visual){
   blast(pos,radius,color); sfx('boom',pos.x,pos.z,Math.min(1,.5+radius/10),radius>5?.7:1); if(visual) return;
+  S.explT=1;
   for(const z of S.zombies){
     if(z.dead) continue;
     if(Math.hypot(z.x-pos.x,z.z-pos.z)-z.r<=radius&&pos.y<(z.y0||0)+z.height+radius) hurtZombie(z,base,new THREE.Vector3(z.x,z.height*.7,z.z));
   }
+  S.explT=0;
 }
 const beamGeo=new THREE.CylinderGeometry(1,1,1,12,1,true);
 function contBeam(a,b){
@@ -2829,7 +2835,8 @@ function spawnSonic(m,o,v,visual){
 function sonicPulse(pos,b){
   const m=new THREE.Mesh(sphGeo,new THREE.MeshBasicMaterial({color:SB_MODES[b.m].col,transparent:true,opacity:.6,depthWrite:false,blending:THREE.AdditiveBlending})); m.position.copy(pos); gameG.add(m); fx.push({m,life:.4,max:.4,kind:'blast',radius:SB_PULSE_R});
   sfx('sonicpulse'); if(b.visual) return;
-  for(const z of S.zombies){ if(z.dead) continue; if(Math.hypot(z.x-pos.x,z.z-pos.z)-z.r<=SB_PULSE_R&&pos.y<(z.y0||0)+z.height+SB_PULSE_R&&pos.y>(z.y0||0)-SB_PULSE_R) hurtZombie(z,5000,new THREE.Vector3(z.x,(z.y0||0)+z.height*.7,z.z),'#7dd3fc'); }
+  S.explT=1;
+  for(const z of S.zombies){ if(z.dead) continue; if(Math.hypot(z.x-pos.x,z.z-pos.z)-z.r<=SB_PULSE_R&&pos.y<(z.y0||0)+z.height+SB_PULSE_R&&pos.y>(z.y0||0)-SB_PULSE_R) hurtZombie(z,5000,new THREE.Vector3(z.x,(z.y0||0)+z.height*.7,z.z),'#7dd3fc'); } S.explT=0;
 }
 function sonicWall(p,r){
   if(p.y<.1||p.x<0||p.z<0||p.x>MAP.w||p.z>MAP.h) return true;
@@ -4052,7 +4059,7 @@ const BEST=[
   {id:'bowman',cat:'z',name:'Bowman',ico:'🏹',st:{hp:'0.75× the base type',spd:'stands still',dmg:'arrows hit hard',cash:'same as base',wave:10},desc:'A zombie archer that climbs up on top of the bricks and shoots you from range.',ab:['Fires arrows in an arc – keep moving.','Melee weapons get extra reach against archers.','Often found in groups on the same brick.']},
   {id:'shielder',cat:'z',name:'Shielder',ico:'🛡️',st:{hp:'base type',spd:'base type',dmg:'base type',cash:'base type',wave:'11 (5 in VOIDCORE MODE)'},desc:'A zombie in armour with a heavy shield.',ab:['Has a blue shield bar equal to its health, shown next to a shield icon.','Damage hits the shield first; when it breaks the armour falls off and it becomes a normal zombie.']},
   {id:'toxic',cat:'z',name:'Toxic Zombie',ico:'☣️',st:{hp:'same as the base type',spd:'base type',dmg:'base type + poison',cash:'1.3× the base type',wave:5},desc:'A zombie rotting away with acid – green sores, exposed ribs and dripping goo.',ab:['Attacks like a normal zombie when you get close.','If its hit lands, you are poisoned: 10 damage every 0.5 s for 2 s (× the mode damage multiplier). Getting hit again refreshes the poison.','Shadow Step, rifts and shields protect you from it.']},
-  {id:'crawler',cat:'z',name:'Crawler',ico:'🕷️',st:{hp:'0.8× the base type',spd:'0.65× base',dmg:'10 per second while attached (×mode)',cash:'1.2× the base type',wave:8},desc:'A zombie with its legs torn off that drags itself along the ground.',ab:['Crouches for a moment, then leaps at you – sidestep or jump to dodge.','If it grabs you your vision is covered by thick black fog and it hurts you every second.','Spam SPACE to shake it off; it is then stunned for 3 s.','At most 2 can be attached to you.']},
+  {id:'crawler',cat:'z',name:'Crawler',ico:'🕷️',st:{hp:'0.8× the base type',spd:'0.65× base',dmg:'10 per second while attached (×mode)',cash:'1.2× the base type',wave:8},desc:'A zombie with its legs torn off that drags itself along the ground.',ab:['Crouches for a moment, then leaps at you – sidestep or jump to dodge.','If it grabs you your vision is covered by thick black fog and it hurts you every second.','Spam SPACE to shake it off; it is then stunned for 3 s.','At most 2 can be attached to you.','While it is on someone, only melee weapons and explosions can hurt it – guns just pass through, so shake it off.']},
   {id:'screamer',cat:'z',name:'Screamer',ico:'😖',st:{hp:'1,000 (×mode)',spd:'9.5 when enraged',dmg:'50 base (×mode)',cash:200,wave:'25 (15 Hardcore, 10 VOIDCORE)'},desc:'A bald, bleeding thing that sits curled up, covering its face.',ab:['Sits motionless and takes 75% less damage.','After losing 20% of its health it stands up and sprints at you while screaming.','Only one Screamer can be alive at a time.']},
   {id:'voidz',cat:'z',name:'Void Zombie',ico:'🌀',st:{hp:'2× the base type',spd:'base type',dmg:'2× the base type',cash:'2× the base type',wave:'VOIDCORE MODE'},desc:'A zombie taken over by the void – dark skin, a hollow glowing chest and crystals bursting out of its body.',ab:['Summoned in threes by the Void Master.','Can also appear on its own in VOIDCORE MODE.']},
   {id:'necro',cat:'z',name:'Necromancer',ico:'💀',st:{hp:'900 (×mode)',spd:2.6,dmg:'weak melee',cash:900,wave:'12 (8 Hardcore, 6 VOIDCORE)'},desc:'A hooded corpse-priest with a skull staff and orbiting soul runes.',ab:['Keeps its distance and flees when you get close.','Every few seconds it raises a zombie you recently killed (within 20 s) – each zombie can only be raised once.','Kill it first, or the horde never ends.']},
