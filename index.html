@@ -754,6 +754,16 @@ const monoMat=new THREE.MeshLambertMaterial({map:monoTex,emissive:0xffffff,emiss
 const towStone=new THREE.MeshLambertMaterial({color:0x0f0818,flatShading:true}), towStone2=new THREE.MeshLambertMaterial({color:0x1b1030,flatShading:true}), towGlowM=new THREE.MeshBasicMaterial({color:0xc084fc}), towGlow2=new THREE.MeshBasicMaterial({color:0xf5d0fe});
 const towPanelM=new THREE.MeshBasicMaterial({map:monoGlow,transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
 const towGeo={ box:{}, cone:new THREE.ConeGeometry(1,1,4), oct:new THREE.OctahedronGeometry(1), torus:new THREE.TorusGeometry(1,.05,6,32), plane:new THREE.PlaneGeometry(1,1) };
+const TMC={};
+const tq=v=>Math.max(.2,Math.round(v*5)/5);
+function towTexMat(fw,fh,glowOnly){
+  const key=(glowOnly?'g':'m')+tq(fw)+'x'+tq(fh); if(TMC[key]) return TMC[key];
+  const rx=Math.max(1,Math.round(fw/1.2)), ry=Math.max(1,Math.round(fh/2.4));
+  const mt=monoTex.clone(); mt.needsUpdate=true; mt.repeat.set(rx,ry); const gt=monoGlow.clone(); gt.needsUpdate=true; gt.repeat.set(rx,ry);
+  return TMC[key]=glowOnly?new THREE.MeshBasicMaterial({map:gt,transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2})
+    :new THREE.MeshLambertMaterial({map:mt,emissive:0xffffff,emissiveMap:gt,emissiveIntensity:.9});
+}
+function towShaftMats(sw,sd,sh){ const key='s'+tq(sw)+'x'+tq(sd)+'x'+tq(sh); if(TMC[key]) return TMC[key]; const fx=towTexMat(sd,sh), fz=towTexMat(sw,sh); return TMC[key]=[fx,fx,towStone,towStone,fz,fz]; }
 function towerBuild(add,cx,cz,w,d,h,anim){
   const bx_=(sw,sh,sd,m,x,y,z)=>{ const k=sw+','+sh+','+sd; const me=new THREE.Mesh(towGeo.box[k]||(towGeo.box[k]=new THREE.BoxGeometry(sw,sh,sd)),m); me.position.set(x,y,z); add(me); return me; };
   const along=w>d, hw=w/2, hd=d/2;
@@ -762,16 +772,16 @@ function towerBuild(add,cx,cz,w,d,h,anim){
   bx_(w+.93,.04,d+.93,towGlowM,cx,.29,cz);
   // three tapering tiers
   const t1=h*.5, t2=h*.3, t3=h*.2; let y=.8;
-  const shaft=(sw,sd2,sh,mat_)=>{ const m=bx_(sw,sh,sd2,mat_,cx,y+sh/2,cz); return m; };
-  shaft(w,d,t1-.8,monoMat); const y1=y+t1-.8; y=y1; bx_(w+.22,.16,d+.22,towStone2,cx,y,cz); bx_(w+.26,.05,d+.26,towGlowM,cx,y+.1,cz);
-  y+=.1; shaft(w*.84,d*.84,t2,monoMat); y+=t2; bx_(w*.84+.2,.14,d*.84+.2,towStone2,cx,y,cz); bx_(w*.84+.24,.045,d*.84+.24,towGlowM,cx,y+.09,cz);
-  y+=.08; shaft(w*.64,d*.64,t3-.2,monoMat); y+=t3-.2;
+  const shaft=(sw,sd2,sh)=>{ const m=bx_(sw,sh,sd2,towShaftMats(sw,sd2,sh),cx,y+sh/2,cz); return m; };
+  shaft(w,d,t1-.8); const y1=y+t1-.8; y=y1; bx_(w+.22,.16,d+.22,towStone2,cx,y,cz); bx_(w+.26,.05,d+.26,towGlowM,cx,y+.1,cz);
+  y+=.1; shaft(w*.84,d*.84,t2); y+=t2; bx_(w*.84+.2,.14,d*.84+.2,towStone2,cx,y,cz); bx_(w*.84+.24,.045,d*.84+.24,towGlowM,cx,y+.09,cz);
+  y+=.08; shaft(w*.64,d*.64,t3-.2); y+=t3-.2;
   // corner buttress pillars with glowing caps and crystal tips
   for(const sx of [-1,1]) for(const sz of [-1,1]){ const px=cx+sx*(hw+.1), pz=cz+sz*(hd+.1); bx_(.26,h*.62,.26,towStone,px,h*.31+.4,pz); bx_(.34,.12,.34,towStone2,px,h*.62+.4,pz); const tip=new THREE.Mesh(towGeo.cone,towGlowM); tip.scale.set(.2,.55,.2); tip.position.set(px,h*.62+.75,pz); tip.rotation.y=Math.PI/4; add(tip); }
   // glowing rune panels on the long faces + vertical slits + arch
   const fw=along?w*.78:d*.78;
   for(const sg of [-1,1]){
-    const pn=new THREE.Mesh(towGeo.plane,towPanelM); pn.scale.set(fw,t1*.8,1); if(along){ pn.position.set(cx,.8+t1*.45,cz+sg*(hd+.012)); pn.rotation.y=sg>0?0:Math.PI; } else { pn.position.set(cx+sg*(hw+.012),.8+t1*.45,cz); pn.rotation.y=sg>0?Math.PI/2:-Math.PI/2; } add(pn);
+    const pn=new THREE.Mesh(towGeo.plane,towTexMat(fw,t1*.8,true)); pn.scale.set(fw,t1*.8,1); if(along){ pn.position.set(cx,.8+t1*.45,cz+sg*(hd+.012)); pn.rotation.y=sg>0?0:Math.PI; } else { pn.position.set(cx+sg*(hw+.012),.8+t1*.45,cz); pn.rotation.y=sg>0?Math.PI/2:-Math.PI/2; } add(pn);
     const ang=along?[cx,cz+sg*(hd+.03)]:[cx+sg*(hw+.03),cz];
     for(const o of [-.38,.38]){ const sl=bx_(along?.06:.05,t2*.85,along?.05:.06,towGlow2,along?cx+o*w*.84:ang[0],.8+t1+t2*.5,along?ang[1]:cz+o*d*.84); }
     const arch=new THREE.Mesh(towGeo.torus,towGlowM); arch.scale.set(fw*.25,fw*.25,1); arch.position.set(along?cx:ang[0],.8+t1*.82,along?ang[1]:cz); if(!along) arch.rotation.y=Math.PI/2; add(arch);
