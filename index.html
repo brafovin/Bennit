@@ -38,6 +38,7 @@
   #passPanel{background:linear-gradient(#1a1409,#0d0a05);border:1px solid #f59e0b88;box-shadow:0 20px 80px #000a;border-radius:18px;padding:18px;width:min(1000px,96vw);max-height:92vh;overflow:auto}
   #passGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;margin-top:10px}
   #passClose{background:#dc2626;color:#fff;border:0;border-radius:10px;padding:6px 12px;cursor:pointer;font-weight:800;font-size:15px}
+  #poisFx{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity .25s;background:radial-gradient(circle at 50% 50%,rgba(132,204,22,0) 35%,rgba(101,163,13,.38) 80%,rgba(54,83,20,.62) 100%)}
   #voidIn{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity .3s;overflow:hidden;background:radial-gradient(circle at 50% 50%,rgba(60,10,110,.12) 0%,rgba(30,0,70,.72) 68%,rgba(5,0,15,.95) 100%)}
   #voidIn::before{content:'';position:absolute;inset:-35%;background:conic-gradient(from 0deg,transparent,rgba(168,85,247,.28),transparent 28%,rgba(192,132,252,.22),transparent 60%,rgba(124,58,237,.25),transparent 85%);animation:vspin 7s linear infinite;mix-blend-mode:screen}
   @keyframes vspin{to{transform:rotate(360deg)}}
@@ -195,6 +196,7 @@
   <div id="heatTxt"></div>
   <div id="cross"><i class="h"></i><i class="v"></i></div>
   <div id="osFx"></div>
+  <div id="poisFx"></div>
   <div id="voidIn"></div>
   <div id="shadowFx"></div>
   <div id="ghoulFx"></div>
@@ -424,6 +426,18 @@ function mpTargets(){
   return T;
 }
 function secondWind(){ if(S.swUsed||!passOn('secondwind')||S.downed) return false; S.swUsed=true; S.hp=Math.max(1,S.maxHp*.3); S.shieldT=3; sfx('revive'); say('🌬️ SECOND WIND!',2.5); groundRing(P.x,P.z,6,0x93c5fd,.7); return true; }
+function poisonPlayer(pid,T){
+  const mm=S.hc?3:(S.vc?5:1);
+  if(pid===NET.pid){ if(S.shadowT>0||S.shieldT>0||S.riftIn>=0) return; const p=S.poison; if(p){ p.t=2; p.n=0; p.mm=mm; } else S.poison={t:2,acc:0,n:0,mm}; sfx('poison'); }
+  else { const pl=NET.players[pid]; if(pl&&!pl.sh&&NET.conns[pid]) netSend(NET.conns[pid],{t:'poison',mm}); }
+}
+function updatePoison(dt){
+  const p=S.poison; $('poisFx').style.opacity=p?.9:0; if(!p) return;
+  if(S.downed||S.shadowT>0||S.shieldT>0||S.riftIn>=0){ if(S.downed) S.poison=null; return; }
+  p.t-=dt; p.acc+=dt;
+  while(p.acc>=.5-1e-6&&p.n<4){ p.acc-=.5; p.n++; const d=10*p.mm; S.hp-=d; incoming.push(d); S.shake=Math.max(S.shake,.1); if(S.hp<=0&&secondWind()){ S.poison=null; return; } }
+  if(p.n>=4||p.t<-.2) S.poison=null;
+}
 function hitPlayer(pid,dmg){
   if(pid===NET.pid){ if(S.shadowT>0||S.shieldT>0||S.riftIn>=0) return; S.hp-=dmg; incoming.push(dmg); if(S.hp<=0) secondWind(); }
   else { const p=NET.players[pid]; if(p&&!p.sh){ p.hp-=dmg; netSend(NET.conns[pid],{t:'dmg',n:dmg}); } }
@@ -439,7 +453,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, zones:[], drone:null, waves:[], tt:null, ttCd:0, omFired:false, omAcc:0, omSpin:0, omHm:0, omSnd:0, omNet:0, ovT:0, ovIdle:0, ovHm:0, ovSnd:0, fog:[], fogAcc:0, fogSnd:0, rifts:[], riftIn:-1, riftLock:false, riftCd:0, ripFx:0, swUsed:false, shieldT:0, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, poison:null, zones:[], drone:null, waves:[], tt:null, ttCd:0, omFired:false, omAcc:0, omSpin:0, omHm:0, omSnd:0, omNet:0, ovT:0, ovIdle:0, ovHm:0, ovSnd:0, fog:[], fogAcc:0, fogSnd:0, rifts:[], riftIn:-1, riftLock:false, riftCd:0, ripFx:0, swUsed:false, shieldT:0, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -1306,6 +1320,20 @@ function makeZombie(t){
   if(t.name==='BOSS'){ torso.add(zbox(.2,.2,.04,eyeMat,0,.45,.16)); head.add(zbox(.34,.08,.34,hornMat,0,.34,0), zbox(.06,.16,.06,hornMat,-.14,.44,0), zbox(.06,.2,.06,hornMat,0,.46,0), zbox(.06,.16,.06,hornMat,.14,.44,0)); }
   if(t.crawler){ for(const l of legs){ const h=l.hip; while(h.children.length) h.remove(h.children[0]); h.position.y=.12; h.add(zbox(.2,.2,.22,cloth,0,-.08,0), zbox(.15,.05,.17,bloodMat,0,-.19,0), zbox(.045,.16,.045,boneMat,.03,-.27,.02), zbox(.035,.1,.035,boneMat,-.04,-.24,-.03)); }
     torso.position.y=.12; torso.add(zbox(.3,.1,.02,bloodMat,0,.1,.15)); }
+  if(t.toxic){
+    skin.color.setHex(0x7f9a2f); cloth.color.setHex(0x2a2f12);
+    for(const c of head.children) if(c.material===eyeMat) c.material=new THREE.MeshBasicMaterial({color:0xd9f99d});
+    const acidG=mat(0x84cc16,'glow'), rot=mat(0x3d2c14,'matte'), rot2=mat(0x55631a,'matte'), bone2=mat(0xd8d0b4,'matte');
+    // rotten patches, exposed ribs and glowing acid sores
+    torso.add(zbox(.2,.22,.02,rot,-.12,.46,.152), zbox(.16,.18,.02,rot2,.12,.3,.152), zbox(.1,.1,.02,acidG,.1,.5,.158), zbox(.07,.07,.02,acidG,-.14,.26,.158), zbox(.3,.04,.02,bone2,0,.42,.156), zbox(.3,.04,.02,bone2,0,.34,.156), zbox(.3,.04,.02,bone2,0,.26,.156));
+    head.add(zbox(.12,.1,.02,rot,-.08,.14,.162), zbox(.08,.08,.02,acidG,.08,.06,.162), zbox(.05,.14,.02,acidG,-.12,.24,.155), zbox(.2,.03,.02,rot2,0,.3,.158));
+    for(const a of arms){ a.sh.add(zbox(.17,.1,.17,rot,0,-.12,0), zbox(.05,.05,.05,acidG,.06,-.1,.08)); a.el.add(zbox(.15,.1,.15,rot2,0,-.22,0), zbox(.04,.12,.04,acidG,0,-.38,.06)); }
+    for(const l of legs){ l.hip.add(zbox(.2,.14,.22,rot,0,-.2,0), zbox(.05,.05,.05,acidG,.06,-.2,.1)); l.knee.add(zbox(.05,.14,.05,acidG,0,-.1,.1)); }
+    // acid drips
+    for(let i=0;i<5;i++) torso.add(zbox(.025,.14+.06*(i%3),.025,acidG,(i-2)*.1,.06-.04*(i%2),.14));
+    for(let i=0;i<3;i++) jaw.add(zbox(.02,.1+.05*i,.02,acidG,-.06+i*.06,-.04,.2));
+    torso.add(glowSprite(0x84cc16,.9,0,.4,.2));
+  }
   let vOrbit=null;
   if(t.voidz){
     skin.color.setHex(0x120826); cloth.color.setHex(0x070311); for(const c of head.children) if(c.material===eyeMat) c.material=voidEyeMat;
@@ -1866,6 +1894,7 @@ const BRUTE_WAVE=4, BRUTE_CHANCE=.12, FAST_CHANCE=.3, NEW_WAVES=2, NEW_WEIGHT=.2
 function pickType(){
   const hc=S.hc, vc=S.vc;
   if(S.wave>=(vc?10:(hc?15:25))&&Math.random()<.07&&S.zombies.filter(z=>z.crier).length<1) return {...CRIER,base:'Screamer'};
+  if(S.wave>=5&&Math.random()<.09&&S.zombies.filter(z=>z.toxic).length<8){ const b0=pickBase(); return {...b0,name:'Toxic '+b0.name,toxic:true,cash:b0.cash*1.3}; }
   if(S.wave>=8&&Math.random()<.09&&S.zombies.filter(z=>z.crawler).length<5){ const b0=pickBase(); return {...b0,name:'Crawler '+b0.name,crawler:true,hp:b0.hp*.8,cash:b0.cash*1.2,spd:b0.spd*.65,size:b0.size*.95}; }
   if(vc&&Math.random()<.06){ const b0=pickBase(); return {...b0,name:'Void '+b0.name,voidz:true,hp:b0.hp*2,cash:b0.cash*2,col:0x2e1658}; }
   if(S.wave>=(vc?5:11)&&Math.random()<.14&&S.zombies.filter(z=>z.shielder).length<(vc?10:6)){ const b0=pickBase(); return {...b0,name:'Shielder '+b0.name,shielder:true}; }
@@ -1892,8 +1921,8 @@ function spawnZombie(boss,over){
     if(side===0){x=u*MAP.w;z=2;} else if(side===1){x=u*MAP.w;z=MAP.h-2;} else if(side===2){x=2;z=u*MAP.h;} else {x=MAP.w-2;z=u*MAP.h;}
   }while(Math.hypot(x-P.x,z-P.z)<14&&n++<20);
   const m=makeZombie(t), hpM=t.miniBoss?1:(S.hc?4:(S.vc?10:1)), shM=t.shielder?t.hp*hpM:0;
-  const zb={id:NET.nextZid++,desc:{n:t.name,c:t.col,s:t.size,t:t.tier||0,a:t.archer?1:0,sc:t.screamer?1:0,b:boss?1:0,br:t.brute?1:0,bm:t.miniBoss?1:0,ca:t.cash,h:t.hp*hpM,cr:t.crier?1:0,vm:t.vmaster?1:0,vz:t.voidz?1:0,co:t.colossus?1:0,cw:t.crawler?1:0,ho:t.hboss?1:0,sh:shM},burnBy:0,x,z,hp:t.hp*hpM,max:t.hp*hpM,cash:t.cash,miniBoss:!!t.miniBoss,permGlow:!!t.miniBoss,spd:t.spd*(.92+Math.random()*.16)*((t.crier||t.vmaster||t.hboss)?1:(S.hc&&t.base!=='Runner'?2:(S.vc&&t.base!=='Runner'?2.5:1))),dmg:(t.hboss?45:(t.colossus?40:(t.vmaster?100:(t.crier?50:BASE_DMG*Math.pow(DMG_GROWTH,t.tier)*(t.brute?2:1)))))*(S.hc?3:(S.vc?5:1))*(t.voidz?2:1),
-    atk:0,boss,flash:0,screamer:!!t.screamer,brute:!!t.brute,scream:0,screamCd:2.5,screamFired:true,waves:0,buff:0,burn:0,burnT:0,dead:false,kvx:0,kvz:0,stun:0,swing:0,hitDone:true,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,hboss:!!t.hboss,crawler:!!t.crawler,cs:0,csT:0,clCd:1+Math.random()*2,att:-1,atT:1,colossus:!!t.colossus,smN:0,smT:0,smCd:5,vmaster:!!t.vmaster,voidz:!!t.voidz,crier:!!t.crier,cst:0,standT:0,shielder:!!t.shielder,shMax:shM,sh:shM,...m};
+  const zb={id:NET.nextZid++,desc:{n:t.name,c:t.col,s:t.size,t:t.tier||0,a:t.archer?1:0,sc:t.screamer?1:0,b:boss?1:0,br:t.brute?1:0,bm:t.miniBoss?1:0,ca:t.cash,h:t.hp*hpM,cr:t.crier?1:0,vm:t.vmaster?1:0,vz:t.voidz?1:0,co:t.colossus?1:0,cw:t.crawler?1:0,tx:t.toxic?1:0,ho:t.hboss?1:0,sh:shM},burnBy:0,x,z,hp:t.hp*hpM,max:t.hp*hpM,cash:t.cash,miniBoss:!!t.miniBoss,permGlow:!!t.miniBoss,spd:t.spd*(.92+Math.random()*.16)*((t.crier||t.vmaster||t.hboss)?1:(S.hc&&t.base!=='Runner'?2:(S.vc&&t.base!=='Runner'?2.5:1))),dmg:(t.hboss?45:(t.colossus?40:(t.vmaster?100:(t.crier?50:BASE_DMG*Math.pow(DMG_GROWTH,t.tier)*(t.brute?2:1)))))*(S.hc?3:(S.vc?5:1))*(t.voidz?2:1),
+    atk:0,boss,flash:0,screamer:!!t.screamer,brute:!!t.brute,scream:0,screamCd:2.5,screamFired:true,waves:0,buff:0,burn:0,burnT:0,dead:false,kvx:0,kvz:0,stun:0,swing:0,hitDone:true,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,hboss:!!t.hboss,toxic:!!t.toxic,crawler:!!t.crawler,cs:0,csT:0,clCd:1+Math.random()*2,att:-1,atT:1,colossus:!!t.colossus,smN:0,smT:0,smCd:5,vmaster:!!t.vmaster,voidz:!!t.voidz,crier:!!t.crier,cst:0,standT:0,shielder:!!t.shielder,shMax:shM,sh:shM,...m};
   zb.y0=0;
   if(S.vc&&!t.crier&&!t.miniBoss&&!t.voidz){ const vm=t.base==='Runner'?1:2.5; if(t.fast) zb.spd=Math.min(zb.spd/vm*Math.min(vm,1.6),3.2); else zb.spd=Math.min(zb.spd,5.5); }
   if(t.crier){ zb.rageSpd=t.spd*(.92+Math.random()*.16); zb.spd=0; for(let i=0;i<30;i++){ const cx=rnd(3,MAP.w-3), cz=rnd(3,MAP.h-3); if(Math.hypot(cx-P.x,cz-P.z)>12&&!bricks.some(b=>cx>b.x-1&&cx<b.x+b.w+1&&cz>b.z-1&&cz<b.z+b.d+1)){ zb.x=cx; zb.z=cz; break; } } }
@@ -2464,7 +2493,7 @@ function contBeam(a,b){
 }
 function updateCbeam(dt){ const cb=S.cbeam; if(cb){ cb.t-=dt; if(cb.t<=0){ scene.remove(cb.g); cb.outer.material.dispose(); cb.inner.material.dispose(); S.cbeam=null; } } }
 const OS_FIRE=5, OS_HYPER=2, OS_COOL=5, OS_COOL_H=7;
-function resetMelee(){ clearSecondaries(); clearWaves(); clearTrident(); clearRifts(); S.riftLock=false; S.riftCd=0; S.swUsed=false; S.shieldT=0; S.shadowT=0; $('shadowFx').style.opacity=0; S.okStacks=0; S.okT=9; S.kk=0; S.inPass=false; S.sonicMode=0; S.souls=0; S.ghoul=0; S.spin=0; S.throwCd=0; S.chAcc=0; if(S.thrown){ gameG.remove(S.thrown.g); S.thrown=null; } $('ghoulFx').style.opacity=0; }
+function resetMelee(){ S.poison=null; $('poisFx').style.opacity=0; clearSecondaries(); clearWaves(); clearTrident(); clearRifts(); S.riftLock=false; S.riftCd=0; S.swUsed=false; S.shieldT=0; S.shadowT=0; $('shadowFx').style.opacity=0; S.okStacks=0; S.okT=9; S.kk=0; S.inPass=false; S.sonicMode=0; S.souls=0; S.ghoul=0; S.spin=0; S.throwCd=0; S.chAcc=0; if(S.thrown){ gameG.remove(S.thrown.g); S.thrown=null; } $('ghoulFx').style.opacity=0; }
 function resetOS(){ resetMelee(); S.os={ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}; osBeamRemove(); }
 function startOS(){ S.os={ph:'fire',t:OS_FIRE,acc:0,ft:.3,nt:0,hm:0}; sfx('osfire'); say('ORBITAL STRIKE!',1.2); }
 function osBeamRemove(){ const ob=S.osbeam; if(!ob) return; scene.remove(ob.g); ob.o.material.dispose(); ob.i.material.dispose(); for(const sp of ob.sp) sp.material.dispose(); S.osbeam=null; }
@@ -2943,7 +2972,7 @@ function update(dt){
   } else S.heat=0;
 
   if(!S.omFired) hideOmni(); S.omFired=false;
-  updateWaves(dt); updateTrident(dt); updateZones(dt); updateDrone(dt);
+  updatePoison(dt); updateWaves(dt); updateTrident(dt); updateZones(dt); updateDrone(dt);
   updateOS(dt); updateGrab(dt); updateDots(dt); updateMarked(dt); updateFog(dt); updateRifts(dt); updateScythe(dt);
   if(S.ghoul>0){ S.ghoul=Math.max(0,S.ghoul-dt); if(S.ghoul===0) say('Ghoul state ended',1.5); } $('ghoulFx').style.opacity=S.ghoul>0?.9:0;
   if(S.spin>0){ P.yaw+=2*Math.PI/.55*dt; S.spin-=dt; }
@@ -2993,7 +3022,7 @@ function update(dt){
       if(Math.random()<dt*14) flameFx(new THREE.Vector3(z.x+(Math.random()-.5)*z.r,z.height*Math.random(),z.z+(Math.random()-.5)*z.r),new THREE.Vector3(0,1.2,0),.4);
     }
     z.atk-=dt;
-    if(z.swing>0){ z.swing-=dt; if(!z.hitDone&&z.swing<=.3){ z.hitDone=true; if(d<z.r+.4+.7) hitPlayer(T.pid,Math.round(z.dmg)); } }
+    if(z.swing>0){ z.swing-=dt; if(!z.hitDone&&z.swing<=.3){ z.hitDone=true; if(d<z.r+.4+.7){ hitPlayer(T.pid,Math.round(z.dmg)); if(z.toxic) poisonPlayer(T.pid,T); } } }
     else if(!z.archer&&!z.crawler&&!(z.smN>0)&&!z.waved&&!z.hooked&&!(z.freeze>0)&&(!z.crier||z.cst===2)&&d<z.r+.4+.4&&z.atk<=0){ z.atk=1; z.swing=.6; z.hitDone=false; sfx('zatk',z.x,z.z,1,zPitch(z)); }
   }
   hurt.push(...incoming.splice(0));
@@ -3121,6 +3150,7 @@ function updateHud(){
     if(passOn('adrenaline')) L.push('Adrenaline · '+(S.hp<S.maxHp*.3?'ACTIVE':'below 30% hp'));
     if(passOn('secondwind')) L.push('Second Wind · '+(S.swUsed?'used':'READY'));
     if(passOn('stormking')) L.push('Storm King · '+(S.kk%15)+'/15 kills');
+    if(S.poison) L.push('☠ POISONED · '+Math.max(0,S.poison.t).toFixed(1)+'s');
     if(THROWN.includes(S.secEq)){ const so=SECONDARIES.find(o=>o.id===S.secEq); L.push('X · '+so.name+' · '+(S.grCd>0?S.grCd.toFixed(1)+'s':'READY')); }
     if(S.secEq==='drone'&&S.drone) L.push('Drone · '+(S.drone.od?'OVERDRIVE '+(3-S.drone.cycle).toFixed(1)+'s':'overdrive in '+(10-S.drone.cycle).toFixed(0)+'s'));
     if(S.secEq==='boost') L.push('Damage Projector · '+(inBoost()?'+15% ACTIVE':'stand in the field'));
@@ -3485,7 +3515,7 @@ function hostTick(dt){
   const base={t:'s',w:S.wave,n:live.length+S.toSpawn,bt:r2(Math.max(0,S.breakT)),p:pl,z:zs};
   for(const pid in NET.conns){
     const kn=NET.known[pid]||(NET.known[pid]={}), d=[];
-    for(const z of live) if(!kn[z.id]){ kn[z.id]=1; const q=z.desc; d.push({i:z.id,n:q.n,c:q.c,s:q.s,t:q.t,a:q.a,sc:q.sc,b:q.b,br:q.br,bm:q.bm,h:q.h,ca:q.ca,cr:q.cr,vm:q.vm,vz:q.vz,co:q.co,cw:q.cw,ho:q.ho,sh:q.sh,y:z.y0||0,x:r2(z.x),z:r2(z.z)}); }
+    for(const z of live) if(!kn[z.id]){ kn[z.id]=1; const q=z.desc; d.push({i:z.id,n:q.n,c:q.c,s:q.s,t:q.t,a:q.a,sc:q.sc,b:q.b,br:q.br,bm:q.bm,h:q.h,ca:q.ca,cr:q.cr,vm:q.vm,vz:q.vz,co:q.co,cw:q.cw,tx:q.tx,ho:q.ho,sh:q.sh,y:z.y0||0,x:r2(z.x),z:r2(z.z)}); }
     netSend(NET.conns[pid],{...base,d});
   }
 }
@@ -3502,6 +3532,7 @@ function mpClientData(m){
       $('mp').classList.remove('open'); $('mp').style.display='none'; S.mpOpen=false; startGame({mp:true,bricks:m.bricks,hc:!!m.hc,vc:!!m.vc}); break;
     case 's': clientSnapshot(m); break;
     case 'dead': clientDead(m); break;
+    case 'poison': if(!(S.shadowT>0||S.shieldT>0||S.riftIn>=0)){ if(S.poison){ S.poison.t=2; S.poison.n=0; S.poison.mm=m.mm||1; } else S.poison={t:2,acc:0,n:0,mm:m.mm||1}; sfx('poison'); } break;
     case 'dmg': if(S.shadowT>0||S.shieldT>0||S.riftIn>=0) break; S.hp-=m.n; incoming.push(m.n); if(S.hp<=0) secondWind(); break;
     case 'arrow': spawnVisualArrow(m.o,m.v); break;
     case 'vb': spawnVBall(m.o,m.v,true); break;
@@ -3516,8 +3547,8 @@ function mpClientData(m){
   }
 }
 function createGhost(d){
-  const t={name:d.n,col:d.c,size:d.s,tier:d.t,archer:!!d.a,screamer:!!d.sc,brute:!!d.br,crier:!!d.cr,shielder:!!d.sh,vmaster:!!d.vm,voidz:!!d.vz,colossus:!!d.co,crawler:!!d.cw,hboss:!!d.ho}, m=makeZombie(t);
-  const z={id:d.i,desc:d,x:d.x,z:d.z,tx:d.x,tz:d.z,face:0,tface:0,hp:d.h,max:d.h,cash:d.ca||0,spd:0,dead:false,swing:0,hitDone:true,scream:0,screamFired:true,waves:0,screamer:!!d.sc,archer:!!d.a,brute:!!d.br,miniBoss:!!d.bm,permGlow:!!d.bm,aSt:'wait',aT:0,dr:0,y0:d.y||0,buff:0,burn:0,burnT:0,flash:0,phase:Math.random()*6,kvx:0,kvz:0,boss:!!d.b,hboss:!!d.ho,crawler:!!d.cw,cs:0,att:-1,colossus:!!d.co,smN:0,smT:0,vmaster:!!d.vm,voidz:!!d.vz,crier:!!d.cr,cst:0,standT:0,shielder:!!d.sh,shMax:d.sh||0,sh:d.sh||0,...m};
+  const t={name:d.n,col:d.c,size:d.s,tier:d.t,archer:!!d.a,screamer:!!d.sc,brute:!!d.br,crier:!!d.cr,shielder:!!d.sh,vmaster:!!d.vm,voidz:!!d.vz,colossus:!!d.co,crawler:!!d.cw,toxic:!!d.tx,hboss:!!d.ho}, m=makeZombie(t);
+  const z={id:d.i,desc:d,x:d.x,z:d.z,tx:d.x,tz:d.z,face:0,tface:0,hp:d.h,max:d.h,cash:d.ca||0,spd:0,dead:false,swing:0,hitDone:true,scream:0,screamFired:true,waves:0,screamer:!!d.sc,archer:!!d.a,brute:!!d.br,miniBoss:!!d.bm,permGlow:!!d.bm,aSt:'wait',aT:0,dr:0,y0:d.y||0,buff:0,burn:0,burnT:0,flash:0,phase:Math.random()*6,kvx:0,kvz:0,boss:!!d.b,toxic:!!d.tx,hboss:!!d.ho,crawler:!!d.cw,cs:0,att:-1,colossus:!!d.co,smN:0,smT:0,vmaster:!!d.vm,voidz:!!d.vz,crier:!!d.cr,cst:0,standT:0,shielder:!!d.sh,shMax:d.sh||0,sh:d.sh||0,...m};
   if(d.bm){ ensureGlow(z); z.glow.material.color.setHex(d.co||d.ho?0xdc2626:0xd946ef); z.glow.visible=true; }
   S.zombies.push(z); NET.ghosts[d.i]=z; return z;
 }
@@ -3704,6 +3735,7 @@ const SND={
   shieldup:{v:.7,range:60,f:o=>{ tone({f:200,f2:700,dur:.5,type:'sine',vol:.3,att:.05,out:o}); tone({f:400,f2:1200,dur:.4,type:'triangle',vol:.12,out:o}); }},
   boostup:{v:.7,range:60,f:o=>{ tone({f:300,f2:900,dur:.35,type:'square',vol:.15,lp:2500,out:o}); tone({f:600,f2:1500,dur:.3,type:'triangle',vol:.15,out:o}); }},
   icebomb:{v:.9,range:80,f:o=>{ noise({dur:.5,vol:.45,ft:'highpass',f:3500,f2:1500,out:o}); tone({f:1800,f2:300,dur:.4,type:'sine',vol:.2,out:o}); tone({f:90,f2:40,dur:.4,type:'sine',vol:.35,out:o}); }},
+  poison:{v:.5,f:o=>{ noise({dur:.3,vol:.3,ft:'bandpass',f:1500,f2:600,out:o}); tone({f:200,f2:110,dur:.3,type:'sawtooth',vol:.12,lp:700,out:o}); }},
   oceanwave:{v:1,range:110,f:o=>{ noise({dur:1.4,vol:.55,ft:'bandpass',f:500,f2:1800,out:o}); tone({f:70,f2:40,dur:1.3,type:'sine',vol:.5,att:.2,out:o}); tone({f:300,f2:120,dur:1.1,type:'triangle',vol:.15,out:o}); }},
   splash:{v:.5,range:50,f:o=>{ noise({dur:.28,vol:.4,ft:'bandpass',f:1800,f2:600,out:o}); tone({f:400,f2:120,dur:.2,type:'sine',vol:.15,out:o}); }},
   omnifire:{v:.55,range:70,f:o=>{ tone({f:880,f2:700,dur:.12,type:'sawtooth',vol:.18,lp:3500,out:o}); tone({f:1320,f2:1000,dur:.12,type:'square',vol:.08,out:o}); tone({f:440,f2:360,dur:.12,type:'triangle',vol:.15,out:o}); noise({dur:.1,vol:.18,ft:'bandpass',f:3500,f2:2500,out:o}); }},
@@ -3863,7 +3895,7 @@ buildPass();
 const DIA_NEED=5;
 function zKey(z){
   if(z.colossus) return 'colossus'; if(z.vmaster) return 'vmaster'; if(z.hboss) return 'hboss'; if(z.boss) return 'boss99';
-  if(z.crier) return 'screamer'; if(z.crawler) return 'crawler'; if(z.voidz) return 'voidz'; if(z.shielder) return 'shielder'; if(z.screamer) return 'howler'; if(z.archer) return 'bowman'; if(z.brute) return 'brute';
+  if(z.crier) return 'screamer'; if(z.crawler) return 'crawler'; if(z.toxic) return 'toxic'; if(z.voidz) return 'voidz'; if(z.shielder) return 'shielder'; if(z.screamer) return 'howler'; if(z.archer) return 'bowman'; if(z.brute) return 'brute';
   const d=z.desc; if(d&&d.n&&d.n.indexOf('Fast')===0) return 'fast'; const t=ZTYPES[(d&&d.t)||0]; return t?t.name.toLowerCase():null;
 }
 function recordKill(z){ const k=zKey(z); if(k){ S.kills[k]=(S.kills[k]||0)+1; S.killsDirty=true; } }
@@ -3881,6 +3913,7 @@ const BEST=[
   {id:'howler',cat:'z',name:'Howler',ico:'😱',st:{hp:500,spd:1.7,dmg:'tier based',cash:75,wave:15},desc:'A tall, pale screamer. It rallies the horde with a deafening howl.',ab:['Screams every ~12 s: zombies within 10 m get +25% health, +25% speed and +50% damage for 12 s.','Red-glowing victims show who is buffed.','Spawns more often in Hardcore (limit 5).']},
   {id:'bowman',cat:'z',name:'Bowman',ico:'🏹',st:{hp:'0.75× the base type',spd:'stands still',dmg:'arrows hit hard',cash:'same as base',wave:10},desc:'A zombie archer that climbs up on top of the bricks and shoots you from range.',ab:['Fires arrows in an arc – keep moving.','Melee weapons get extra reach against archers.','Often found in groups on the same brick.']},
   {id:'shielder',cat:'z',name:'Shielder',ico:'🛡️',st:{hp:'base type',spd:'base type',dmg:'base type',cash:'base type',wave:'11 (5 in VOIDCORE MODE)'},desc:'A zombie in armour with a heavy shield.',ab:['Has a blue shield bar equal to its health, shown next to a shield icon.','Damage hits the shield first; when it breaks the armour falls off and it becomes a normal zombie.']},
+  {id:'toxic',cat:'z',name:'Toxic Zombie',ico:'☣️',st:{hp:'same as the base type',spd:'base type',dmg:'base type + poison',cash:'1.3× the base type',wave:5},desc:'A zombie rotting away with acid – green sores, exposed ribs and dripping goo.',ab:['Attacks like a normal zombie when you get close.','If its hit lands, you are poisoned: 10 damage every 0.5 s for 2 s (× the mode damage multiplier). Getting hit again refreshes the poison.','Shadow Step, rifts and shields protect you from it.']},
   {id:'crawler',cat:'z',name:'Crawler',ico:'🕷️',st:{hp:'0.8× the base type',spd:'0.65× base',dmg:'10 per second while attached (×mode)',cash:'1.2× the base type',wave:8},desc:'A zombie with its legs torn off that drags itself along the ground.',ab:['Crouches for a moment, then leaps at you – sidestep or jump to dodge.','If it grabs you your vision is covered by thick black fog and it hurts you every second.','Spam SPACE to shake it off; it is then stunned for 3 s.','At most 2 can be attached to you.']},
   {id:'screamer',cat:'z',name:'Screamer',ico:'😖',st:{hp:'1,000 (×mode)',spd:'9.5 when enraged',dmg:'50 base (×mode)',cash:200,wave:'25 (15 Hardcore, 10 VOIDCORE)'},desc:'A bald, bleeding thing that sits curled up, covering its face.',ab:['Sits motionless and takes 75% less damage.','After losing 20% of its health it stands up and sprints at you while screaming.','Only one Screamer can be alive at a time.']},
   {id:'voidz',cat:'z',name:'Void Zombie',ico:'🌀',st:{hp:'2× the base type',spd:'base type',dmg:'2× the base type',cash:'2× the base type',wave:'VOIDCORE MODE'},desc:'A zombie taken over by the void – dark skin, a hollow glowing chest and crystals bursting out of its body.',ab:['Summoned in threes by the Void Master.','Can also appear on its own in VOIDCORE MODE.']},
