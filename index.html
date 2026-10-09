@@ -2201,7 +2201,7 @@ function updateOS(dt){
 function fireLaser(w){
   _o.set(P.x,EYE,P.z); dirFrom(P.yaw,P.pitch,_d); let any=false; const up=U('laser'), ex=up?.4:0;
   for(const z of S.zombies){ if(z.dead) continue; const t=rayZombie(_o,_d,z,ex);
-    if(t<=100){ hurtZombie(z,w.dmg,new THREE.Vector3(_o.x+_d.x*t,_o.y+_d.y*t,_o.z+_d.z*t)); any=true; } }
+    if(t<=100){ const hy=_o.y+_d.y*t, head=hy>=(z.y0||0)+z.height*.82; hurtZombie(z,w.dmg*(head?(passOn('sharpshooter')?2.5:1.5):1),new THREE.Vector3(_o.x+_d.x*t,hy,_o.z+_d.z*t),head?'#ef4444':undefined); if(head) z.flash=.1; any=true; } }
   gunMuzzle.getWorldPosition(_m); { const _b=_o.clone().addScaledVector(_d,60); if(up) contBeam(_m,_b); else beam(_m.clone(),_b,0x38bdf8,.04); netShot({k:'b',a:[_m.x,_m.y,_m.z],b:[_b.x,_b.y,_b.z]}); }
   if(any) hitMarker();
 }
