@@ -78,27 +78,31 @@
   #mulChip{color:#c4b5fd;border-color:#8b5cf655}
   .sh-sub{margin:14px 2px 8px;font-size:12px;font-weight:800;letter-spacing:2px;color:#9ca3af;text-transform:uppercase}
   #wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:12px}
-  .card{position:relative;background:#1a2332;border:1px solid #2b3648;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;transition:transform .15s,border-color .15s,box-shadow .15s,background .15s}
-  .card:hover{transform:translateY(-3px);border-color:#facc1588;box-shadow:0 8px 24px #0008}
-  .card.eq{border-color:#3b82f6;background:#17233a;box-shadow:0 0 0 1px #3b82f655,0 0 22px #3b82f633}
-  .card.locked{opacity:.55;filter:grayscale(.7)} .card.locked:hover{transform:none;border-color:#2b3648;box-shadow:none}
+  .card{--a:#3b82f6;--a2:#38bdf8;--bg:#1a2332;--bg2:#17233a;--bd:#2b3648;--ib:#0f172a;position:relative;background:var(--bg);border:1px solid var(--bd);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;transition:transform .15s,border-color .15s,box-shadow .15s,background .15s}
+  .card:hover{transform:translateY(-3px);border-color:var(--a);box-shadow:0 8px 24px #0008,0 0 16px color-mix(in srgb,var(--a) 30%,transparent)}
+  .card.eq{border-color:var(--a);background:var(--bg2);box-shadow:0 0 0 1px color-mix(in srgb,var(--a) 40%,transparent),0 0 22px color-mix(in srgb,var(--a) 28%,transparent)}
+  .card::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;border-radius:14px 14px 0 0;background:linear-gradient(90deg,var(--a),var(--a2))}
+  .card.locked{opacity:.55;filter:grayscale(.7)} .card.locked:hover{transform:none;border-color:var(--bd);box-shadow:none}
   .ctop{display:flex;align-items:center;gap:10px}
-  .ico{font-size:30px;width:46px;height:46px;border-radius:12px;background:#0f172a;display:grid;place-items:center;flex:none}
+  .ico{font-size:30px;width:46px;height:46px;border-radius:12px;background:var(--ib,#0f172a);display:grid;place-items:center;flex:none}
+  .card .ico{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--a) 45%,transparent),0 0 12px color-mix(in srgb,var(--a) 22%,transparent)}
   .nm{font-weight:800;font-size:17px}
   .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
-  .tag{font-size:10.5px;font-weight:700;background:#0f172a;color:#93c5fd;border-radius:6px;padding:2px 6px}
+  .tag{font-size:10.5px;font-weight:700;background:var(--ib,#0f172a);color:#93c5fd;border-radius:6px;padding:2px 6px}
   .key{margin-left:auto;font-size:12px;font-weight:800;color:#9ca3af;border:1px solid #4b5563;border-radius:6px;padding:1px 7px;align-self:flex-start}
   .st{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:8px;font-size:12.5px;color:#cbd5e1}
   .st b{color:#fff;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
   .bar{height:7px;background:#0b1220;border-radius:6px;overflow:hidden}
   .bar i{display:block;height:100%;border-radius:6px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
-  .st.d i{background:linear-gradient(90deg,#ef4444,#f97316)} .st.r i{background:linear-gradient(90deg,#22c55e,#a3e635)} .st.p i{background:linear-gradient(90deg,#8b5cf6,#38bdf8)}
+  .st.d i{background:linear-gradient(90deg,var(--a),var(--a2))} .st.r i{background:linear-gradient(90deg,var(--a2),var(--a))} .st.p i{background:linear-gradient(90deg,var(--a),#fff8)}
+  .card .tag{color:var(--a2);border:1px solid color-mix(in srgb,var(--a) 35%,transparent)} .card .nm{color:#fff;text-shadow:0 0 14px color-mix(in srgb,var(--a) 55%,transparent)}
+  .card .note{border-left:2px solid color-mix(in srgb,var(--a) 55%,transparent);padding-left:8px}
   .note{font-size:12px;color:#94a3b8;line-height:1.4;min-height:34px}
-  button.buy{margin-top:auto;background:linear-gradient(#22c55e,#16a34a);color:#fff;border:0;border-radius:10px;padding:10px 12px;font-weight:800;font-size:15px;cursor:pointer;transition:filter .15s,transform .1s}
+  button.buy{margin-top:auto;background:linear-gradient(color-mix(in srgb,var(--a,#22c55e) 92%,#fff),var(--a,#16a34a));color:var(--bt,#fff);border:0;border-radius:10px;padding:10px 12px;font-weight:800;font-size:15px;cursor:pointer;transition:filter .15s,transform .1s}
   button.buy:hover:not(:disabled){filter:brightness(1.12)} button.buy:active:not(:disabled){transform:scale(.97)}
   button.buy:disabled{background:#374151;color:#9ca3af;cursor:not-allowed}
-  button.buy.eqb{background:linear-gradient(#3b82f6,#2563eb)}
-  button.buy.curr{background:#1e3a8a;color:#bfdbfe}
+  button.buy.eqb{background:linear-gradient(var(--a2,#3b82f6),var(--a,#2563eb))}
+  button.buy.curr{background:color-mix(in srgb,var(--a,#3b82f6) 28%,#0b1020);color:var(--a2,#bfdbfe);box-shadow:inset 0 0 0 1px var(--a,#3b82f6)}
   button.buy.poor:disabled{background:#3b1d1d;color:#fca5a5}
   .lockov{position:absolute;inset:0;border-radius:14px;display:none;align-items:center;justify-content:center;background:#0009;font-weight:800;font-size:15px;text-align:center;padding:10px;color:#e9d5ff}
   .card.locked .lockov{display:flex}
@@ -2708,10 +2712,29 @@ const lg=(v,m)=>Math.min(100,Math.log(v+1)/Math.log(m+1)*100);
 const wDps=w=>w.dmg*(w.pellets||1)/w.cd;
 const MAXD=Math.max(...WEAPONS.map(w=>w.dmg)), MAXR=Math.max(...WEAPONS.map(w=>1/w.cd)), MAXP=Math.max(...WEAPONS.map(wDps));
 const fmtN=n=>n>=1e4?(n/1e3).toFixed(n>=1e5?0:1)+'k':Math.round(n).toLocaleString();
+const WTHEME={
+  glock:{a:'#94a3b8',a2:'#e2e8f0',bt:'#0b1220',bg:'#1b212b',bg2:'#222b38',bd:'#323d4d',ib:'#10151d'},
+  rifle:{a:'#d97706',a2:'#fbbf24',bg:'#251a10',bg2:'#2e2012',bd:'#4a3318',ib:'#170f07'},
+  mg:{a:'#65a30d',a2:'#bef264',bg:'#18200f',bg2:'#1e2a12',bd:'#33441c',ib:'#0e1408'},
+  shotgun:{a:'#dc2626',a2:'#fb923c',bg:'#25150f',bg2:'#311a12',bd:'#4d2a1c',ib:'#170b07'},
+  autoshot:{a:'#f97316',a2:'#fde047',bt:'#0b1220',bg:'#271707',bg2:'#331e08',bd:'#52320f',ib:'#170d03'},
+  minigun:{a:'#eab308',a2:'#fef08a',bt:'#0b1220',bg:'#22200c',bg2:'#2c290e',bd:'#4a4413',ib:'#141206'},
+  flame:{a:'#ef4444',a2:'#fb923c',bg:'#2a1210',bg2:'#381612',bd:'#5a2219',ib:'#1a0a08'},
+  chainsaw:{a:'#ea580c',a2:'#f87171',bg:'#261410',bg2:'#331913',bd:'#52291c',ib:'#160a07'},
+  lava:{a:'#f97316',a2:'#facc15',bg:'#2b1308',bg2:'#391909',bd:'#5e2c10',ib:'#1a0b04'},
+  railgun:{a:'#06b6d4',a2:'#a5f3fc',bg:'#0f2230',bg2:'#112c3c',bd:'#1b4a63',ib:'#08141c'},
+  orbital:{a:'#dc2626',a2:'#f472b6',bg:'#2a0f17',bg2:'#37121c',bd:'#5c1a2b',ib:'#18070d'},
+  vampire:{a:'#be123c',a2:'#fb7185',bg:'#27101a',bg2:'#33121f',bd:'#52182f',ib:'#16080e'},
+  reaper:{a:'#b91c1c',a2:'#c084fc',bg:'#1c1020',bg2:'#251228',bd:'#3f1c3d',ib:'#100814'},
+  ostrike:{a:'#7dd3fc',a2:'#ffffff',bt:'#0b1220',bg:'#141d2e',bg2:'#182540',bd:'#2a3f66',ib:'#0a1120'},
+  sonic:{a:'#38bdf8',a2:'#818cf8',bg:'#0c1630',bg2:'#0f1c40',bd:'#1c3166',ib:'#060b1a'},
+  dagger:{a:'#a855f7',a2:'#e879f9',bg:'#170d2a',bg2:'#1e1038',bd:'#37206b',ib:'#0c0618'},
+};
+function applyWTheme(c,id){ const t=WTHEME[id]; if(!t) return; for(const k of ['a','a2','bg','bg2','bd','ib']) c.style.setProperty('--'+k,t[k]); if(t.bt) c.style.setProperty('--bt',t.bt); }
 function buildShop(){
   const g=$('wgrid'); g.innerHTML='';
   SHOPW().forEach((w,i)=>{
-    const f=WINFO[w.id], c=document.createElement('div'); c.className='card'; c.id='card-'+w.id;
+    const f=WINFO[w.id], c=document.createElement('div'); c.className='card'; c.id='card-'+w.id; applyWTheme(c,w.id);
     c.innerHTML=`<div class="ctop"><div class="ico">${f.ico}</div><div><div class="nm">${w.name}</div><div class="tags">${f.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div><span class="key">${i<10?(i+1)%10:""}</span></div>
       <div class="st d"><span>Damage</span><div class="bar"><i style="width:${lg(w.dmg,MAXD)}%"></i></div><b class="vd"></b></div>
       <div class="st r"><span>Fire rate</span><div class="bar"><i style="width:${lg(1/w.cd,MAXR)}%"></i></div><b class="vr"></b></div>
