@@ -12,6 +12,8 @@
   <div class="bar">
     <div class="logo">Pixel<span>Crate</span></div>
     <div class="search"><input id="search" type="search" placeholder="Search games…" aria-label="Search games"></div>
+    <div class="wallet" title="Fake money for testing"><span>🪙 <b id="wallet">$0.00</b></span><button id="topup" aria-label="Add $50 fake money">+</button></div>
+    <button class="cart-btn ghost" id="open-orders">📦 <span class="lbl">Orders</span> (<span id="orders-count">0</span>)</button>
     <button class="cart-btn" id="open-cart">🛒 <span class="lbl">Cart</span> (<span id="cart-count">0</span>)</button>
   </div>
 </header>
@@ -47,6 +49,7 @@
   <header><h2>Your cart</h2><button class="x" data-close aria-label="Close cart">×</button></header>
   <div class="lines" id="lines"></div>
   <div class="cart-foot" id="cart-foot">
+    <div class="meta" id="eta-hint"></div>
     <div class="promo"><input id="promo" placeholder="Promo code"><button class="btn ghost" id="apply-promo">Apply</button></div>
     <div class="msg" id="promo-msg"></div>
     <div class="row"><span>Subtotal</span><span id="subtotal"></span></div>
