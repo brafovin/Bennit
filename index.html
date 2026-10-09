@@ -1393,22 +1393,26 @@ function makeZombie(t){
     phMats=[...cm.values()]; outSkin=cm.get(skin)?cm.get(skin).c:skin; outCloth=cm.get(cloth)?cm.get(cloth).c:cloth;
   }
   if(t.warden){
-    skin.color.setHex(0x3b3b44); cloth.color.setHex(0x1c1c22);
-    for(const c of head.children) if(c.material===eyeMat) c.material=mat(0xfb923c,'glow');
-    const iron=mat(0x2b2f36,'metal'), rust=mat(0x6b3a1e,'metal'), hot=mat(0xf97316,'glow'), hazard=mat(0xeab308,'matte'), blk=mat(0x0f0f12,'matte'), steel=mat(0x6b7280,'metal');
-    torso.scale.set(1.35,1.1,1.4);
-    // riveted chest armour, hazard stripes and shoulder guards
-    torso.add(zbox(.66,.5,.1,iron,0,.44,.17), zbox(.5,.05,.02,hazard,0,.22,.225), zbox(.4,.04,.02,hazard,0,.3,.225), zbox(.18,.18,.02,hot,0,.5,.225), zbox(.7,.1,.34,iron,0,.04,0));
-    for(const sd of [-1,1]) torso.add(zbox(.3,.16,.36,iron,sd*.38,.74,0), zbox(.32,.05,.38,hazard,sd*.38,.82,0), zbox(.05,.18,.05,steel,sd*.5,.88,.1), zbox(.05,.18,.05,steel,sd*.5,.88,-.1));
-    // fuel tanks and hoses on the back
-    for(const sd of [-1,1]) torso.add(zbox(.2,.66,.2,rust,sd*.17,.46,-.26), zbox(.22,.07,.22,iron,sd*.17,.82,-.26), zbox(.22,.07,.22,iron,sd*.17,.12,-.26), zbox(.06,.06,.06,hot,sd*.17,.9,-.26));
-    torso.add(zbox(.04,.5,.04,blk,.3,.58,-.12), zbox(.34,.04,.04,blk,.16,.84,-.18), zbox(.04,.3,.04,blk,.34,.5,.0), glowSprite(0xf97316,.8,0,.45,.22));
-    // gas mask helmet
-    head.add(zbox(.34,.3,.34,iron,0,.17,0), zbox(.36,.06,.36,hazard,0,.34,0), zbox(.1,.1,.02,hot,-.08,.2,.17), zbox(.1,.1,.02,hot,.08,.2,.17), zbox(.14,.14,.14,steel,0,.08,.22), zbox(.04,.24,.04,blk,0,-.06,.22), zbox(.04,.1,.04,iron,-.1,.42,0), zbox(.04,.14,.04,iron,.1,.42,0));
-    // left arm: heavy gauntlet. right arm: the flamethrower
-    arms[0].el.add(zbox(.22,.32,.22,iron,0,-.18,0), zbox(.24,.06,.24,hazard,0,-.02,0));
-    const fe=arms[1].el; fe.add(zbox(.2,.2,.2,iron,0,-.12,0), zbox(.2,.62,.2,steel,0,-.52,0), zbox(.26,.08,.26,rust,0,-.88,0), zbox(.16,.12,.16,hot,0,-.96,0), zbox(.26,.08,.26,hazard,0,-.3,0), zbox(.05,.5,.05,blk,.13,-.4,0), glowSprite(0xfb923c,.9,0,-1.0,0));
-    nozzle=new THREE.Object3D(); nozzle.position.set(0,-1.02,0); fe.add(nozzle);
+    skin.color.setHex(0x4a1d12); cloth.color.setHex(0x1a0d0a);
+    for(const c of head.children) if(c.material===eyeMat) c.material=mat(0xfff1a8,'glow');
+    const char=mat(0x241512,'matte'), iron=mat(0x3a3f47,'metal'), lava=mat(0xff5a14,'glow'), lava2=mat(0xffc02e,'glow'), chain=mat(0x8a8f99,'metal'), bone=mat(0xd8cdb0,'matte');
+    torso.scale.set(1.5,1.15,1.5);
+    // furnace belly: an iron cage with a roaring fire inside, lava cracks across the charred body
+    torso.add(zbox(.46,.46,.1,char,0,.4,.16), zbox(.34,.34,.06,lava,0,.4,.2), zbox(.18,.2,.06,lava2,0,.38,.23), zbox(.5,.05,.12,iron,0,.64,.18), zbox(.5,.05,.12,iron,0,.16,.18));
+    for(const x of [-.2,-.07,.07,.2]) torso.add(zbox(.035,.5,.12,iron,x,.4,.19));
+    torso.add(zbox(.04,.3,.02,lava,-.2,.7,.16), zbox(.04,.24,.02,lava,.22,.62,.16), zbox(.2,.03,.02,lava,.14,.72,.16), zbox(.03,.5,.02,lava,.1,.4,-.15), zbox(.03,.34,.02,lava,-.14,.5,-.15), glowSprite(0xff6a1a,1.3,0,.4,.25));
+    // smoking chimney pipes on the back, studded iron pauldrons with hanging chains
+    for(const sd of [-1,1]){ torso.add(zbox(.14,.7,.14,iron,sd*.18,.7,-.24), zbox(.18,.06,.18,char,sd*.18,1.06,-.24), zbox(.08,.04,.08,lava,sd*.18,1.1,-.24), zbox(.36,.18,.4,iron,sd*.42,.74,0), zbox(.06,.16,.06,chain,sd*.42,.9,.12), zbox(.06,.16,.06,chain,sd*.42,.9,-.12));
+      for(let i=0;i<4;i++) torso.add(zbox(.05,.08,.05,chain,sd*(.28+i*.04),.56-i*.12,.16)); }
+    torso.add(zbox(.58,.06,.06,chain,0,.74,.19), zbox(.1,.1,.04,bone,0,.7,.22));
+    // great horned iron helm with a molten slit, chin chains and a skull trophy
+    head.add(zbox(.36,.34,.36,iron,0,.18,0), zbox(.38,.08,.38,char,0,.36,0), zbox(.3,.05,.02,lava,0,.22,.18), zbox(.06,.06,.02,lava2,-.08,.22,.185), zbox(.06,.06,.02,lava2,.08,.22,.185), zbox(.1,.02,.02,lava,-.1,.1,.18), zbox(.1,.02,.02,lava,.1,.1,.18));
+    for(const sd of [-1,1]) head.add(zbox(.08,.18,.08,bone,sd*.2,.42,0), zbox(.07,.2,.07,bone,sd*.3,.58,0), zbox(.06,.16,.06,bone,sd*.36,.72,.02));
+    head.add(zbox(.06,.2,.06,iron,0,.5,0));
+    // left arm: massive iron gauntlet with a lava seam. right arm: the flamethrower, a fat furnace barrel with a glowing maw
+    arms[0].el.add(zbox(.24,.34,.24,iron,0,-.2,0), zbox(.26,.05,.26,lava,0,-.04,0), zbox(.05,.1,.05,bone,-.1,-.4,.06), zbox(.05,.1,.05,bone,.1,-.4,.06));
+    const fe=arms[1].el; fe.add(zbox(.24,.22,.24,iron,0,-.12,0), zbox(.26,.6,.26,char,0,-.52,0), zbox(.3,.06,.3,iron,0,-.34,0), zbox(.3,.06,.3,iron,0,-.7,0), zbox(.3,.1,.3,iron,0,-.9,0), zbox(.18,.12,.18,lava,0,-.98,0), zbox(.05,.5,.05,lava,.14,-.5,0), zbox(.05,.5,.05,lava,-.14,-.5,0), glowSprite(0xff8a1a,1.1,0,-1.02,0));
+    nozzle=new THREE.Object3D(); nozzle.position.set(0,-1.04,0); fe.add(nozzle);
   }
   g.scale.setScalar(s);
   const bar=new THREE.Group(); const bg=new THREE.Mesh(barGeo,barBg), fill=new THREE.Mesh(barGeo,barFill);
@@ -1997,7 +2001,7 @@ function spawnZombie(boss,over){
   }while(Math.hypot(x-P.x,z-P.z)<14&&n++<20);
   const m=makeZombie(t), hpM=t.miniBoss?1:(S.hc?4:(S.vc?10:1)), shM=t.shielder?t.hp*hpM:0;
   const zb={id:NET.nextZid++,desc:{n:t.name,c:t.col,s:t.size,t:t.tier||0,a:t.archer?1:0,sc:t.screamer?1:0,b:boss?1:0,br:t.brute?1:0,bm:t.miniBoss?1:0,ca:t.cash,h:t.hp*hpM,cr:t.crier?1:0,vm:t.vmaster?1:0,vz:t.voidz?1:0,co:t.colossus?1:0,cw:t.crawler?1:0,tx:t.toxic?1:0,ho:t.hboss?1:0,nc:t.necro?1:0,ph:t.phantom?1:0,wd:t.warden?1:0,sh:shM},burnBy:0,x,z,hp:t.hp*hpM,max:t.hp*hpM,cash:t.cash,miniBoss:!!t.miniBoss,permGlow:!!t.miniBoss,spd:t.spd*(.92+Math.random()*.16)*((t.crier||t.vmaster||t.hboss||t.necro||t.warden)?1:(S.hc&&t.base!=='Runner'?2:(S.vc&&t.base!=='Runner'?2.5:1))),dmg:(t.hboss?45:(t.colossus?40:(t.vmaster?100:(t.crier?50:BASE_DMG*Math.pow(DMG_GROWTH,t.tier)*(t.brute?2:1)))))*(S.hc?3:(S.vc?5:1))*(t.voidz?2:1),
-    atk:0,boss,flash:0,screamer:!!t.screamer,brute:!!t.brute,scream:0,screamCd:2.5,screamFired:true,waves:0,buff:0,burn:0,burnT:0,dead:false,kvx:0,kvz:0,stun:0,swing:0,hitDone:true,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,hboss:!!t.hboss,toxic:!!t.toxic,crawler:!!t.crawler,cs:0,csT:0,clCd:1+Math.random()*2,att:-1,atT:1,colossus:!!t.colossus,smN:0,smT:0,smCd:5,necro:!!t.necro,phantom:!!t.phantom,warden:!!t.warden,cast:0,ncd:3,nmv:1,wfS:0,wfT:0,wfCd:5,wfBase:0,wfDir:1,wfTick:0,tdef:(t.miniBoss||boss||t.crier||t.archer||t.necro||t.phantom)?null:t,vmaster:!!t.vmaster,voidz:!!t.voidz,crier:!!t.crier,cst:0,standT:0,shielder:!!t.shielder,shMax:shM,sh:shM,...m};
+    atk:0,boss,flash:0,screamer:!!t.screamer,brute:!!t.brute,scream:0,screamCd:2.5,screamFired:true,waves:0,buff:0,burn:0,burnT:0,dead:false,kvx:0,kvz:0,stun:0,swing:0,hitDone:true,los:Math.random()*.1,clear:false,nk:t.size<1.15?0:(t.size<1.75?1:2),phase:Math.random()*6,hboss:!!t.hboss,toxic:!!t.toxic,crawler:!!t.crawler,cs:0,csT:0,clCd:1+Math.random()*2,att:-1,atT:1,colossus:!!t.colossus,smN:0,smT:0,smCd:5,necro:!!t.necro,phantom:!!t.phantom,warden:!!t.warden,cast:0,phT:PH_HIDE*(.4+Math.random()*.6),phWin:false,ncd:3,nmv:1,wfS:0,wfT:0,wfCd:5,wfBase:0,wfDir:1,wfTick:0,tdef:(t.miniBoss||boss||t.crier||t.archer||t.necro||t.phantom)?null:t,vmaster:!!t.vmaster,voidz:!!t.voidz,crier:!!t.crier,cst:0,standT:0,shielder:!!t.shielder,shMax:shM,sh:shM,...m};
   zb.y0=0; if(t.warden) zb.dmg=50*(S.hc?3:1);
   if(S.vc&&!t.crier&&!t.miniBoss&&!t.voidz){ const vm=t.base==='Runner'?1:2.5; if(t.fast) zb.spd=Math.min(zb.spd/vm*Math.min(vm,1.6),3.2); else zb.spd=Math.min(zb.spd,5.5); }
   if(t.crier){ zb.rageSpd=t.spd*(.92+Math.random()*.16); zb.spd=0; for(let i=0;i<30;i++){ const cx=rnd(3,MAP.w-3), cz=rnd(3,MAP.h-3); if(Math.hypot(cx-P.x,cz-P.z)>12&&!bricks.some(b=>cx>b.x-1&&cx<b.x+b.w+1&&cz>b.z-1&&cz<b.z+b.d+1)){ zb.x=cx; zb.z=cz; break; } } }
@@ -2680,7 +2684,8 @@ function smashFx(x,z){
 }
 /* ---------- Necromancer / Phantom / Warden ---------- */
 const GRAVE_T=20, WD_WIND=1.3, WD_SWEEP=3.2, WD_ARC=1.15, WD_RANGE=18;
-const phVuln=z=>z.swing>0||z.marked>0;
+const PH_HIDE=5, PH_WIN=3;
+const phVuln=z=>!!z.phWin||z.marked>0;
 const _nz=new THREE.Vector3(), _nt=new THREE.Vector3();
 function staffTop(z,out){ return out.set(z.x+Math.sin(z.face||0)*.5*z.g.scale.x,(z.y0||0)+z.height*1.15,z.z+Math.cos(z.face||0)*.5*z.g.scale.x); }
 function necroRaise(z,e){
@@ -3134,6 +3139,7 @@ function update(dt){
     if(z.colossus) colossusStep(z,dt,d);
     if(z.necro) necroStep(z,dt,d);
     if(z.warden) wardenStep(z,dt,d,T);
+    if(z.phantom){ z.phT-=dt; if(z.phT<=0){ z.phWin=!z.phWin; z.phT=z.phWin?PH_WIN:PH_HIDE; } }
     if(z.crawler) crawlerStep(z,dt,d,T);
     if(z.archer) archerStep(z,dt,d);
     if(z.stun>0) z.stun-=dt; if(z.freeze>0) z.freeze-=dt;
@@ -3641,7 +3647,7 @@ function hostTick(dt){
   for(const pid in NET.players){ const p=NET.players[pid]; if(+pid===NET.pid||!p.live) continue; pl.push([+pid,r2(p.x),r2(p.y||0),r2(p.z),r2(p.yaw),r2(p.pitch),p.w,Math.max(0,Math.ceil(p.hp)),p.maxHp,p.alive?1:0]); }
   const live=S.zombies.filter(z=>!z.dead);
   const zs=live.map(z=>[z.id,r2(z.x),r2(z.z),r2(z.face||0),Math.round(100*Math.max(0,z.hp)/z.max),r2(Math.max(0,z.swing)),r2(Math.max(0,z.scream)),AST[z.aSt]||0,r2(z.aT||0),(z.buff>0?1:0)|(z.burn>0?2:0)|(z.marked>0?4:0),z.shMax?Math.round(100*Math.max(0,z.sh)/z.shMax):0,z.cst||0,z.smN||0,r2(Math.max(0,z.smT||0)),z.crawler?z.att+1:0,z.cs||0]);
-  for(let i=0;i<live.length;i++){ const z=live[i]; zs[i][9]|=(z.cast>0?8:0)|(z.wfS===2?16:0)|(z.wfS===1?32:0); }
+  for(let i=0;i<live.length;i++){ const z=live[i]; zs[i][9]|=(z.cast>0?8:0)|(z.wfS===2?16:0)|(z.wfS===1?32:0)|(z.phWin?64:0); }
   const base={t:'s',w:S.wave,n:live.length+S.toSpawn,bt:r2(Math.max(0,S.breakT)),p:pl,z:zs};
   for(const pid in NET.conns){
     const kn=NET.known[pid]||(NET.known[pid]={}), d=[];
@@ -3695,7 +3701,7 @@ function clientSnapshot(m){
     if(z.colossus){ z.smN=e[12]|0; if(z.smN>0) z.smT=e[13]; }
     if(z.crier){ const nc=e[11]|0; if(nc>0&&(z.cst||0)===0){ sfx('crier',z.x,z.z); z.standT=.7; } z.cst=nc; }
     if(e[6]>0&&z.scream<=0){ z.screamFired=false; z.waves=0; sfx('scream',z.x,z.z); } z.scream=e[6]; if(e[5]>0&&z.swing<=0) sfx('zatk',z.x,z.z,1,zPitch(z)); z.swing=e[5]; const ns=ASTN[e[7]]||'wait'; if(ns==='draw'&&z.aSt!=='draw') sfx('bowdraw',z.x,z.z); z.aSt=ns; z.aT=e[8];
-    const bf=e[9]&1, bn=e[9]&2; z.buff=bf?1:0; if(bf) ensureGlow(z); else if(z.glow&&!z.permGlow) z.glow.visible=false; z.burn=bn?1:0; z.cast=(e[9]&8)?1:0; z.wfS=(e[9]&16)?2:((e[9]&32)?1:0); if(e[9]&4){ z.marked=1; z.markNet=true; ensureMarkFx(z); } else if(z.markNet){ z.markNet=false; z.marked=0; if(z.markFx) z.markFx.visible=false; } }
+    const bf=e[9]&1, bn=e[9]&2; z.buff=bf?1:0; if(bf) ensureGlow(z); else if(z.glow&&!z.permGlow) z.glow.visible=false; z.burn=bn?1:0; z.cast=(e[9]&8)?1:0; z.phWin=!!(e[9]&64); z.wfS=(e[9]&16)?2:((e[9]&32)?1:0); if(e[9]&4){ z.marked=1; z.markNet=true; ensureMarkFx(z); } else if(z.markNet){ z.markNet=false; z.marked=0; if(z.markFx) z.markFx.visible=false; } }
   for(const id in NET.ghosts) if(!seen[id]){ const z=NET.ghosts[id]; const i=S.zombies.indexOf(z); if(i>=0) S.zombies.splice(i,1); delete NET.ghosts[id]; removeZombie(z); }
   S.toSpawn=Math.max(0,m.n-S.zombies.length);
   for(const e of m.p){ const pid=e[0]; if(pid===NET.pid) continue; const p=NET.players[pid]||(NET.players[pid]={pid,name:'Player',color:pid});
@@ -4050,10 +4056,10 @@ const BEST=[
   {id:'screamer',cat:'z',name:'Screamer',ico:'😖',st:{hp:'1,000 (×mode)',spd:'9.5 when enraged',dmg:'50 base (×mode)',cash:200,wave:'25 (15 Hardcore, 10 VOIDCORE)'},desc:'A bald, bleeding thing that sits curled up, covering its face.',ab:['Sits motionless and takes 75% less damage.','After losing 20% of its health it stands up and sprints at you while screaming.','Only one Screamer can be alive at a time.']},
   {id:'voidz',cat:'z',name:'Void Zombie',ico:'🌀',st:{hp:'2× the base type',spd:'base type',dmg:'2× the base type',cash:'2× the base type',wave:'VOIDCORE MODE'},desc:'A zombie taken over by the void – dark skin, a hollow glowing chest and crystals bursting out of its body.',ab:['Summoned in threes by the Void Master.','Can also appear on its own in VOIDCORE MODE.']},
   {id:'necro',cat:'z',name:'Necromancer',ico:'💀',st:{hp:'900 (×mode)',spd:2.6,dmg:'weak melee',cash:900,wave:'12 (8 Hardcore, 6 VOIDCORE)'},desc:'A hooded corpse-priest with a skull staff and orbiting soul runes.',ab:['Keeps its distance and flees when you get close.','Every few seconds it raises a zombie you recently killed (within 20 s) – each zombie can only be raised once.','Kill it first, or the horde never ends.']},
-  {id:'phantom',cat:'z',name:'Phantom',ico:'👻',st:{hp:'1.5× the base type',spd:'base type',dmg:'base type',cash:'2.5× the base type',wave:'VOIDCORE MODE'},desc:'A legless spectre that fades almost out of sight.',ab:['Nearly invisible and bullets pass straight through it.','It can only be hurt while it is attacking – or while Marked by the Void Ripper.']},
+  {id:'phantom',cat:'z',name:'Phantom',ico:'👻',st:{hp:'1.5× the base type',spd:'base type',dmg:'base type',cash:'2.5× the base type',wave:'VOIDCORE MODE'},desc:'A legless spectre that fades almost out of sight.',ab:['Nearly invisible and bullets pass straight through it.','Every 5 s it turns solid for 3 s – that is your attack window. It can also be hurt while Marked by the Void Ripper.']},
   {id:'colossus',cat:'b',name:'Colossus',ico:'🦣',st:{hp:5000,spd:1.3,dmg:'40 melee, 25 per ground smash',cash:3000,wave:'16+ (Normal mode)'},desc:'A giant, spiked brute that shakes the whole arena.',ab:['Takes 25% less damage.','Pounds the ground 3 times in a row – each slam shakes the screen and hits everyone within 9 m for 25 damage. Jump to avoid it.','Slow, but hits hard in melee.']},
   {id:'hboss',cat:'b',name:'Howler Overlord',ico:'👁️',st:{hp:'20,000',spd:1.7,dmg:'45 melee ×3 (Hardcore)',cash:8000,wave:'16+ (Hardcore)'},desc:'A huge, scarred howler wearing a bone crown.',ab:['Screams every 8 s.','Every zombie within 16 m gets 2× health and 2× damage (only once each).','Players near the scream take 75× the damage multiplier and get blurred vision for 3 s.']},
-  {id:'warden',cat:'b',name:'The Warden',ico:'🔥',st:{hp:'35,000',spd:1.5,dmg:'50 melee ×3 (Hardcore), flames 15 per tick',cash:10000,wave:'16+ (Hardcore)'},desc:'A gas-masked jailer in riveted armour with fuel tanks on his back and a flamethrower for an arm.',ab:['Stops, aims, then sweeps a wall of fire across a wide arc up to 18 m away.','Flames burn through the whole arena – hide behind bricks.','Only one boss at a time – can replace the Howler Overlord.']},
+  {id:'warden',cat:'b',name:'The Warden',ico:'🔥',st:{hp:'35,000',spd:1.5,dmg:'50 melee ×3 (Hardcore), flames 15 per tick',cash:10000,wave:'16+ (Hardcore)'},desc:'A charred iron-helmed furnace giant with a caged fire in his belly, smoking chimneys on his back and a flamethrower for an arm.',ab:['Stops, aims, then sweeps a wall of fire across a wide arc up to 18 m away.','Flames burn through the whole arena – hide behind bricks.','Only one boss at a time – can replace the Howler Overlord.']},
   {id:'vmaster',cat:'b',name:'Void Master',ico:'🌑',st:{hp:'250,000',spd:1.5,dmg:'100 ×5 melee',cash:20000,wave:'16+ (VOIDCORE MODE)'},desc:'A towering armoured lord with a glowing core, a halo and orbiting shards.',ab:['Summons 3 void zombies every 10 s (max 12).','Fires void balls that explode every 0.5 s while flying – 50 ×5 damage each, 3.4 m radius.','Appears only in VOIDCORE MODE.']},
   {id:'boss99',cat:'b',name:'The Final Boss',ico:'💀',st:{hp:'100,000',spd:1.9,dmg:'huge',cash:10000,wave:99},desc:'The guardian of wave 99 – it no longer gives a rebirth.',ab:['An optional end-game challenge.']},
 ];
