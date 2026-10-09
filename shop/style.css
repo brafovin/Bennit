@@ -17,6 +17,9 @@ header { position: sticky; top: 0; z-index: 20; background: rgba(15,18,32,.92); 
 .search input:focus { border-color: var(--accent); }
 .cart-btn { background: var(--accent); border: 0; border-radius: 999px; padding: 9px 16px; font-weight: 700; white-space: nowrap; }
 .cart-btn:hover { filter: brightness(1.1); }
+.cart-btn.ghost { background: var(--panel); border: 1px solid var(--line); }
+.wallet { display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 4px 4px 12px; white-space: nowrap; font-size: 14px; }
+.wallet button { width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--accent-2); color: #00231e; font-weight: 800; font-size: 18px; line-height: 1; }
 main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 60px; }
 .hero { border-radius: 20px; padding: 36px 28px; margin-bottom: 24px; background: linear-gradient(120deg, #3b2bb5, #7c5cff 55%, #00d1b2); }
 .hero h1 { font-size: clamp(26px, 5vw, 40px); line-height: 1.15; }
@@ -84,4 +87,30 @@ form.checkout input { background: var(--bg); border: 1px solid var(--line); bord
 .keys { background: var(--bg); border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-weight: 600; opacity: 0; pointer-events: none; transition: .2s; z-index: 50; }
 .toast.show { opacity: 1; transform: translateX(-50%); }
-@media (max-width: 520px) { .logo { font-size: 17px; } .hero { padding: 26px 18px; } .cart-btn .lbl { display: none; } }
+.delivery { display: flex; flex-direction: column; gap: 8px; }
+.opt { display: grid !important; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px !important; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; cursor: pointer; color: var(--text) !important; font-size: 14px !important; }
+.opt:has(input:checked) { border-color: var(--accent-2); }
+.opt input { width: auto; accent-color: var(--accent-2); }
+.opt small { display: block; color: var(--muted); font-size: 12px; }
+.sum { background: var(--bg); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.sum .total { font-weight: 800; font-size: 16px; border-top: 1px solid var(--line); padding-top: 6px; margin-top: 2px; }
+.warn { color: var(--sale); font-size: 13px; min-height: 18px; }
+.track-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.eta { text-align: right; margin-right: 22px; }
+.eta b { font-size: 28px; font-variant-numeric: tabular-nums; display: block; line-height: 1.1; }
+.minimap { width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); display: block; background: #12162a; }
+.bar-bg { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; width: 0; background: var(--accent-2); transition: width .3s linear; }
+.steps { list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.steps li { color: var(--muted); display: flex; gap: 8px; }
+.steps li::before { content: "○"; }
+.steps li.done { color: var(--text); }
+.steps li.done::before { content: "✔"; color: var(--accent-2); }
+.steps li.now { color: var(--text); font-weight: 700; }
+.steps li.now::before { content: "●"; color: var(--accent); }
+.driver { display: flex; align-items: center; gap: 10px; background: var(--bg); border-radius: 10px; padding: 8px 12px; font-size: 14px; }
+.driver .av { font-size: 26px; }
+.orders .o { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.st { font-size: 12px; font-weight: 700; border-radius: 6px; padding: 1px 8px; background: var(--bg); }
+.st.ok { color: var(--accent-2); } .st.go { color: #ffd166; }
+@media (max-width: 520px) { .wallet { font-size: 13px; padding-left: 8px; } .bar { gap: 8px; padding: 10px 10px; } .logo { display: none; } .logo { font-size: 17px; } .hero { padding: 26px 18px; } .cart-btn .lbl { display: none; } }
