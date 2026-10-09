@@ -751,6 +751,41 @@ const riftTex=canvasTex(512,512,(g,w,h)=>{ const rg=g.createRadialGradient(256,2
 const monoTex=canvasTex(128,256,(g,w,h)=>{ g.fillStyle='#120a1c'; g.fillRect(0,0,w,h); for(let i=0;i<600;i++){ g.fillStyle=`rgba(${Math.random()<.5?'0,0,0':'160,120,230'},${Math.random()*.08})`; g.fillRect(rnd(0,w),rnd(0,h),2,2); } g.strokeStyle='rgba(0,0,0,.7)'; g.lineWidth=4; g.strokeRect(2,2,w-4,h-4); });
 const monoGlow=canvasTex(128,256,(g,w,h)=>{ g.fillStyle='#000'; g.fillRect(0,0,w,h); g.shadowColor='#a855f7'; g.shadowBlur=10; g.strokeStyle='#c084fc'; g.lineWidth=3; for(let r=0;r<5;r++){ const cy=24+r*48, cx=64; g.beginPath(); const k=Math.floor(rnd(0,4)); if(k===0){ g.arc(cx,cy,14,0,7); g.moveTo(cx,cy-14); g.lineTo(cx,cy+14); } else if(k===1){ g.moveTo(cx-16,cy+14); g.lineTo(cx,cy-16); g.lineTo(cx+16,cy+14); g.closePath(); g.moveTo(cx-8,cy+3); g.lineTo(cx+8,cy+3); } else if(k===2){ g.rect(cx-14,cy-14,28,28); g.moveTo(cx-14,cy-14); g.lineTo(cx+14,cy+14); } else { g.moveTo(cx-16,cy); g.lineTo(cx+16,cy); g.moveTo(cx,cy-16); g.lineTo(cx,cy+16); g.moveTo(cx-11,cy-11); g.lineTo(cx+11,cy+11); } g.stroke(); } g.strokeRect(6,6,w-12,h-12); });
 const monoMat=new THREE.MeshLambertMaterial({map:monoTex,emissive:0xffffff,emissiveMap:monoGlow,emissiveIntensity:.9});
+const towStone=new THREE.MeshLambertMaterial({color:0x0f0818,flatShading:true}), towStone2=new THREE.MeshLambertMaterial({color:0x1b1030,flatShading:true}), towGlowM=new THREE.MeshBasicMaterial({color:0xc084fc}), towGlow2=new THREE.MeshBasicMaterial({color:0xf5d0fe});
+const towPanelM=new THREE.MeshBasicMaterial({map:monoGlow,transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+const towGeo={ box:{}, cone:new THREE.ConeGeometry(1,1,4), oct:new THREE.OctahedronGeometry(1), torus:new THREE.TorusGeometry(1,.05,6,32), plane:new THREE.PlaneGeometry(1,1) };
+function towerBuild(add,cx,cz,w,d,h,anim){
+  const bx_=(sw,sh,sd,m,x,y,z)=>{ const k=sw+','+sh+','+sd; const me=new THREE.Mesh(towGeo.box[k]||(towGeo.box[k]=new THREE.BoxGeometry(sw,sh,sd)),m); me.position.set(x,y,z); add(me); return me; };
+  const along=w>d, hw=w/2, hd=d/2;
+  // stepped plinth with glowing trim
+  bx_(w+.9,.28,d+.9,towStone,cx,.14,cz); bx_(w+.55,.28,d+.55,towStone2,cx,.42,cz); bx_(w+.2,.24,d+.2,towStone,cx,.68,cz);
+  bx_(w+.93,.04,d+.93,towGlowM,cx,.29,cz);
+  // three tapering tiers
+  const t1=h*.5, t2=h*.3, t3=h*.2; let y=.8;
+  const shaft=(sw,sd2,sh,mat_)=>{ const m=bx_(sw,sh,sd2,mat_,cx,y+sh/2,cz); return m; };
+  shaft(w,d,t1-.8,monoMat); const y1=y+t1-.8; y=y1; bx_(w+.22,.16,d+.22,towStone2,cx,y,cz); bx_(w+.26,.05,d+.26,towGlowM,cx,y+.1,cz);
+  y+=.1; shaft(w*.84,d*.84,t2,monoMat); y+=t2; bx_(w*.84+.2,.14,d*.84+.2,towStone2,cx,y,cz); bx_(w*.84+.24,.045,d*.84+.24,towGlowM,cx,y+.09,cz);
+  y+=.08; shaft(w*.64,d*.64,t3-.2,monoMat); y+=t3-.2;
+  // corner buttress pillars with glowing caps and crystal tips
+  for(const sx of [-1,1]) for(const sz of [-1,1]){ const px=cx+sx*(hw+.1), pz=cz+sz*(hd+.1); bx_(.26,h*.62,.26,towStone,px,h*.31+.4,pz); bx_(.34,.12,.34,towStone2,px,h*.62+.4,pz); const tip=new THREE.Mesh(towGeo.cone,towGlowM); tip.scale.set(.2,.55,.2); tip.position.set(px,h*.62+.75,pz); tip.rotation.y=Math.PI/4; add(tip); }
+  // glowing rune panels on the long faces + vertical slits + arch
+  const fw=along?w*.78:d*.78;
+  for(const sg of [-1,1]){
+    const pn=new THREE.Mesh(towGeo.plane,towPanelM); pn.scale.set(fw,t1*.8,1); if(along){ pn.position.set(cx,.8+t1*.45,cz+sg*(hd+.012)); pn.rotation.y=sg>0?0:Math.PI; } else { pn.position.set(cx+sg*(hw+.012),.8+t1*.45,cz); pn.rotation.y=sg>0?Math.PI/2:-Math.PI/2; } add(pn);
+    const ang=along?[cx,cz+sg*(hd+.03)]:[cx+sg*(hw+.03),cz];
+    for(const o of [-.38,.38]){ const sl=bx_(along?.06:.05,t2*.85,along?.05:.06,towGlow2,along?cx+o*w*.84:ang[0],.8+t1+t2*.5,along?ang[1]:cz+o*d*.84); }
+    const arch=new THREE.Mesh(towGeo.torus,towGlowM); arch.scale.set(fw*.25,fw*.25,1); arch.position.set(along?cx:ang[0],.8+t1*.82,along?ang[1]:cz); if(!along) arch.rotation.y=Math.PI/2; add(arch);
+  }
+  // crown: four spikes around a floating crystal, rings, beam
+  const ty=h+.1;
+  for(let k=0;k<4;k++){ const a=k*Math.PI/2+Math.PI/4, sp=new THREE.Mesh(towGeo.cone,towStone2); sp.scale.set(.2,.9+.2*(k%2),.2); sp.position.set(cx+Math.cos(a)*w*.28,ty+.35,cz+Math.sin(a)*d*.28); sp.rotation.y=a; add(sp); const gt=new THREE.Mesh(towGeo.oct,towGlowM); gt.scale.setScalar(.06); gt.position.set(sp.position.x,ty+.85+.2*(k%2),sp.position.z); add(gt); }
+  const cr=new THREE.Mesh(towGeo.oct,towGlow2); cr.scale.set(.28,.5,.28); cr.position.set(cx,ty+1.3,cz); add(cr);
+  const r1=new THREE.Mesh(towGeo.torus,towGlowM); r1.scale.set(Math.max(w,d)*.48,Math.max(w,d)*.48,1); r1.rotation.x=Math.PI/2; r1.position.set(cx,ty+1.3,cz); add(r1);
+  const r2=new THREE.Mesh(towGeo.torus,towGlowM); r2.scale.set(Math.max(w,d)*.34,Math.max(w,d)*.34,1); r2.rotation.set(Math.PI/2.4,0,.5); r2.position.set(cx,ty+1.3,cz); add(r2);
+  const gs=glowSprite(0xa855f7,Math.max(w,d)*2.6,cx,ty+1.3,cz); add(gs);
+  const bm=new THREE.Mesh(new THREE.CylinderGeometry(.08,.2,14,8,1,true),new THREE.MeshBasicMaterial({color:0xc084fc,transparent:true,opacity:.18,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide})); bm.position.set(cx,ty+8,cz); add(bm);
+  if(anim) anim.push({m:cr,cx,cz,y:ty+1.3,bob:true,s:2},{m:r1,cx,cz,y:ty+1.3,ring:true,s:1.1},{m:r2,cx,cz,y:ty+1.3,ring:true,s:-1.6});
+}
 const crystalMats=[0x6d28d9,0x7c3aed,0x4c1d95,0x9333ea].map(c=>new THREE.MeshPhongMaterial({color:c,emissive:c,emissiveIntensity:.7,flatShading:true,shininess:120,specular:0xe9d5ff,transparent:true,opacity:.92}));
 function buildVoidArena(W,H,own){
   VOIDA.rings=[]; VOIDA.rocks=[]; VOIDA.pts=null;
@@ -768,10 +803,8 @@ function buildVoidArena(W,H,own){
   // broken floor chunks around the rim
   for(const [horiz,fixed,dir,len] of [[1,0,-1,W],[1,H,1,W],[0,0,-1,H],[0,W,1,H]]){ let p=-3; while(p<len+3){ const l=rnd(2,5.5), off=rnd(.4,3.4), hh=rnd(.4,1.4); const c=p+l/2;
     const m=horiz?zbox(l,hh,off,dk,c,-hh/2+.01,fixed+dir*(off/2+.05)):zbox(off,hh,l,dk,fixed+dir*(off/2+.05),-hh/2+.01,c); arena.add(m); p+=l+rnd(0,.7); } }
-  // obelisks
-  for(const [x,z] of [[0,0],[W,0],[0,H],[W,H],[W/2,0],[W/2,H],[0,H/2],[W,H/2]]){
-    arena.add(zbox(1.8,.5,1.8,dk,x,.25,z), zbox(1.1,6,1.1,dk,x,3.4,z), zbox(.7,2,.7,dk,x,7.3,z), zbox(.12,5.6,1.14,gl,x,3.4,z), zbox(1.14,5.6,.12,gl,x,3.4,z));
-    const cr=new THREE.Mesh(own(new THREE.OctahedronGeometry(.6)),mat(0xc084fc,'glow')); cr.position.set(x,9,z); arena.add(cr); VOIDA.rocks.push({m:cr,y:9,s:1.3,p:rnd(0,6),a:.25,spin:1.4}); arena.add(glowSprite(0xa855f7,7,x,9,z)); }
+  // towers around the rim
+  for(const [x,z] of [[0,0],[W,0],[0,H],[W,H],[W/2,0],[W/2,H],[0,H/2],[W,H/2]]){ towerBuild(o=>arena.add(o),x,z,1.5,1.5,7.5,VOIDA.rocks.towers||(VOIDA.rocks.towers=[])); }
   // floating rocks beyond the arena
   for(let i=0;i<18;i++){ const a=rnd(0,6.28), d=Math.max(W,H)*.78+rnd(0,40), r=rnd(1,3.6), m=new THREE.Mesh(own(new THREE.IcosahedronGeometry(r,0)),own(new THREE.MeshLambertMaterial({color:0x1a1030,flatShading:true})));
     m.position.set(W/2+Math.cos(a)*d,rnd(-8,16),H/2+Math.sin(a)*d); m.rotation.set(rnd(0,3),rnd(0,3),0); arena.add(m); VOIDA.rocks.push({m,y:m.position.y,s:rnd(.3,.9),p:rnd(0,6),a:.7,spin:.15});
@@ -793,6 +826,7 @@ function voidAnim(t,dt){
   for(const m of (VOIDA.runes||[])) m.rotation.z+=dt*.1;
   for(const r of VOIDA.rings) r.m.rotation[r.ax]+=dt*r.s;
   for(const r of VOIDA.rocks){ r.m.position.y=r.y+Math.sin(t*r.s+r.p)*r.a; r.m.rotation.y+=dt*r.spin; }
+  for(const r of (VOIDA.rocks.towers||[])){ if(r.ring){ r.m.rotation.z+=dt*r.s; } else if(r.bob){ r.m.rotation.y+=dt*r.s; r.m.position.y=r.y+Math.sin(t*1.8+r.cx)*.18; } }
   for(const r of VOIDA.cr){ if(r.ring){ r.m.rotation.z+=dt*r.s; r.m.position.y=r.y+Math.sin(t*1.3)*.12; } else if(r.bob){ r.m.rotation.y+=dt*r.s; r.m.position.y=r.y+Math.sin(t*1.8)*.18; } else { r.a+=dt*r.s; r.m.position.set(r.cx+Math.cos(r.a)*r.r,r.y+Math.sin(t*1.5+r.a)*.2,r.cz+Math.sin(r.a)*r.r); r.m.rotation.y+=dt*2; } }
   for(const r of VOIDA.shards){ r.m.position.y=r.y+Math.sin(t*r.s+r.p)*.25; r.m.rotation.y+=dt*1.2; r.m.rotation.x+=dt*.5; }
   if(VOIDA.light) VOIDA.light.intensity=1.3+.35*Math.sin(t*2.2);
@@ -900,17 +934,7 @@ function buildMap(list){
       for(let k=0;k<3;k++){ const sh=new THREE.Mesh(vgeo('oct',1),mat(k%2?0xe9d5ff:0xa855f7,'glow')); const s0=rnd(.08,.16); sh.scale.set(s0,s0*1.6,s0); brickGroup.add(sh); VOIDA.cr.push({m:sh,cx,cz,y:h*.55+k*.5,r:Math.max(w,d)*.7+k*.25,a:rnd(0,6.28),s:rnd(.6,1.2)*(k%2?1:-1)}); }
       continue;
     }
-    if(b.kind==='monolith'){
-      const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),monoMat); m.position.set(cx,h/2,cz); brickGroup.add(m);
-      brickGroup.add(zbox(w+.35,.3,d+.35,vStoneM,cx,.15,cz), zbox(w+.7,.2,d+.7,vStoneM,cx,.1,cz), zbox(w+.14,.14,d+.14,mat(0xc084fc,'glow'),cx,h+.07,cz), zbox(w*.5,.35,d*.5,vStoneM,cx,h+.3,cz));
-      const along=w>d;
-      for(const sg of [-1,1]){ brickGroup.add(along?zbox(w*.9,.05,.04,mat(0xe9d5ff,'glow'),cx,h*.55,cz+sg*(d/2+.02)):zbox(.04,.05,d*.9,mat(0xe9d5ff,'glow'),cx+sg*(w/2+.02),h*.55,cz)); }
-      for(let k=0;k<4;k++){ const yy=h*(.18+k*.2); brickGroup.add(along?zbox(w+.1,.07,d+.1,vStoneM,cx,yy,cz):zbox(w+.1,.07,d+.1,vStoneM,cx,yy,cz)); }
-      const rg=new THREE.Mesh(vgeo('torus',Math.max(w,d)*.75,.05),mat(0xc084fc,'glow')); rg.rotation.x=Math.PI/2; rg.position.set(cx,h+1.1,cz); brickGroup.add(rg); VOIDA.cr.push({m:rg,cx,cz,y:h+1.1,ring:true,s:1.2});
-      const cr=new THREE.Mesh(vgeo('oct',1),mat(0xe9d5ff,'glow')); cr.scale.set(.22,.36,.22); cr.position.set(cx,h+1.1,cz); brickGroup.add(cr); VOIDA.cr.push({m:cr,cx,cz,y:h+1.1,bob:true,s:2});
-      brickGroup.add(glowSprite(0xa855f7,Math.max(w,d)*2.2,cx,h+1.1,cz));
-      continue;
-    }
+    if(b.kind==='monolith'){ towerBuild(o=>brickGroup.add(o),cx,cz,w,d,h,VOIDA.cr); continue; }
     if(b.kind==='container'){
       const ci=Math.floor(Math.random()*4), tex=contTex(ci).clone(); tex.needsUpdate=true; tex.repeat.set(Math.round(Math.max(w,d)/2.4),1);
       const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({map:tex})); m.userData.own=true; m.position.set(cx,h/2,cz); brickGroup.add(m);
