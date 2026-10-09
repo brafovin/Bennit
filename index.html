@@ -354,6 +354,7 @@ const PASSIVES=[
   {id:'vampirism',name:'Vampirism',ico:'🧛',tokens:300,desc:'You heal 1% of the damage you deal, with every weapon.'},
   {id:'titan',name:'Titan Slayer',ico:'🪓',tokens:300,desc:'+50% damage against bosses and Brutes. Normal zombies take normal damage.'},
   {id:'secondwind',name:'Second Wind',ico:'🌬️',tokens:400,desc:'Once per run, a deadly hit leaves you alive with 30% health and a short shield.'},
+  {id:'bossmagnet',name:'Boss Magnet',ico:'🧲',tokens:450,desc:'Bosses can spawn from wave 10 instead of wave 15, and they are twice as likely to show up.'},
   {id:'stormprince',name:'Storm Prince',ico:'⚡',tokens:200,desc:'Every time you hit an enemy a small lightning chain jumps to nearby enemies, dealing 5% of your equipped weapon\'s DPS to each.'},
 ];
 const SECONDARIES=[{id:'grenade',name:'Grenade',ico:'💣',tokens:10,key:'X',cd:10,dmg:250,desc:'Throw with X (10 s cooldown). Explodes after a short fuse for 250 damage in a 5 m radius. Works together with any weapon.'},
@@ -1967,7 +1968,7 @@ function startWave(){
 function showWarn(t,sec){ sfx('alarm'); const w=$('warn'); w.textContent=t; w.style.display='block'; clearTimeout(showWarn.t); showWarn.t=setTimeout(()=>w.style.display='none',sec*1000); }
 const BRUTE_WAVE=4, BRUTE_CHANCE=.12, FAST_CHANCE=.3, NEW_WAVES=2, NEW_WEIGHT=.2;
 function pickType(){
-  const hc=S.hc, vc=S.vc;
+  const hc=S.hc, vc=S.vc, bmW=passOn('bossmagnet')?9:15, bmC=passOn('bossmagnet')?2:1;
   if(S.wave>=(vc?10:(hc?15:25))&&Math.random()<.07&&S.zombies.filter(z=>z.crier).length<1) return {...CRIER,base:'Screamer'};
   if(S.wave>=5&&Math.random()<.09&&S.zombies.filter(z=>z.toxic).length<8){ const b0=pickBase(); return {...b0,name:'Toxic '+b0.name,toxic:true,cash:b0.cash*1.3}; }
   if(S.wave>=8&&Math.random()<.09&&S.zombies.filter(z=>z.crawler).length<5){ const b0=pickBase(); return {...b0,name:'Crawler '+b0.name,crawler:true,hp:b0.hp*.8,cash:b0.cash*1.2,spd:b0.spd*.65,size:b0.size*.95}; }
@@ -1975,9 +1976,9 @@ function pickType(){
   if(vc&&S.wave>=3&&Math.random()<.07&&S.zombies.filter(z=>z.phantom).length<6){ const b0=pickBase(); return {...b0,name:'Phantom '+b0.name,phantom:true,hp:b0.hp*1.5,cash:b0.cash*2.5,col:0xa5d8ff}; }
   if(S.wave>=(vc?6:(hc?8:12))&&Math.random()<.05&&S.zombies.filter(z=>z.necro).length<(hc||vc?2:1)) return {name:'Necromancer',necro:true,base:'Necromancer',hp:900,cash:900,spd:2.6,col:0x8fa6a0,size:1.15,tier:2};
   if(S.wave>=(vc?5:11)&&Math.random()<.14&&S.zombies.filter(z=>z.shielder).length<(vc?10:6)){ const b0=pickBase(); return {...b0,name:'Shielder '+b0.name,shielder:true}; }
-  if(!hc&&!vc&&S.wave>15&&Math.random()<.003&&!S.zombies.some(z=>z.colossus)) return {name:'Colossus',colossus:true,miniBoss:true,hp:5000,cash:3000,spd:1.3,col:0x6b2a1e,size:2.4,tier:5,base:'Boss'};
-  if(vc&&S.wave>15&&Math.random()<.004&&!S.zombies.some(z=>z.vmaster)) return {name:'Void Master',vmaster:true,miniBoss:true,hp:2500*100,cash:20000,spd:1.5,col:0x1a0b33,size:2.6,tier:4,base:'Boss'};
-  if(hc&&S.wave>15&&Math.random()<.003&&!S.zombies.some(z=>z.miniBoss)){
+  if(!hc&&!vc&&S.wave>bmW&&Math.random()<.003*bmC&&!S.zombies.some(z=>z.colossus)) return {name:'Colossus',colossus:true,miniBoss:true,hp:5000,cash:3000,spd:1.3,col:0x6b2a1e,size:2.4,tier:5,base:'Boss'};
+  if(vc&&S.wave>bmW&&Math.random()<.004*bmC&&!S.zombies.some(z=>z.vmaster)) return {name:'Void Master',vmaster:true,miniBoss:true,hp:2500*100,cash:20000,spd:1.5,col:0x1a0b33,size:2.6,tier:4,base:'Boss'};
+  if(hc&&S.wave>bmW&&Math.random()<.003*bmC&&!S.zombies.some(z=>z.miniBoss)){
     if(Math.random()<.5) return {...SCREAMER,name:'Howler Overlord',base:'Howler',hboss:true,miniBoss:true,hp:20000,cash:8000,spd:1.7,size:2.5,col:0x8c8499,tier:4};
     return {name:'Warden',warden:true,base:'Boss',miniBoss:true,hp:35000,cash:10000,spd:1.5,size:2.6,col:0x3b3b44,tier:4};
   }
