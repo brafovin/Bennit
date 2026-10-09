@@ -337,6 +337,7 @@ const WEAPONS = [
   {id:'dagger',name:'Shadow Dagger',cost:200000,dmg:10000,cd:0.25,tokens:1000,cat:'Melee',desc:'Fast void blade: 10000 dmg / 0.25s. Q: Shadow Step – 2x speed for 5 s and zombies cannot hit you. C: Void Rift – a healing portal that breaks if you stay too long'},
   {id:'ovf',name:'Overflow',cost:250000,dmg:225,cd:1,tokens:1500,cat:'Guns',desc:'Starts at 1 shot/s and speeds up while you hold the trigger until it reaches 1 shot every 0.01 s after 10 s. 225 dmg per shot'},
   {id:'ripper',name:'Void Ripper',cost:350000,dmg:25000,cd:2,tokens:2500,cat:'Guns',desc:'Void sniper: 25000 dmg, 1 shot / 2 s, pierces every enemy and leaves them Marked (visible through walls, slowly burned by purple flames)'},
+  {id:'thunder',name:'Thunder Rail',cost:375000,dmg:25000,cd:1,tokens:3000,cat:'Guns',desc:'Hold to charge a beam for 1 s, then it unleashes a screen-shaking laser for 0.2 s that pierces everything and deals 25000 damage to anything it touches. 1 s cooldown counted from the moment it fires'},
   {id:'trident',name:'Abyssal Trident',cost:500000,dmg:30000,cd:0.5,tokens:5000,cat:'Melee',desc:'Sea-cursed trident: 30000 dmg / 0.5 s. Q: Ocean\'s Wrath – a giant wave drags enemies along for 7500 dmg/s. Upgrade Sharp Hook: C throws the trident (10000 dmg each way) and pulls enemies in'},
   {id:'omni',name:'Omnifire',cost:999999,dmg:50,cd:0.01,tokens:9999,cat:'Ultimate',desc:'4 floating miniguns (red, blue, green, yellow) each firing 6 spinning lasers: 50 dmg per laser every 0.01 s. Overheats after 3 s of fire, but you can stop any time'},
 ];
@@ -461,7 +462,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, poison:null, zones:[], drone:null, waves:[], tt:null, ttCd:0, omFired:false, omAcc:0, omSpin:0, omHm:0, omSnd:0, omNet:0, ovT:0, ovIdle:0, ovHm:0, ovSnd:0, fog:[], fogAcc:0, fogSnd:0, rifts:[], riftIn:-1, riftLock:false, riftCd:0, ripFx:0, swUsed:false, shieldT:0, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, grCd2:0, pasEq2:null, secEq2:null, dmgLv:0, tokLv:0, tokAcc:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, poison:null, zones:[], drone:null, waves:[], tt:null, ttCd:0, omFired:false, omAcc:0, omSpin:0, omHm:0, omSnd:0, omNet:0, ovT:0, ovIdle:0, ovHm:0, ovSnd:0, fog:[], fogAcc:0, fogSnd:0, rifts:[], riftIn:-1, riftLock:false, riftCd:0, ripFx:0, swUsed:false, shieldT:0, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, grCd2:0, pasEq2:null, secEq2:null, dmgLv:0, tokLv:0, tokAcc:0, tr:{ph:'idle',t:0}, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -1143,6 +1144,18 @@ function buildGun(id,forAvatar){
     for(const [x,y,zc,r] of [[.06,.08,-.1,.6],[-.06,.07,.2,-.5],[.05,-.04,-.6,.4],[-.05,.06,-.95,-.7]]){ const c=new THREE.Mesh(new THREE.ConeGeometry(.02,.14,5),new THREE.MeshPhongMaterial({color:crys,emissive:0x3b1a7a,emissiveIntensity:.9,flatShading:true})); c.position.set(x,y,zc); c.rotation.set(0,0,r); g.add(c); }
     gunWisps=[]; for(let i=0;i<10;i++){ const w=new THREE.Mesh(new THREE.OctahedronGeometry(.01+.006*(i%3)),new THREE.MeshBasicMaterial({color:i%2?0xc084fc:0x5b21b6})); g.add(w); gunWisps.push({m:w,b:-.1-i*.14,ph:i*1.7,sp:1.8+i*.2}); }
     tip=1.5;
+  } else if(id==='thunder'){
+    g.scale.setScalar(.8); g.position.set(.03,-.03,.1);
+    const nv=0x111827, st=0x334155, blu=0x38bdf8, wh=0xe0f2fe;
+    // heavy receiver, stock and grip
+    A(bx(.13,.15,.62,0x1f2937,0,0,.02,'metal'), bx(.1,.03,.5,st,0,.09,.02,'metal'), bx(.07,.12,.34,nv,0,-.02,.45,'matte',-.05), bx(.075,.14,.06,st,0,-.02,.63,'matte',-.05), bx(.05,.15,.06,nv,0,-.13,.12,'matte',.2),
+      bx(.135,.02,.1,0xeab308,0,.077,.16,'matte'), bx(.135,.02,.1,0xeab308,0,.077,-.06,'matte'));
+    // twin rails with glowing inner strips, coil rings and a capacitor bank on top
+    for(const sd of [-1,1]) A(bx(.035,.05,1.35,st,sd*.055,.02,-.88,'metal'), bx(.012,.022,1.3,blu,sd*.055,.05,-.88,'glow'), bx(.012,.022,1.3,wh,sd*.03,.0,-.88,'glow'), cy(.032,.45,nv,sd*.06,.13,-.05,'metal'), cy(.02,.02,blu,sd*.06,.13,-.29,'glow'));
+    for(let k=0;k<7;k++) A(ring(.085,.011,k%2?wh:blu,0,.02,-.45-k*.18,'glow'));
+    A(cy(.055,.14,nv,0,.02,-1.58,'metal'), cy(.035,.02,wh,0,.02,-1.66,'glow'), bx(.1,.04,.12,0x0f172a,0,.1,-.5,'metal'), bx(.018,.04,.1,blu,0,.125,-.5,'glow'));
+    gunWisps=[]; for(let i=0;i<10;i++){ const w=new THREE.Mesh(new THREE.OctahedronGeometry(.01+.006*(i%3)),new THREE.MeshBasicMaterial({color:i%2?0xe0f2fe:0x38bdf8})); g.add(w); gunWisps.push({m:w,b:-.3-i*.13,ph:i*1.7,sp:3+i*.2}); }
+    tip=1.7;
   } else if(id==='dagger'){
     g.scale.setScalar(1.2); g.position.set(.02,-.02,-.02);
     const blk=0x07030f, dk=0x140a28, pur=0x7c3aed, glow=0xc084fc, crys=0x5b21b6;
@@ -2057,7 +2070,7 @@ const passOn=id=>(S.pasEq===id||(U('pas2')&&S.pasEq2===id))&&!!S.pas[id]&&S.rebi
 const secOn=id=>S.secEq===id||(U('sec2')&&S.secEq2===id);
 function equipSlot(a,two,id){ const b=a+'2'; if(S[a]===id){ S[a]=(two&&S[b])?S[b]:null; S[b]=null; return; } if(two&&S[b]===id){ S[b]=null; return; } if(!S[a]) S[a]=id; else if(two) S[b]=id; else S[a]=id; }
 function passMul(){ if(S.inPass) return 1; let m=secOn('boost')&&inBoost()?1.15:1; if(passOn('overkill')) m*=1+Math.min(.5,S.okStacks*.05); if(passOn('rage')){ const f=S.maxHp>0?S.hp/S.maxHp:1; m*=1+Math.max(0,Math.min(1,(1-f)/.9)); } return m; }
-function curDps(){ const w=ew(wpn()); let base; if(w.id==='acid') return 2500; if(w.id==='vampire'){ const b=BLADE[S.bladeMode]; base=b.dmg/b.cd; } else if(w.id==='railgun'&&S.railMode==='blaster') base=1000; else base=w.dmg*(w.pellets||1)/Math.max(.01,w.cd); return Math.min(base,60000); }
+function curDps(){ const w=ew(wpn()); let base; if(w.id==='acid') return 2500; if(w.id==='thunder') return 12500; if(w.id==='vampire'){ const b=BLADE[S.bladeMode]; base=b.dmg/b.cd; } else if(w.id==='railgun'&&S.railMode==='blaster') base=1000; else base=w.dmg*(w.pellets||1)/Math.max(.01,w.cd); return Math.min(base,60000); }
 function boltFx(a,b,col,thick){
   const pts=[a.clone()], n=7, d=b.clone().sub(a); for(let i=1;i<n;i++){ const p=a.clone().addScaledVector(d,i/n); p.x+=rnd(-.5,.5)*(thick?1.2:.6); p.z+=rnd(-.5,.5)*(thick?1.2:.6); pts.push(p); } pts.push(b.clone());
   if(thick){ for(let i=0;i<pts.length-1;i++) beam(pts[i],pts[i+1],col,.1); }
@@ -2294,6 +2307,43 @@ function fireRipper(){
   gunMuzzle.getWorldPosition(_m); const end=_o.clone().addScaledVector(_d,tb);
   beam(_m.clone(),end,0xa855f7,.12); beam(_m.clone(),end,0xf5d0fe,.04); blast(end.clone(),1.2,0xa855f7,.3);
   netShot({k:'b',big:1,c:0xa855f7,w:.12,a:[_m.x,_m.y,_m.z],b:[end.x,end.y,end.z]});
+}
+const TR_CHARGE=1, TR_BEAM=.2, TR_CD=1;
+let trMeshes=null;
+function trBeams(a,b,rc,rg,colG,opG){
+  if(!trMeshes){ const mk=(c,o)=>{ const m=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,24,1,true),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false})); scene.add(m); return m; };
+    trMeshes={core:mk(0xffffff,.95),glow:mk(0x38bdf8,.4)}; }
+  const dir=b.clone().sub(a), len=dir.length(); dir.normalize();
+  for(const [m,r] of [[trMeshes.core,rc],[trMeshes.glow,rg]]){ m.visible=true; m.position.copy(a).addScaledVector(dir,len/2); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir); m.scale.set(r,len,r); }
+  trMeshes.glow.material.color.setHex(colG); trMeshes.glow.material.opacity=opG;
+}
+function trClear(){ if(trMeshes){ trMeshes.core.visible=false; trMeshes.glow.visible=false; } S.tr={ph:'idle',t:0}; }
+function startTR(){ if(S.tr.ph!=='idle'||S.fireCd>0) return; S.tr={ph:'charge',t:0}; sfx('trcharge'); }
+function updateTR(dt,firing){
+  if(!S.tr) S.tr={ph:'idle',t:0}; const t=S.tr;
+  if(S.mode!=='game'||wpn().id!=='thunder'||S.downed){ if(t.ph!=='idle') trClear(); return; }
+  if(t.ph==='idle') return;
+  _o.set(P.x,EYE,P.z); dirFrom(P.yaw,P.pitch,_d); gunMuzzle.getWorldPosition(_m); const end=_o.clone().addScaledVector(_d,90);
+  if(t.ph==='charge'){
+    if(!firing){ trClear(); return; }
+    t.t+=dt; const k=Math.min(1,t.t/TR_CHARGE);
+    trBeams(_m,end,.004+.02*k,.02+.07*k,0x7dd3fc,.15+.3*k); S.shake=Math.max(S.shake,.03+.2*k*k);
+    if(Math.random()<dt*(10+40*k)){ const sp=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:0xe0f2fe,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})); sp.scale.setScalar(.08); const a=Math.random()*6.28, r=.25*(1-k)+.05; sp.position.copy(_m).add(new THREE.Vector3(Math.cos(a)*r,Math.sin(a)*r,0).applyQuaternion(camera.quaternion)); scene.add(sp); fx.push({m:sp,life:.25,max:.25,vel:new THREE.Vector3(0,0,0),kind:'spark'}); }
+    if(t.t>=TR_CHARGE){
+      S.fireCd=TR_CD; t.ph='fire'; t.t=0; t.hit=new Set(); sfx('trshot'); kick=Math.min(.4,kick+.35); flashT=.1; flash.visible=true;
+      blast(_m.clone(),1.6,0x7dd3fc,.25);
+      netShot({k:'b',big:1,c:0x7dd3fc,w:.3,a:[_m.x,_m.y,_m.z],b:[end.x,end.y,end.z]});
+    }
+    return;
+  }
+  // firing: 0.2 s of a thick piercing laser that follows your aim
+  t.t+=dt; S.shake=Math.max(S.shake,1.2);
+  const fl=.85+.3*Math.random(); trBeams(_m,end,.09*fl,.26*fl,0x38bdf8,.35);
+  let any=false;
+  for(const z of S.zombies){ if(z.dead||z.hp<=0||t.hit.has(z)) continue; const tt=rayZombie(_o,_d,z,.5);
+    if(tt<=95){ t.hit.add(z); hurtZombie(z,25000,new THREE.Vector3(_o.x+_d.x*tt,_o.y+_d.y*tt,_o.z+_d.z*tt),'#7dd3fc'); blast(new THREE.Vector3(z.x,(z.y0||0)+z.height*.6,z.z),1.4,0x7dd3fc,.25); any=true; } }
+  if(any) hitMarker();
+  if(t.t>=TR_BEAM) trClear();
 }
 function tridentStab(){
   S.fireCd=.5; S.swing=.32; S.swingMax=.32; sfx('swing',undefined,undefined,1,.7);
@@ -2590,7 +2640,7 @@ function contBeam(a,b){
 }
 function updateCbeam(dt){ const cb=S.cbeam; if(cb){ cb.t-=dt; if(cb.t<=0){ scene.remove(cb.g); cb.outer.material.dispose(); cb.inner.material.dispose(); S.cbeam=null; } } }
 const OS_FIRE=5, OS_HYPER=2, OS_COOL=5, OS_COOL_H=7;
-function resetMelee(){ S.grave=[]; S.poison=null; $('poisFx').style.opacity=0; clearSecondaries(); clearWaves(); clearTrident(); clearRifts(); S.riftLock=false; S.riftCd=0; S.swUsed=false; S.shieldT=0; S.shadowT=0; $('shadowFx').style.opacity=0; S.okStacks=0; S.okT=9; S.kk=0; S.inPass=false; S.sonicMode=0; S.souls=0; S.ghoul=0; S.spin=0; S.throwCd=0; S.chAcc=0; if(S.thrown){ gameG.remove(S.thrown.g); S.thrown=null; } $('ghoulFx').style.opacity=0; }
+function resetMelee(){ trClear(); S.grave=[]; S.poison=null; $('poisFx').style.opacity=0; clearSecondaries(); clearWaves(); clearTrident(); clearRifts(); S.riftLock=false; S.riftCd=0; S.swUsed=false; S.shieldT=0; S.shadowT=0; $('shadowFx').style.opacity=0; S.okStacks=0; S.okT=9; S.kk=0; S.inPass=false; S.sonicMode=0; S.souls=0; S.ghoul=0; S.spin=0; S.throwCd=0; S.chAcc=0; if(S.thrown){ gameG.remove(S.thrown.g); S.thrown=null; } $('ghoulFx').style.opacity=0; }
 function resetOS(){ resetMelee(); S.os={ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}; osBeamRemove(); }
 function startOS(){ S.os={ph:'fire',t:OS_FIRE,acc:0,ft:.3,nt:0,hm:0}; sfx('osfire'); say('ORBITAL STRIKE!',1.2); }
 function osBeamRemove(){ const ob=S.osbeam; if(!ob) return; scene.remove(ob.g); ob.o.material.dispose(); ob.i.material.dispose(); for(const sp of ob.sp) sp.material.dispose(); S.osbeam=null; }
@@ -3065,6 +3115,7 @@ function fire(){
   if(w.id==='dagger'){ daggerStab(); return; }
   if(w.id==='trident'){ if(!S.tt) tridentStab(); return; }
   if(w.id==='ripper'){ fireRipper(); return; }
+  if(w.id==='thunder'){ startTR(); return; }
   if(w.id==='acid'){ fireAcid(); return; }
   if(w.id==='ovf'){ fireOverflow(); return; }
   if(w.id==='omni'){ fireOmni(); return; }
@@ -3113,6 +3164,7 @@ function update(dt){
   { const fl=firing&&w.id==='flame'; flameSound(fl); if(fl&&Math.random()<dt*14) sfx('crackle'); }
   if(w.id==='ovf'){ if(firing){ S.ovT=Math.min(10,S.ovT+dt); } else { S.ovIdle+=dt; if(S.ovIdle>.35) S.ovT=Math.max(0,S.ovT-dt*6); } if(firing){ let n=0; while(S.fireCd<=0&&n++<4) fire(); } } else if(firing) fire();
   if(firing&&w.id==='chainsaw') chainsawFrame(dt);
+  updateTR(dt,firing);
   if(heated(w)){
     if(firing&&S.lock<=0){ S.heat+=dt/heatTime(w); if(S.heat>=1){S.heat=1;S.lock=MINI_LOCK;say('OVERCHARGED!',1.5);sfx('overheat');} }
     else if(S.lock<=0) S.heat=Math.max(0,S.heat-dt/2.5);
@@ -3311,11 +3363,12 @@ function updateHud(){
     if(L.length){ el.style.display='block'; el.textContent=L.join('\n'); } else el.style.display='none'; }
   { const el=$('skipTxt'); if(S.rebirths>=2&&S.mode==='game'){ el.style.display='block'; el.textContent=S.skipT>=0?'⏩ Skipping wave in '+S.skipT.toFixed(1)+'s…':'T · Skip Wave · '+(S.skipCd>0?S.skipCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; }
   { const bz=S.zombies.find(z=>(z.vmaster||z.colossus||z.hboss||z.warden)&&!z.dead), bb=$('bossBar'); if(bz){ bb.style.display='block'; $('bossName').textContent=bz.vmaster?'VOID MASTER':(bz.hboss?'HOWLER OVERLORD':(bz.warden?'THE WARDEN':'COLOSSUS')); $('bossFill').style.background=bz.vmaster?'linear-gradient(90deg,#7e22ce,#d946ef)':'linear-gradient(90deg,#991b1b,#f97316)'; $('bossFill').style.width=Math.max(0,bz.hp/bz.max*100)+'%'; } else bb.style.display='none'; }
-  const mini=heated(wpn()), osw=wpn().id==='ostrike', rw=wpn().id==='reaper', rpw=wpn().id==='ripper', ovw=wpn().id==='ovf', dgw=wpn().id==='dagger'&&S.riftIn>=0;
+  const mini=heated(wpn()), osw=wpn().id==='ostrike', rw=wpn().id==='reaper', rpw=wpn().id==='ripper', thw=wpn().id==='thunder', ovw=wpn().id==='ovf', dgw=wpn().id==='dagger'&&S.riftIn>=0;
   if(NET.active) updateTeamHud(); else if($('team').innerHTML) $('team').innerHTML='';
-  $('heatWrap').style.display=(mini||osw||rw||rpw||dgw||ovw)?'block':'none'; $('heatTxt').style.display=((mini&&S.lock>0)||(osw&&S.os.ph==='cool'))?'block':'none';
+  $('heatWrap').style.display=(mini||osw||rw||rpw||thw||dgw||ovw)?'block':'none'; $('heatTxt').style.display=((mini&&S.lock>0)||(osw&&S.os.ph==='cool'))?'block':'none';
   if(dgw){ const r=S.rifts[S.riftIn], left=r?RIFT_INSIDE-r.inT:0; $('heat').style.width=(left/RIFT_INSIDE*100)+'%'; $('heat').style.background=left<4?'linear-gradient(90deg,#dc2626,#f472b6)':'linear-gradient(90deg,#6d28d9,#c084fc)'; $('heatLbl').textContent='🌀 IN THE VOID · healing · breaks in '+Math.max(0,left).toFixed(1)+'s'; }
   if(ovw){ const f=Math.min(1,S.ovT/10), sp=1/ovInterval(); $('heat').style.width=(f*100)+'%'; $('heat').style.background=`linear-gradient(90deg,#7c3aed,#dc2626 ${50}%,#f97316)`; $('heatLbl').textContent='OVERFLOW · '+(sp<10?sp.toFixed(1):Math.round(sp))+' shots/s'+(f>=1?' · MAX':''); }
+  if(thw){ const ph=S.tr.ph; let f=1, col='linear-gradient(90deg,#38bdf8,#e0f2fe)', lb='THUNDER RAIL READY – hold to charge'; if(ph==='charge'){ f=S.tr.t/TR_CHARGE; col='linear-gradient(90deg,#0ea5e9,#fde047)'; lb='CHARGING…'; } else if(ph==='fire'){ f=1-S.tr.t/TR_BEAM; col='#ffffff'; lb='FIRING'; } else if(S.fireCd>0){ f=1-S.fireCd/TR_CD; col='#475569'; lb='RECHARGING '+S.fireCd.toFixed(1)+'s'; } $('heat').style.width=(f*100)+'%'; $('heat').style.background=col; $('heatLbl').textContent=lb; }
   if(rpw){ const f=1-Math.max(0,S.fireCd)/2; $('heat').style.width=(f*100)+'%'; $('heat').style.background=f>=1?'linear-gradient(90deg,#a855f7,#e879f9)':'#6d28d9'; $('heatLbl').textContent=f>=1?'VOID RIPPER READY':'RELOADING '+Math.max(0,S.fireCd).toFixed(1)+'s'; }
   if(rw){ const gh=S.ghoul>0, f=gh?S.ghoul/12:S.souls/SOULS_NEED; $('heat').style.width=(f*100)+'%'; $('heat').style.background=gh?'linear-gradient(90deg,#b91c1c,#f97316)':(S.souls>=SOULS_NEED?'#f43f5e':'linear-gradient(90deg,#6d28d9,#c084fc)'); $('heatLbl').textContent=gh?'👻 GHOUL STATE '+S.ghoul.toFixed(1)+'s':(S.souls>=SOULS_NEED?'SOULS READY – press E':'SOULS '+S.souls+' / '+SOULS_NEED); }
   if(osw){ const o=S.os, hy=o.ph==='hyper'; let f=1, col='#22d3ee', lb='READY – click to fire (cannot be cancelled)'; if(o.ph==='fire'){ f=o.t/OS_FIRE; col='#f8fafc'; lb='FIRING '+o.t.toFixed(1)+'s'; } else if(hy){ f=o.t/OS_HYPER; col='#f43f5e'; lb='HYPERCHARGE '+o.t.toFixed(1)+'s'; } else if(o.ph==='cool'){ f=1-o.t/(U('hyper')?OS_COOL_H:OS_COOL); col='#6b7280'; lb='COOLING'; $('heatTxt').textContent='OVERCHARGED – cooling '+o.t.toFixed(1)+'s'; } $('heat').style.width=(f*100)+'%'; $('heat').style.background=col; $('heatLbl').textContent=lb; }
@@ -3342,6 +3395,7 @@ const WINFO={
   omni:{ico:'🌈',tags:['4 miniguns','24 lasers','Overheats'],note:'Four floating miniguns (red, blue, green, yellow), each firing 6 spinning lasers: 50 dmg per laser every 0.01 s. Overheats after 3 s of fire; release the trigger any time to stop.'},
   ovf:{ico:'🌋',tags:['Spools up','Bullets','Full-auto'],note:'Starts at 1 shot per second and spools up the longer you hold fire, reaching 1 shot every 0.01 s after 10 s. 225 dmg per shot. Release to wind down.'},
   acid:{ico:'☣️',tags:['Poison fog','No direct damage','Hold to spray'],note:'Sprays a toxic fog. Touched zombies are poisoned: 1250 dmg every 0.5 s for 3 s (touching it again refreshes the poison). Toxic Zombies take half.'},
+  thunder:{ico:'⚡',tags:['Charge 1 s','Pierces all','Screen shake'],note:'Hold to charge for 1 s, then a huge laser fires for 0.2 s, piercing everything and dealing 25000 damage to every enemy it touches. 1 s cooldown starting the moment it fires. Release early to cancel the charge.'},
   ripper:{ico:'🔭',tags:['Sniper','Pierces all','Marks'],note:'25000 dmg per shot, 1 shot / 2 s. Headshots deal 2x (3x with Sharpshooter). Pierces everything and leaves enemies Marked: visible through walls and burned by purple flames.'},
   dagger:{ico:'🗡️',tags:['Melee','Void blade','Q: Shadow Step'],note:'10000 dmg every 0.25 s. Q: Shadow Step – 2x speed for 5 s and zombies cannot hit you. C: Void Rift – open a portal (max 2) you can stand in to heal; it breaks after 15 s inside.'},
   sonic:{ico:'🔊',tags:['2 modes','Pierces','Explodes on walls','E: switch'],note:'Sonic Mode: fast piercing balls (5000 dmg, explode on walls for 5000 AoE, 0.5 s). Pulse Mode: slow huge ball pulsing 5000 dmg every 0.5 s (1 s cooldown). Hypersonic upgrade: third mode, both combined, pulsing every 0.25 s.'},
@@ -3372,6 +3426,7 @@ const WTHEME={
   omni:{a:'#a855f7',a2:'#22d3ee',bg:'#12122a',bg2:'#181838',bd:'#2f2f6a',ib:'#0a0a1a'},
   ovf:{a:'#e11d48',a2:'#fb923c',bg:'#1f0d1e',bg2:'#2b1026',bd:'#4d1a3c',ib:'#12060f'},
   acid:{a:'#84cc16',a2:'#d9f99d',bg:'#121f0a',bg2:'#172a0c',bd:'#2b4a14',ib:'#0a1205'},
+  thunder:{a:'#38bdf8',a2:'#e0f2fe',bg:'#08141f',bg2:'#0b1c2c',bd:'#16405f',ib:'#040b12'},
   ripper:{a:'#9333ea',a2:'#f0abfc',bg:'#150a26',bg2:'#1c0e33',bd:'#34196a',ib:'#0a0414'},
   dagger:{a:'#a855f7',a2:'#e879f9',bg:'#170d2a',bg2:'#1e1038',bd:'#37206b',ib:'#0c0618'},
 };
@@ -3875,6 +3930,8 @@ const SND={
   zgroan:{v:.5,gap:110,range:28,f:(o,p)=>{ p=p||1; tone({f:95*p,f2:70*p,dur:.7,type:'sawtooth',vol:.35,lp:520,att:.12,out:o}); tone({f:100*p,f2:78*p,dur:.7,type:'sawtooth',vol:.25,lp:420,att:.15,out:o,delay:.02}); noise({dur:.5,vol:.12,ft:'bandpass',f:300,f2:200,out:o}); }},
   zatk:{v:.7,gap:60,range:26,f:(o,p)=>{ p=p||1; noise({dur:.25,vol:.4,ft:'bandpass',f:400,f2:1200,out:o}); tone({f:130*p,f2:70*p,dur:.3,type:'sawtooth',vol:.4,lp:700,out:o}); }},
   zdie:{v:.8,gap:50,range:34,f:(o,p)=>{ p=p||1; tone({f:150*p,f2:40,dur:.5,type:'sawtooth',vol:.4,lp:600,out:o}); noise({dur:.25,vol:.4,ft:'lowpass',f:900,f2:200,out:o}); }},
+  trcharge:{v:.7,range:60,f:o=>{ tone({f:80,f2:900,dur:1,type:'sawtooth',vol:.25,lp:2500,att:.1,out:o}); tone({f:300,f2:2400,dur:1,type:'sine',vol:.15,out:o}); noise({dur:1,vol:.12,ft:'highpass',f:1500,f2:5000,out:o}); }},
+  trshot:{v:1,range:120,f:o=>{ tone({f:70,f2:20,dur:.8,type:'sawtooth',vol:.6,lp:800,out:o}); tone({f:2400,f2:200,dur:.35,type:'square',vol:.22,lp:4000,out:o}); noise({dur:.6,vol:.6,ft:'lowpass',f:4000,f2:150,out:o}); }},
   necro:{v:.8,range:50,f:o=>{ tone({f:90,f2:200,dur:.9,type:'sawtooth',vol:.35,lp:600,att:.2,out:o}); tone({f:420,f2:880,dur:.7,type:'sine',vol:.18,delay:.2,out:o}); noise({dur:.8,vol:.25,ft:'bandpass',f:900,f2:300,out:o}); }},
   roar:{v:1,range:80,f:o=>{ tone({f:55,f2:35,dur:1.4,type:'sawtooth',vol:.8,lp:420,att:.2,out:o}); noise({dur:1.3,vol:.5,ft:'lowpass',f:600,f2:150,out:o}); }},
   headshot:{v:.7,f:o=>{ tone({f:1500,f2:2400,dur:.09,type:'square',vol:.18,out:o}); tone({f:900,f2:600,dur:.12,type:'triangle',vol:.2,delay:.03,out:o}); }},
@@ -3969,7 +4026,7 @@ function audAmbience(){
   AUD.amb={lg,gg}; audAmbMode(S.mode);
 }
 function audAmbMode(m){ if(!AUD.amb) return; const t=AUD.ctx.currentTime; AUD.amb.lg.gain.setTargetAtTime(m==='lobby'?.6:0,t,.5); AUD.amb.gg.gain.setTargetAtTime(m==='game'?.12:0,t,.5); }
-const WSOUND={omni:'omnifire',ovf:'overflow',acid:'acid',ripper:'ripper',sonic:'sonicshot',ostrike:'railgun',glock:'glock',rifle:'rifle',mg:'mg',shotgun:'shotgun',autoshot:'shotgun',minigun:'minigun',flame:'flame'};
+const WSOUND={thunder:'trshot',omni:'omnifire',ovf:'overflow',acid:'acid',ripper:'ripper',sonic:'sonicshot',ostrike:'railgun',glock:'glock',rifle:'rifle',mg:'mg',shotgun:'shotgun',autoshot:'shotgun',minigun:'minigun',flame:'flame'};
 function zPitch(z){ const s=z.desc?z.desc.s:1; let p=1.25/Math.pow(Math.max(.6,s),.6); if(z.desc&&z.desc.n&&z.desc.n.indexOf('Fast')===0) p*=1.35; if(z.brute) p*=.72; return p; }
 
 
