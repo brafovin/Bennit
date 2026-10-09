@@ -329,7 +329,7 @@ const WEAPONS = [
   {id:'vampire',name:'Vampire Blade',cost:50000,dmg:4000,cd:0.66,rebirth:5, desc:'Melee blade, 4000 dmg, heals 1% of damage dealt. E: Wind Blade / Earth Blade'},
   {id:'reaper',name:'Soul Reaper',cost:75000,dmg:5000,cd:0.75,tokens:300,cat:'Melee',desc:'5000 dmg per slice / 0.75s. 25 kills = E releases the souls: Ghoul state (7500 dmg / 0.25s, 1.5x speed, 0.1% life steal, all abilities 1.5x damage). Q: 360° spin with red slices'},
   {id:'ostrike',name:'Orbital Strike',cost:100000,dmg:150,cd:0.01,rebirth:6, desc:'Giant white laser, 150 dmg / 0.01s. One click = it fires 5s and cannot be cancelled, then 5s cooldown'},
-  {id:'sonic',name:'Sonic Blaster',cost:150000,dmg:5000,cd:0.5,tokens:300,cat:'Guns',desc:'E switches modes. Sonic: fast piercing balls, 5000 dmg, explode on walls. Pulse: slow big ball pulsing 5000 dmg every 0.5 s. Hypersonic upgrade adds a third mode: both combined'},
+  {id:'sonic',name:'Sonic Blaster',cost:150000,dmg:5000,cd:0.5,tokens:300,cat:'Guns',desc:'E switches modes. Sonic: fast piercing balls, 5000 dmg, explode on walls. Pulse: slow big ball pulsing 5000 dmg every 0.5 s. Hypersonic upgrade adds a third mode: both combined, pulsing every 0.25 s'},
   {id:'dagger',name:'Shadow Dagger',cost:200000,dmg:10000,cd:0.25,tokens:1000,cat:'Melee',desc:'Fast void blade: 10000 dmg / 0.25s. Q: Shadow Step – 2x speed for 5 s and zombies cannot hit you. C: Void Rift – a healing portal that breaks if you stay too long'},
   {id:'ovf',name:'Overflow',cost:250000,dmg:225,cd:1,tokens:1500,cat:'Guns',desc:'Starts at 1 shot/s and speeds up while you hold the trigger until it reaches 1 shot every 0.01 s after 10 s. 225 dmg per shot'},
   {id:'ripper',name:'Void Ripper',cost:350000,dmg:25000,cd:2,tokens:2500,cat:'Guns',desc:'Void sniper: 25000 dmg, 1 shot / 2 s, pierces every enemy and leaves them Marked (visible through walls, slowly burned by purple flames)'},
@@ -342,7 +342,7 @@ const WIND_R=5, WIND_PUSH=13, MELEE_R=3.3, MELEE_ARC=.95, EARTH_R=8, BLADE_ORDER
 const heated=w=>w.id==='minigun'||w.id==='omni'||(w.id==='railgun'&&S.railMode==='laser');
 const WEAPONS_IDS=WEAPONS.map(w=>w.id);
 const SB_MODES=[{name:'Sonic Mode',cd:.5,spd:62,r:.28,life:2.2,col:0x7dd3fc},{name:'Pulse Mode',cd:1,spd:12,r:1.1,life:6.5,col:0xa78bfa},{name:'Hypersonic Mode',cd:.75,spd:42,r:1.4,life:4,col:0xfde68a}];
-const SB_AOE=4.2, SB_PULSE_R=4.8, SB_PULSE_T=.5;
+const SB_AOE=4.2, SB_PULSE_R=4.8, SB_PULSE_T=.5, SB_PULSE_T2=.25;
 const PASSIVES=[
   {id:'overkill',name:'Overkill',ico:'💢',tokens:100,desc:'Every kill makes you stronger: +5% damage per kill, capped at 1.5x. If you do not hit an enemy for 1 second the meter resets.'},
   {id:'rage',name:'Rage',ico:'😡',tokens:250,desc:'The lower your health, the harder you hit: up to 2x damage when you are under 10% health.'},
@@ -2824,7 +2824,7 @@ function fireSonic(){
 function spawnSonic(m,o,v,visual){
   const c=SB_MODES[m], g=new THREE.Group(), core=new THREE.Mesh(sphGeo,new THREE.MeshBasicMaterial({color:0xffffff})), halo=new THREE.Mesh(sphGeo,new THREE.MeshBasicMaterial({color:c.col,transparent:true,opacity:.55,depthWrite:false,blending:THREE.AdditiveBlending}));
   core.scale.setScalar(c.r*.55); halo.scale.setScalar(c.r); g.add(core,halo,glowSprite(c.col,c.r*4.5,0,0,0)); g.position.set(o[0],o[1],o[2]); gameG.add(g);
-  S.sb.push({m,g,core,halo,vel:new THREE.Vector3(v[0],v[1],v[2]),t:0,pulse:SB_PULSE_T,hit:new Set(),visual:!!visual});
+  S.sb.push({m,g,core,halo,vel:new THREE.Vector3(v[0],v[1],v[2]),t:0,pulse:m===2?SB_PULSE_T2:SB_PULSE_T,hit:new Set(),visual:!!visual});
 }
 function sonicPulse(pos,b){
   const m=new THREE.Mesh(sphGeo,new THREE.MeshBasicMaterial({color:SB_MODES[b.m].col,transparent:true,opacity:.6,depthWrite:false,blending:THREE.AdditiveBlending})); m.position.copy(pos); gameG.add(m); fx.push({m,life:.4,max:.4,kind:'blast',radius:SB_PULSE_R});
@@ -2845,7 +2845,7 @@ function updateSonic(dt){
         if(Math.hypot(z.x-p.x,z.z-p.z)<c.r+z.r&&p.y>(z.y0||0)-c.r&&p.y<(z.y0||0)+z.height+c.r){ b.hit.add(z); hurtZombie(z,5000,new THREE.Vector3(z.x,(z.y0||0)+z.height*.7,z.z),'#7dd3fc'); } }
       if(sonicWall(b.g.position,c.r)){ b.dead=true; if(b.m===1) sonicPulse(b.g.position,b); else explode(b.g.position.clone(),SB_AOE,5000,c.col,b.visual); }
     }
-    if(!b.dead){ b.pulse-=dt; if(b.m!==0&&b.pulse<=0){ b.pulse+=SB_PULSE_T; sonicPulse(b.g.position,b); } if(b.t>=c.life){ b.dead=true; if(b.m===1) sonicPulse(b.g.position,b); } }
+    if(!b.dead){ b.pulse-=dt; if(b.m!==0&&b.pulse<=0){ b.pulse+=b.m===2?SB_PULSE_T2:SB_PULSE_T; sonicPulse(b.g.position,b); } if(b.t>=c.life){ b.dead=true; if(b.m===1) sonicPulse(b.g.position,b); } }
   }
   if(S.sb.some(b=>b.dead)) S.sb=S.sb.filter(b=>{ if(b.dead){ gameG.remove(b.g); b.core.material.dispose(); b.halo.material.dispose(); } return !b.dead; });
 }
@@ -3325,7 +3325,7 @@ const WINFO={
   acid:{ico:'☣️',tags:['Poison fog','No direct damage','Hold to spray'],note:'Sprays a toxic fog. Touched zombies are poisoned: 1250 dmg every 0.5 s for 3 s (touching it again refreshes the poison).'},
   ripper:{ico:'🔭',tags:['Sniper','Pierces all','Marks'],note:'25000 dmg per shot, 1 shot / 2 s. Headshots deal 2x (3x with Sharpshooter). Pierces everything and leaves enemies Marked: visible through walls and burned by purple flames.'},
   dagger:{ico:'🗡️',tags:['Melee','Void blade','Q: Shadow Step'],note:'10000 dmg every 0.25 s. Q: Shadow Step – 2x speed for 5 s and zombies cannot hit you. C: Void Rift – open a portal (max 2) you can stand in to heal; it breaks after 15 s inside.'},
-  sonic:{ico:'🔊',tags:['2 modes','Pierces','Explodes on walls','E: switch'],note:'Sonic Mode: fast piercing balls (5000 dmg, explode on walls for 5000 AoE, 0.5 s). Pulse Mode: slow huge ball pulsing 5000 dmg every 0.5 s (1 s cooldown). Hypersonic upgrade: third mode, both combined.'},
+  sonic:{ico:'🔊',tags:['2 modes','Pierces','Explodes on walls','E: switch'],note:'Sonic Mode: fast piercing balls (5000 dmg, explode on walls for 5000 AoE, 0.5 s). Pulse Mode: slow huge ball pulsing 5000 dmg every 0.5 s (1 s cooldown). Hypersonic upgrade: third mode, both combined, pulsing every 0.25 s.'},
   ostrike:{ico:'☄️',tags:['Pierces all','Can\'t cancel','Giant laser'],note:'One click fires a giant white laser for 5 s (150 dmg / 0.01 s, pierces everything). It cannot be stopped, then it cools down for 5 s.'},
   orbital:{ico:'🔴',tags:['Black hole','Huge blast'],note:'Giant sphere sucks enemies in, then explodes after 1.5 s (6 m radius).'},
 };
