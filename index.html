@@ -323,6 +323,7 @@ const WEAPONS = [
   {id:'ostrike',name:'Orbital Strike',cost:100000,dmg:150,cd:0.01,rebirth:6, desc:'Giant white laser, 150 dmg / 0.01s. One click = it fires 5s and cannot be cancelled, then 5s cooldown'},
   {id:'sonic',name:'Sonic Blaster',cost:150000,dmg:5000,cd:0.5,tokens:300,cat:'Guns',desc:'E switches modes. Sonic: fast piercing balls, 5000 dmg, explode on walls. Pulse: slow big ball pulsing 5000 dmg every 0.5 s. Hypersonic upgrade adds a third mode: both combined'},
   {id:'dagger',name:'Shadow Dagger',cost:200000,dmg:10000,cd:0.25,tokens:1000,cat:'Melee',desc:'Fast void blade: 10000 dmg / 0.25s. Q: Shadow Step – 2x speed for 5 s and zombies cannot hit you'},
+  {id:'ripper',name:'Void Ripper',cost:350000,dmg:25000,cd:2,tokens:2500,cat:'Guns',desc:'Void sniper: 25000 dmg, 1 shot / 2 s, pierces every enemy and leaves them Marked (visible through walls, slowly burned by purple flames)'},
 ];
 const LAVA_R=4, ORB_PULL=10, ORB_R=6;
 const BLADE={blood:{cd:.66,dmg:4000,name:'Vampire Blade'},wing:{cd:.25,dmg:1500,name:'Wind Blade'},earth:{cd:2,dmg:6000,name:'Earth Blade'}};
@@ -423,7 +424,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, swUsed:false, shieldT:0, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, ripFx:0, swUsed:false, shieldT:0, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -972,6 +973,24 @@ function buildGun(id,forAvatar){
     g.scale.setScalar(.62); g.position.set(.12,-.12,.05);
     const sc=scytheModel(); sc.rotation.set(-1.0,.18,.12); sc.position.set(.18,-.25,.35); A(sc);
     tip=1.3;
+  } else if(id==='ripper'){
+    g.scale.setScalar(.8); g.position.set(.03,-.03,.1);
+    const blk=0x07030f, dk=0x140a28, dk2=0x1f1040, pur=0x7c3aed, glow=0xc084fc, crys=0x5b21b6;
+    // body + stock, corrupted and cracked
+    A(bx(.1,.12,.5,dk,0,0,.02,'metal'), bx(.085,.03,.46,dk2,0,.075,.02,'metal'), bx(.06,.09,.3,blk,0,-.02,.4,'matte',-.06), bx(.07,.12,.06,dk2,0,-.02,.57,'matte',-.06),
+      bx(.04,.14,.06,blk,0,-.12,.1,'matte',.22), bx(.012,.1,.3,glow,.052,0,.0,'glow'), bx(.012,.1,.3,glow,-.052,0,.0,'glow'), bx(.008,.02,.22,0xf5d0fe,0,.092,.0,'glow'));
+    // long void barrel with fractured rings + muzzle brake with a glowing core
+    A(cy(.026,1.1,dk2,0,.01,-.78,'metal'), cy(.018,1.1,blk,0,.01,-.78,'metal'), cy(.04,.18,blk,0,.01,-1.38,'metal'), cy(.03,.02,0xf5d0fe,0,.01,-1.48,'glow'));
+    for(let k=0;k<6;k++) A(ring(.04,.008,k%2?glow:pur,0,.01,-.5-k*.17,'glow'));
+    for(const sd of [-1,1]) A(bx(.02,.05,.14,dk2,sd*.045,.01,-1.35,'metal'));
+    // scope: void lens
+    A(cy(.04,.34,blk,0,.14,-.12,'metal'), cy(.05,.06,dk2,0,.14,-.3,'metal'), cy(.048,.06,dk2,0,.14,.06,'metal'), cy(.03,.004,0xe879f9,0,.14,-.335,'glow'), bx(.02,.05,.03,blk,0,.1,-.05,'metal'), bx(.02,.05,.03,blk,0,.1,-.2,'metal'));
+    // bipod legs dripping void
+    for(const sd of [-1,1]) A(bx(.012,.012,.2,dk2,sd*.05,-.06,-.9,'metal',.5), bx(.01,.06,.01,glow,sd*.06,-.12,-.98,'glow'));
+    // void crystals bursting from the weapon
+    for(const [x,y,zc,r] of [[.06,.08,-.1,.6],[-.06,.07,.2,-.5],[.05,-.04,-.6,.4],[-.05,.06,-.95,-.7]]){ const c=new THREE.Mesh(new THREE.ConeGeometry(.02,.14,5),new THREE.MeshPhongMaterial({color:crys,emissive:0x3b1a7a,emissiveIntensity:.9,flatShading:true})); c.position.set(x,y,zc); c.rotation.set(0,0,r); g.add(c); }
+    gunWisps=[]; for(let i=0;i<10;i++){ const w=new THREE.Mesh(new THREE.OctahedronGeometry(.01+.006*(i%3)),new THREE.MeshBasicMaterial({color:i%2?0xc084fc:0x5b21b6})); g.add(w); gunWisps.push({m:w,b:-.1-i*.14,ph:i*1.7,sp:1.8+i*.2}); }
+    tip=1.5;
   } else if(id==='dagger'){
     g.scale.setScalar(1.2); g.position.set(.02,-.02,-.02);
     const blk=0x07030f, dk=0x140a28, pur=0x7c3aed, glow=0xc084fc, crys=0x5b21b6;
@@ -1987,6 +2006,40 @@ const slashTex=canvasTex(256,128,(g,w,h)=>{ g.shadowColor='#ff2030'; g.shadowBlu
   g.strokeStyle=gr; g.lineCap='round'; g.lineWidth=16; g.beginPath(); g.arc(128,150,112,Math.PI*1.12,Math.PI*1.88); g.stroke(); g.lineWidth=6; g.strokeStyle='#fff'; g.beginPath(); g.arc(128,150,112,Math.PI*1.2,Math.PI*1.8); g.stroke(); });
 const slashFx=new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.3),new THREE.MeshBasicMaterial({map:slashTex,transparent:true,opacity:0,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false}));
 slashFx.position.set(0,-.05,-1.05); slashFx.renderOrder=40; slashFx.visible=false; camera.add(slashFx);
+const MARK_T=10, MARK_DPS=2000;
+function markZombie(z,pid){
+  if(z.dead) return; z.marked=MARK_T; z.markBy=pid; z.markAcc=0; ensureMarkFx(z);
+}
+function ensureMarkFx(z){
+  if(z.markFx){ z.markFx.visible=true; return; }
+  const m=new THREE.Mesh(sphGeo,new THREE.MeshBasicMaterial({color:0xa855f7,transparent:true,opacity:.38,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending}));
+  m.scale.set(.9,1.25,.9); m.position.y=z.height/(z.g.scale.y||1)*.5; m.renderOrder=30; z.g.add(m); z.markFx=m;
+  const o=new THREE.Mesh(sphGeo,new THREE.MeshBasicMaterial({color:0xe9d5ff,transparent:true,opacity:.18,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending})); o.scale.set(1.15,1.55,1.15); o.renderOrder=30; m.add(o);
+}
+function purpleFlame(x,y,z){
+  const m=new THREE.Mesh(smokeGeo,new THREE.MeshBasicMaterial({color:Math.random()<.4?0xe9d5ff:(Math.random()<.5?0xa855f7:0x6d28d9),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})); m.scale.setScalar(rnd(1.2,2.2)); m.position.set(x,y,z); scene.add(m); fx.push({m,life:.5,max:.5,vel:new THREE.Vector3(rnd(-.4,.4),rnd(1.2,2.4),rnd(-.4,.4)),kind:'smoke'});
+}
+function updateMarked(dt){
+  for(const z of S.zombies){
+    if(!(z.marked>0)){ if(z.markFx&&z.markFx.visible&&!(z.markNet)) z.markFx.visible=false; continue; }
+    if(NET.role!=='client') z.marked-=dt; if(z.markFx) z.markFx.visible=true;
+    if(Math.random()<dt*26) purpleFlame(z.x+rnd(-z.r,z.r),(z.y0||0)+z.height*rnd(.1,.9),z.z+rnd(-z.r,z.r));
+    if(NET.role!=='client'&&!z.dead){ z.markAcc=(z.markAcc||0)+dt; if(z.markAcc>=.5){ z.markAcc-=.5; const pl=NET.players[z.markBy], dm=z.markBy===NET.pid?mult().dmg:((pl&&pl.dm)||1); applyDamage(z,Math.round(MARK_DPS*.5*dm),z.markBy); } }
+  }
+}
+function fireRipper(){
+  S.fireCd=2; sfx('ripper'); kick=Math.min(.35,kick+.3); flashT=.08; flash.visible=true; S.shake=Math.max(S.shake,.85);
+  _o.set(P.x,EYE,P.z); dirFrom(P.yaw,P.pitch,_d);
+  let tb=90; for(const b of bricks){ const t=rayBox({x:_o.x,y:_o.y,z:_o.z},_d,b,tb); if(t<tb) tb=t; } for(const b of edgeSolids){ const t=rayBox({x:_o.x,y:_o.y,z:_o.z},_d,b,tb); if(t<tb) tb=t; }
+  const hits=[]; for(const z of S.zombies){ if(z.dead||z.hp<=0) continue; const t=rayZombie(_o,_d,z,.15); if(t<tb) hits.push([t,z]); }
+  hits.sort((a,b)=>a[0]-b[0]); let any=false;
+  for(const [t,z] of hits){ const head=(_o.y+_d.y*t)>=(z.y0||0)+z.height*.82; let dmg=25000*(head?(passOn('sharpshooter')?2.5:1.5):1);
+    hurtZombie(z,dmg,new THREE.Vector3(_o.x+_d.x*t,_o.y+_d.y*t,_o.z+_d.z*t),head?'#e879f9':'#c084fc'); if(NET.role==='client'){ const e=NET.hitBuf[z.id]||(NET.hitBuf[z.id]={d:0,b:0}); e.b=2; z.marked=MARK_T; ensureMarkFx(z); } else markZombie(z,NET.pid); any=true; }
+  if(any) hitMarker();
+  gunMuzzle.getWorldPosition(_m); const end=_o.clone().addScaledVector(_d,tb);
+  beam(_m.clone(),end,0xa855f7,.12); beam(_m.clone(),end,0xf5d0fe,.04); blast(end.clone(),1.2,0xa855f7,.3);
+  netShot({k:'b',big:1,c:0xa855f7,w:.12,a:[_m.x,_m.y,_m.z],b:[end.x,end.y,end.z]});
+}
 function daggerStab(){
   S.fireCd=.25; S.swing=.2; S.swingMax=.2; S.dagDir=-(S.dagDir||1); sfx('swing',undefined,undefined,.9,1.5);
   S.delayed.push({t:.06,fn:()=>{ let any=false; for(const z of S.zombies){ if(!inMelee(z,3.1,.75)) continue; hurtZombie(z,10000,new THREE.Vector3(z.x,(z.y0||0)+z.height*.7,z.z),'#c084fc'); any=true; }
@@ -2467,6 +2520,7 @@ function fire(){
   if(w.id==='vampire'){ meleeAttack(); return; }
   if(w.id==='sonic'){ fireSonic(); return; }
   if(w.id==='dagger'){ daggerStab(); return; }
+  if(w.id==='ripper'){ fireRipper(); return; }
   if(w.id==='reaper'){ if(!S.thrown) reaperSlash(); return; }
   if(w.id==='chainsaw') return;
   if(w.id==='ostrike'){ if(S.os.ph==='idle') startOS(); return; }
@@ -2517,7 +2571,7 @@ function update(dt){
     if(S.lock>0&&Math.random()<dt*45){ gunMuzzle.getWorldPosition(_m); _m.x+=(Math.random()-.5)*.05; smoke(_m); }
   } else S.heat=0;
 
-  updateOS(dt); updateGrab(dt); updateDots(dt); updateScythe(dt);
+  updateOS(dt); updateGrab(dt); updateDots(dt); updateMarked(dt); updateScythe(dt);
   if(S.ghoul>0){ S.ghoul=Math.max(0,S.ghoul-dt); if(S.ghoul===0) say('Ghoul state ended',1.5); } $('ghoulFx').style.opacity=S.ghoul>0?.9:0;
   if(S.spin>0){ P.yaw+=2*Math.PI/.55*dt; S.spin-=dt; }
   if(NET.role!=='client') for(let i=S.zombies.length-1;i>=0;i--) if(S.zombies[i].hp<=0){ killZombie(S.zombies[i]); S.zombies.splice(i,1); }
@@ -2694,9 +2748,10 @@ function updateHud(){
     if(L.length){ el.style.display='block'; el.textContent=L.join('\n'); } else el.style.display='none'; }
   { const el=$('skipTxt'); if(S.rebirths>=2&&S.mode==='game'){ el.style.display='block'; el.textContent=S.skipT>=0?'⏩ Skipping wave in '+S.skipT.toFixed(1)+'s…':'T · Skip Wave · '+(S.skipCd>0?S.skipCd.toFixed(1)+'s':'READY'); } else el.style.display='none'; }
   { const bz=S.zombies.find(z=>(z.vmaster||z.colossus||z.hboss)&&!z.dead), bb=$('bossBar'); if(bz){ bb.style.display='block'; $('bossName').textContent=bz.vmaster?'VOID MASTER':(bz.hboss?'HOWLER OVERLORD':'COLOSSUS'); $('bossFill').style.background=bz.vmaster?'linear-gradient(90deg,#7e22ce,#d946ef)':'linear-gradient(90deg,#991b1b,#f97316)'; $('bossFill').style.width=Math.max(0,bz.hp/bz.max*100)+'%'; } else bb.style.display='none'; }
-  const mini=heated(wpn()), osw=wpn().id==='ostrike', rw=wpn().id==='reaper';
+  const mini=heated(wpn()), osw=wpn().id==='ostrike', rw=wpn().id==='reaper', rpw=wpn().id==='ripper';
   if(NET.active) updateTeamHud(); else if($('team').innerHTML) $('team').innerHTML='';
-  $('heatWrap').style.display=(mini||osw||rw)?'block':'none'; $('heatTxt').style.display=((mini&&S.lock>0)||(osw&&S.os.ph==='cool'))?'block':'none';
+  $('heatWrap').style.display=(mini||osw||rw||rpw)?'block':'none'; $('heatTxt').style.display=((mini&&S.lock>0)||(osw&&S.os.ph==='cool'))?'block':'none';
+  if(rpw){ const f=1-Math.max(0,S.fireCd)/2; $('heat').style.width=(f*100)+'%'; $('heat').style.background=f>=1?'linear-gradient(90deg,#a855f7,#e879f9)':'#6d28d9'; $('heatLbl').textContent=f>=1?'VOID RIPPER READY':'RELOADING '+Math.max(0,S.fireCd).toFixed(1)+'s'; }
   if(rw){ const gh=S.ghoul>0, f=gh?S.ghoul/12:S.souls/SOULS_NEED; $('heat').style.width=(f*100)+'%'; $('heat').style.background=gh?'linear-gradient(90deg,#b91c1c,#f97316)':(S.souls>=SOULS_NEED?'#f43f5e':'linear-gradient(90deg,#6d28d9,#c084fc)'); $('heatLbl').textContent=gh?'👻 GHOUL STATE '+S.ghoul.toFixed(1)+'s':(S.souls>=SOULS_NEED?'SOULS READY – press E':'SOULS '+S.souls+' / '+SOULS_NEED); }
   if(osw){ const o=S.os, hy=o.ph==='hyper'; let f=1, col='#22d3ee', lb='READY – click to fire (cannot be cancelled)'; if(o.ph==='fire'){ f=o.t/OS_FIRE; col='#f8fafc'; lb='FIRING '+o.t.toFixed(1)+'s'; } else if(hy){ f=o.t/OS_HYPER; col='#f43f5e'; lb='HYPERCHARGE '+o.t.toFixed(1)+'s'; } else if(o.ph==='cool'){ f=1-o.t/(U('hyper')?OS_COOL_H:OS_COOL); col='#6b7280'; lb='COOLING'; $('heatTxt').textContent='OVERCHARGED – cooling '+o.t.toFixed(1)+'s'; } $('heat').style.width=(f*100)+'%'; $('heat').style.background=col; $('heatLbl').textContent=lb; }
   if(mini){ const f=S.lock>0?1-S.lock/MINI_LOCK:S.heat; $('heat').style.width=(f*100)+'%'; $('heat').style.background=S.lock>0?'#6b7280':`hsl(${60-60*S.heat},100%,50%)`; $('heatTxt').textContent='OVERCHARGED – cooling '+S.lock.toFixed(1)+'s'; $('heatLbl').textContent=S.lock>0?'COOLING':'OVERCHARGE '+Math.round(S.heat*100)+'%'; }
@@ -2718,6 +2773,7 @@ const WINFO={
   vampire:{ico:'🗡️',tags:['Melee','Lifesteal','E: 3 modes'],note:'Blood: 4000 dmg / 0.66 s, heals 1% of damage. Wind (E): 1500 / 0.25 s, +50% speed, SPACE = high jump + wind wave. Earth (E): 6000 / 2 s, 360° shockwave.'},
   chainsaw:{ico:'🪚',tags:['Melee','Bleed','Hold to rev'],note:'Rips through enemies: 10 dmg every 0.01 s and a 3 s bleed (10 dmg / 0.05 s).'},
   reaper:{ico:'💀',tags:['Melee','Souls','Q: 360° spin'],note:'5000 dmg slices. 25 kills = E: Ghoul state (7500 dmg / 0.25 s, +50% speed, 0.1% life steal, abilities +50% damage). Q: spin that sends red slices in all directions.'},
+  ripper:{ico:'🔭',tags:['Sniper','Pierces all','Marks'],note:'25000 dmg per shot, 1 shot / 2 s. Pierces everything and leaves enemies Marked: visible through walls and burned by purple flames.'},
   dagger:{ico:'🗡️',tags:['Melee','Void blade','Q: Shadow Step'],note:'10000 dmg every 0.25 s. Q: Shadow Step – 2x speed for 5 s and zombies cannot hit you.'},
   sonic:{ico:'🔊',tags:['2 modes','Pierces','Explodes on walls','E: switch'],note:'Sonic Mode: fast piercing balls (5000 dmg, explode on walls for 5000 AoE, 0.5 s). Pulse Mode: slow huge ball pulsing 5000 dmg every 0.5 s (1 s cooldown). Hypersonic upgrade: third mode, both combined.'},
   ostrike:{ico:'☄️',tags:['Pierces all','Can\'t cancel','Giant laser'],note:'One click fires a giant white laser for 5 s (150 dmg / 0.01 s, pierces everything). It cannot be stopped, then it cools down for 5 s.'},
@@ -2743,6 +2799,7 @@ const WTHEME={
   reaper:{a:'#b91c1c',a2:'#c084fc',bg:'#1c1020',bg2:'#251228',bd:'#3f1c3d',ib:'#100814'},
   ostrike:{a:'#7dd3fc',a2:'#ffffff',bt:'#0b1220',bg:'#141d2e',bg2:'#182540',bd:'#2a3f66',ib:'#0a1120'},
   sonic:{a:'#38bdf8',a2:'#818cf8',bg:'#0c1630',bg2:'#0f1c40',bd:'#1c3166',ib:'#060b1a'},
+  ripper:{a:'#9333ea',a2:'#f0abfc',bg:'#150a26',bg2:'#1c0e33',bd:'#34196a',ib:'#0a0414'},
   dagger:{a:'#a855f7',a2:'#e879f9',bg:'#170d2a',bg2:'#1e1038',bd:'#37206b',ib:'#0c0618'},
 };
 function applyWTheme(c,id){ const t=WTHEME[id]; if(!t) return; for(const k of ['a','a2','bg','bg2','bd','ib']) c.style.setProperty('--'+k,t[k]); if(t.bt) c.style.setProperty('--bt',t.bt); }
@@ -3000,7 +3057,7 @@ function mpHostMsg(pid,m){
   const p=NET.players[pid]; if(!p) return;
   switch(m.t){
     case 'p': p.sh=m.sh|0; p.x=m.x; p.y=m.y; p.z=m.z; p.yaw=m.yw; p.pitch=m.pt; p.w=m.w; p.hp=m.hp; p.maxHp=m.mh; p.alive=!!m.a; p.dm=m.dm||1; p.bd=m.bd||50; p.live=true; break;
-    case 'hit': for(const [id,d,b] of m.h){ const z=S.zombies.find(q=>q.id===id); if(!z||z.dead) continue; z.flash=.1; if(b){ if(z.burn<=0) z.burnT=0; z.burn=3; z.burnBy=pid; } if(d>0) applyDamage(z,Math.min(d,1e7),pid); } break;
+    case 'hit': for(const [id,d,b] of m.h){ const z=S.zombies.find(q=>q.id===id); if(!z||z.dead) continue; z.flash=.1; if(b===2) markZombie(z,pid); else if(b){ if(z.burn<=0) z.burnT=0; z.burn=3; z.burnBy=pid; } if(d>0) applyDamage(z,Math.min(d,1e7),pid); } break;
     case 'loot': { const ch=S.chests.find(c=>c.id===m.id); if(ch&&!ch.opened&&p.alive){ lootChest(ch,pid); netBroadcast({t:'chest',op:'open',id:ch.id,by:pid}); } break; }
     case 'shot': netBroadcast(m,pid); handleShot(m); break;
     case 'wind': windPush(m.x,m.z,Math.min(20,m.r||0)||undefined,Math.min(32,m.p||0)||undefined); break;
@@ -3034,7 +3091,7 @@ function hostTick(dt){
   const pl=[[NET.pid,r2(P.x),r2(P.y),r2(P.z),r2(P.yaw),r2(P.pitch),S.weapon,Math.max(0,Math.ceil(S.hp)),S.maxHp,S.downed?0:1]];
   for(const pid in NET.players){ const p=NET.players[pid]; if(+pid===NET.pid||!p.live) continue; pl.push([+pid,r2(p.x),r2(p.y||0),r2(p.z),r2(p.yaw),r2(p.pitch),p.w,Math.max(0,Math.ceil(p.hp)),p.maxHp,p.alive?1:0]); }
   const live=S.zombies.filter(z=>!z.dead);
-  const zs=live.map(z=>[z.id,r2(z.x),r2(z.z),r2(z.face||0),Math.round(100*Math.max(0,z.hp)/z.max),r2(Math.max(0,z.swing)),r2(Math.max(0,z.scream)),AST[z.aSt]||0,r2(z.aT||0),(z.buff>0?1:0)|(z.burn>0?2:0),z.shMax?Math.round(100*Math.max(0,z.sh)/z.shMax):0,z.cst||0,z.smN||0,r2(Math.max(0,z.smT||0)),z.crawler?z.att+1:0,z.cs||0]);
+  const zs=live.map(z=>[z.id,r2(z.x),r2(z.z),r2(z.face||0),Math.round(100*Math.max(0,z.hp)/z.max),r2(Math.max(0,z.swing)),r2(Math.max(0,z.scream)),AST[z.aSt]||0,r2(z.aT||0),(z.buff>0?1:0)|(z.burn>0?2:0)|(z.marked>0?4:0),z.shMax?Math.round(100*Math.max(0,z.sh)/z.shMax):0,z.cst||0,z.smN||0,r2(Math.max(0,z.smT||0)),z.crawler?z.att+1:0,z.cs||0]);
   const base={t:'s',w:S.wave,n:live.length+S.toSpawn,bt:r2(Math.max(0,S.breakT)),p:pl,z:zs};
   for(const pid in NET.conns){
     const kn=NET.known[pid]||(NET.known[pid]={}), d=[];
@@ -3086,7 +3143,7 @@ function clientSnapshot(m){
     if(z.colossus){ z.smN=e[12]|0; if(z.smN>0) z.smT=e[13]; }
     if(z.crier){ const nc=e[11]|0; if(nc>0&&(z.cst||0)===0){ sfx('crier',z.x,z.z); z.standT=.7; } z.cst=nc; }
     if(e[6]>0&&z.scream<=0){ z.screamFired=false; z.waves=0; sfx('scream',z.x,z.z); } z.scream=e[6]; if(e[5]>0&&z.swing<=0) sfx('zatk',z.x,z.z,1,zPitch(z)); z.swing=e[5]; const ns=ASTN[e[7]]||'wait'; if(ns==='draw'&&z.aSt!=='draw') sfx('bowdraw',z.x,z.z); z.aSt=ns; z.aT=e[8];
-    const bf=e[9]&1, bn=e[9]&2; z.buff=bf?1:0; if(bf) ensureGlow(z); else if(z.glow&&!z.permGlow) z.glow.visible=false; z.burn=bn?1:0; }
+    const bf=e[9]&1, bn=e[9]&2; z.buff=bf?1:0; if(bf) ensureGlow(z); else if(z.glow&&!z.permGlow) z.glow.visible=false; z.burn=bn?1:0; if(e[9]&4){ z.marked=1; z.markNet=true; ensureMarkFx(z); } else if(z.markNet){ z.markNet=false; z.marked=0; if(z.markFx) z.markFx.visible=false; } }
   for(const id in NET.ghosts) if(!seen[id]){ const z=NET.ghosts[id]; const i=S.zombies.indexOf(z); if(i>=0) S.zombies.splice(i,1); delete NET.ghosts[id]; removeZombie(z); }
   S.toSpawn=Math.max(0,m.n-S.zombies.length);
   for(const e of m.p){ const pid=e[0]; if(pid===NET.pid) continue; const p=NET.players[pid]||(NET.players[pid]={pid,name:'Player',color:pid});
@@ -3120,7 +3177,7 @@ function clientTick(dt){
 function handleShot(m){
   { const w=(NET.players[m.by]||{}).w||'glock'; if(m.k==='t') sfx(WSOUND[w]||'glock',m.a[0],m.a[2],.8); else if(m.k==='b'&&!m.big) sfx('railgun',m.a[0],m.a[2]); else if(m.k==='p') sfx(m.kind==='lava'?'lava':m.kind==='blaster'?'blaster':'orbital',m.o[0],m.o[2]); }
   if(m.k==='t') tracer(new THREE.Vector3(...m.a),new THREE.Vector3(...m.b));
-  else if(m.k==='b') m.big?(beam(new THREE.Vector3(...m.a),new THREE.Vector3(...m.b),m.hy?0xff3b6b:0xffffff,.4)):beam(new THREE.Vector3(...m.a),new THREE.Vector3(...m.b),0x38bdf8,.04);
+  else if(m.k==='b') m.big?(beam(new THREE.Vector3(...m.a),new THREE.Vector3(...m.b),m.c||(m.hy?0xff3b6b:0xffffff),m.w||.4)):beam(new THREE.Vector3(...m.a),new THREE.Vector3(...m.b),0x38bdf8,.04);
   else if(m.k==='gr'){ spawnGrenade(m.o,m.v,true); }
   else if(m.k==='sb'){ spawnSonic(m.m,m.o,m.v,true); sfx(m.m===1?'sonicpulse':'sonicshot',m.o[0],m.o[2]); }
   else if(m.k==='p'){
@@ -3248,6 +3305,7 @@ const SND={
   vball:{v:.8,range:70,f:o=>{ tone({f:300,f2:90,dur:.6,type:'sawtooth',vol:.3,lp:1200,out:o}); noise({dur:.5,vol:.25,ft:'bandpass',f:900,f2:300,out:o}); }},
   vblast:{v:.7,range:55,f:o=>{ tone({f:140,f2:40,dur:.35,type:'sine',vol:.4,out:o}); tone({f:600,f2:200,dur:.25,type:'square',vol:.1,lp:1500,out:o}); noise({dur:.3,vol:.25,ft:'lowpass',f:1200,f2:300,out:o}); }},
   vsummon:{v:.9,range:80,f:o=>{ tone({f:80,f2:400,dur:1.0,type:'sawtooth',vol:.35,lp:1800,att:.1,out:o}); tone({f:1200,f2:300,dur:.9,type:'triangle',vol:.12,out:o}); noise({dur:.8,vol:.2,ft:'bandpass',f:600,f2:2000,out:o}); }},
+  ripper:{v:1,range:110,f:o=>{ tone({f:80,f2:28,dur:.7,type:'sawtooth',vol:.5,lp:900,out:o}); tone({f:1800,f2:300,dur:.25,type:'square',vol:.2,lp:3000,out:o}); noise({dur:.5,vol:.45,ft:'lowpass',f:2500,f2:200,out:o}); tone({f:300,f2:900,dur:.4,type:'sine',vol:.12,delay:.1,out:o}); }},
   shadowstep:{v:.8,range:60,f:o=>{ tone({f:200,f2:60,dur:.5,type:'sawtooth',vol:.3,lp:900,out:o}); noise({dur:.5,vol:.3,ft:'bandpass',f:500,f2:2500,out:o}); tone({f:900,f2:300,dur:.3,type:'sine',vol:.15,out:o}); }},
   sonicshot:{v:.7,range:70,f:o=>{ tone({f:1400,f2:300,dur:.22,type:'sine',vol:.35,out:o}); tone({f:2800,f2:900,dur:.12,type:'triangle',vol:.15,out:o}); noise({dur:.1,vol:.15,ft:'highpass',f:3000,f2:1500,out:o}); }},
   sonicpulse:{v:.8,range:70,f:o=>{ tone({f:90,f2:50,dur:.4,type:'sine',vol:.5,out:o}); tone({f:400,f2:150,dur:.3,type:'triangle',vol:.2,out:o}); }},
@@ -3316,7 +3374,7 @@ function audAmbience(){
   AUD.amb={lg,gg}; audAmbMode(S.mode);
 }
 function audAmbMode(m){ if(!AUD.amb) return; const t=AUD.ctx.currentTime; AUD.amb.lg.gain.setTargetAtTime(m==='lobby'?.6:0,t,.5); AUD.amb.gg.gain.setTargetAtTime(m==='game'?.12:0,t,.5); }
-const WSOUND={sonic:'sonicshot',ostrike:'railgun',glock:'glock',rifle:'rifle',mg:'mg',shotgun:'shotgun',autoshot:'shotgun',minigun:'minigun',flame:'flame'};
+const WSOUND={ripper:'ripper',sonic:'sonicshot',ostrike:'railgun',glock:'glock',rifle:'rifle',mg:'mg',shotgun:'shotgun',autoshot:'shotgun',minigun:'minigun',flame:'flame'};
 function zPitch(z){ const s=z.desc?z.desc.s:1; let p=1.25/Math.pow(Math.max(.6,s),.6); if(z.desc&&z.desc.n&&z.desc.n.indexOf('Fast')===0) p*=1.35; if(z.brute) p*=.72; return p; }
 
 
