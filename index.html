@@ -2033,7 +2033,7 @@ function fireRipper(){
   let tb=90; for(const b of bricks){ const t=rayBox({x:_o.x,y:_o.y,z:_o.z},_d,b,tb); if(t<tb) tb=t; } for(const b of edgeSolids){ const t=rayBox({x:_o.x,y:_o.y,z:_o.z},_d,b,tb); if(t<tb) tb=t; }
   const hits=[]; for(const z of S.zombies){ if(z.dead||z.hp<=0) continue; const t=rayZombie(_o,_d,z,.15); if(t<tb) hits.push([t,z]); }
   hits.sort((a,b)=>a[0]-b[0]); let any=false;
-  for(const [t,z] of hits){ const head=(_o.y+_d.y*t)>=(z.y0||0)+z.height*.82; let dmg=25000*(head?(passOn('sharpshooter')?2.5:1.5):1);
+  for(const [t,z] of hits){ const head=(_o.y+_d.y*t)>=(z.y0||0)+z.height*.82; let dmg=25000*(head?(passOn('sharpshooter')?3:2):1);
     hurtZombie(z,dmg,new THREE.Vector3(_o.x+_d.x*t,_o.y+_d.y*t,_o.z+_d.z*t),head?'#e879f9':'#c084fc'); if(NET.role==='client'){ const e=NET.hitBuf[z.id]||(NET.hitBuf[z.id]={d:0,b:0}); e.b=2; z.marked=MARK_T; ensureMarkFx(z); } else markZombie(z,NET.pid); any=true; }
   if(any) hitMarker();
   gunMuzzle.getWorldPosition(_m); const end=_o.clone().addScaledVector(_d,tb);
@@ -2773,7 +2773,7 @@ const WINFO={
   vampire:{ico:'🗡️',tags:['Melee','Lifesteal','E: 3 modes'],note:'Blood: 4000 dmg / 0.66 s, heals 1% of damage. Wind (E): 1500 / 0.25 s, +50% speed, SPACE = high jump + wind wave. Earth (E): 6000 / 2 s, 360° shockwave.'},
   chainsaw:{ico:'🪚',tags:['Melee','Bleed','Hold to rev'],note:'Rips through enemies: 10 dmg every 0.01 s and a 3 s bleed (10 dmg / 0.05 s).'},
   reaper:{ico:'💀',tags:['Melee','Souls','Q: 360° spin'],note:'5000 dmg slices. 25 kills = E: Ghoul state (7500 dmg / 0.25 s, +50% speed, 0.1% life steal, abilities +50% damage). Q: spin that sends red slices in all directions.'},
-  ripper:{ico:'🔭',tags:['Sniper','Pierces all','Marks'],note:'25000 dmg per shot, 1 shot / 2 s. Pierces everything and leaves enemies Marked: visible through walls and burned by purple flames.'},
+  ripper:{ico:'🔭',tags:['Sniper','Pierces all','Marks'],note:'25000 dmg per shot, 1 shot / 2 s. Headshots deal 2x (3x with Sharpshooter). Pierces everything and leaves enemies Marked: visible through walls and burned by purple flames.'},
   dagger:{ico:'🗡️',tags:['Melee','Void blade','Q: Shadow Step'],note:'10000 dmg every 0.25 s. Q: Shadow Step – 2x speed for 5 s and zombies cannot hit you.'},
   sonic:{ico:'🔊',tags:['2 modes','Pierces','Explodes on walls','E: switch'],note:'Sonic Mode: fast piercing balls (5000 dmg, explode on walls for 5000 AoE, 0.5 s). Pulse Mode: slow huge ball pulsing 5000 dmg every 0.5 s (1 s cooldown). Hypersonic upgrade: third mode, both combined.'},
   ostrike:{ico:'☄️',tags:['Pierces all','Can\'t cancel','Giant laser'],note:'One click fires a giant white laser for 5 s (150 dmg / 0.01 s, pierces everything). It cannot be stopped, then it cools down for 5 s.'},
