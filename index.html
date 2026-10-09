@@ -361,7 +361,8 @@ const PASSIVES=[
   {id:'bossmagnet',name:'Boss Magnet',ico:'🧲',tokens:450,desc:'Bosses can spawn from wave 10 instead of wave 15, and they are twice as likely to show up.'},
   {id:'stormprince',name:'Storm Prince',ico:'⚡',tokens:200,desc:'Every time you hit an enemy a small lightning chain jumps to nearby enemies, dealing 5% of your equipped weapon\'s DPS to each.'},
 ];
-const SECONDARIES=[{id:'grenade',name:'Grenade',ico:'💣',tokens:10,key:'X',cd:10,dmg:250,desc:'Throw with X (10 s cooldown). Explodes after a short fuse for 250 damage in a 5 m radius. Works together with any weapon.'},
+const SECONDARIES=[{id:'armor',name:'Shield',ico:'🧿',tokens:250,key:'AUTO',cd:0,auto:true,desc:'Always active: absorbs 10% of all damage you take. The Shield upgrade in the General Upgrades tab raises this to 25%.'},
+  {id:'grenade',name:'Grenade',ico:'💣',tokens:10,key:'X',cd:10,dmg:250,desc:'Throw with X (10 s cooldown). Explodes after a short fuse for 250 damage in a 5 m radius. Works together with any weapon.'},
   {id:'drone',name:'Combat Drone',ico:'🛸',tokens:100,key:'AUTO',cd:0,auto:true,desc:'A little drone follows you and shoots the nearest enemy every 1 s for 30% of your weapon DPS. Every 10 s it goes into overdrive for 3 s: a shot every 0.5 s for 50% of your DPS.'},
   {id:'shield',name:'Shield Projector',ico:'🛡️',tokens:100,key:'X',cd:25,desc:'Throw with X (25 s cooldown). It activates where it lands: a dome that no zombie can enter. Lasts 15 s and has 1000 HP – zombies hitting it for a total of 1000 damage destroy it early.'},
   {id:'boost',name:'Damage Projector',ico:'⚡',tokens:100,key:'X',cd:25,desc:'Throw with X (25 s cooldown). It creates a field for 15 s: while you stand inside it you deal +15% damage.'},
@@ -444,8 +445,9 @@ function updatePoison(dt){
   while(p.acc>=.5-1e-6&&p.n<4){ p.acc-=.5; p.n++; const d=10*p.mm; S.hp-=d; incoming.push(d); S.shake=Math.max(S.shake,.1); if(S.hp<=0&&secondWind()){ S.poison=null; return; } }
   if(p.n>=4||p.t<-.2) S.poison=null;
 }
+const armorPct=()=>secOn('armor')?(U('armor2')?.25:.1):0;
 function hitPlayer(pid,dmg){
-  if(pid===NET.pid){ if(S.shadowT>0||S.shieldT>0||S.riftIn>=0) return; S.hp-=dmg; incoming.push(dmg); if(S.hp<=0) secondWind(); }
+  if(pid===NET.pid){ if(S.shadowT>0||S.shieldT>0||S.riftIn>=0) return; dmg=Math.max(1,Math.round(dmg*(1-armorPct()))); S.hp-=dmg; incoming.push(dmg); if(S.hp<=0) secondWind(); }
   else { const p=NET.players[pid]; if(p&&!p.sh){ p.hp-=dmg; netSend(NET.conns[pid],{t:'dmg',n:dmg}); } }
 }
 const SCREAM_R=10, SCREAM_CD=12, SCREAM_T=1.6, BUFF_T=12;
@@ -482,7 +484,7 @@ function saveGame(){
 }
 function parseSave(js){ try{ const d=JSON.parse(js); return d&&d.v===1?d:null; }catch(e){ return null; } }
 function applySave(d){
-  S.rebirths=Math.min(MAX_REB,Math.max(0,d.rebirths|0)); S.pas={}; S.pasEq=null; if(d.pa&&typeof d.pa==='object') for(const o of PASSIVES) if(d.pa[o.id]){ S.pas[o.id]=true; if(d.pe===undefined&&!S.pasEq&&!(d.po&&d.po[o.id])) S.pasEq=o.id; } if(d.pe&&S.pas[d.pe]) S.pasEq=d.pe; S.goals={}; if(d.gl&&typeof d.gl==='object') for(const k of ['h','v','vb']) if(d.gl[k]) S.goals[k]=true; S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.sec={}; if(d.sec&&typeof d.sec==='object') for(const o of SECONDARIES) if(d.sec[o.id]) S.sec[o.id]=true; S.secEq=(d.se&&S.sec[d.se])?d.se:null; S.kills={}; if(d.kills&&typeof d.kills==='object') for(const k in d.kills) S.kills[k]=Math.max(0,Math.min(1e7,d.kills[k]|0)); S.wu={}; if(d.wu&&typeof d.wu==='object') for(const w of WEAPONS) if(w.tokens&&d.wu[w.id]) S.wu[w.id]=true; buildShop(); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true; for(const gid of ['pas2','sec2']) if(d.up&&d.up[gid]) S.up[gid]=true; S.pasEq2=(d.pe2&&S.pas[d.pe2]&&d.pe2!==S.pasEq)?d.pe2:null; S.secEq2=(d.se2&&S.sec[d.se2]&&d.se2!==S.secEq)?d.se2:null; S.dmgLv=Math.max(0,Math.min(DMG_MAX,d.dl|0)); S.tokLv=Math.max(0,Math.min(TOK_MAX,d.tl|0)); S.tokAcc=0;
+  S.rebirths=Math.min(MAX_REB,Math.max(0,d.rebirths|0)); S.pas={}; S.pasEq=null; if(d.pa&&typeof d.pa==='object') for(const o of PASSIVES) if(d.pa[o.id]){ S.pas[o.id]=true; if(d.pe===undefined&&!S.pasEq&&!(d.po&&d.po[o.id])) S.pasEq=o.id; } if(d.pe&&S.pas[d.pe]) S.pasEq=d.pe; S.goals={}; if(d.gl&&typeof d.gl==='object') for(const k of ['h','v','vb']) if(d.gl[k]) S.goals[k]=true; S.savedRun=null; const r=d.run; S.cashLv=Math.max(0,Math.min(CASH_MAX,d.cl|0)); S.tokens=Math.max(0,d.tk|0); S.sec={}; if(d.sec&&typeof d.sec==='object') for(const o of SECONDARIES) if(d.sec[o.id]) S.sec[o.id]=true; S.secEq=(d.se&&S.sec[d.se])?d.se:null; S.kills={}; if(d.kills&&typeof d.kills==='object') for(const k in d.kills) S.kills[k]=Math.max(0,Math.min(1e7,d.kills[k]|0)); S.wu={}; if(d.wu&&typeof d.wu==='object') for(const w of WEAPONS) if(w.tokens&&d.wu[w.id]) S.wu[w.id]=true; buildShop(); S.up={}; if(d.up&&typeof d.up==='object') for(const u of UPG) if(d.up[u.id]) S.up[u.id]=true; for(const gid of ['pas2','sec2','armor2']) if(d.up&&d.up[gid]) S.up[gid]=true; S.pasEq2=(d.pe2&&S.pas[d.pe2]&&d.pe2!==S.pasEq)?d.pe2:null; S.secEq2=(d.se2&&S.sec[d.se2]&&d.se2!==S.secEq)?d.se2:null; S.dmgLv=Math.max(0,Math.min(DMG_MAX,d.dl|0)); S.tokLv=Math.max(0,Math.min(TOK_MAX,d.tl|0)); S.tokAcc=0;
   if(r&&r.owned&&r.owned.glock&&WEAPONS_IDS.includes(r.weapon)) S.savedRun={re:+r.re||0,rt:r.rt|0,cash:+r.cash||0,owned:r.owned,weapon:r.weapon,hpBuys:r.hpBuys|0,wave:r.wave|0,cleared:r.cleared|0,railMode:r.railMode==='blaster'?'blaster':'laser',bladeMode:['blood','wing','earth'].includes(r.bladeMode)?r.bladeMode:'blood'};
 }
 function loadGame(){
@@ -2792,7 +2794,7 @@ function updateGrenades(dt){
     for(const w of bricks) if(p.x>w.x-.1&&p.x<w.x+w.w+.1&&p.z>w.z-.1&&p.z<w.z+w.d+.1&&p.y<w.h){ p.x=ox; p.z=oz; b.vel.x*=-.4; b.vel.z*=-.4; break; }
     if(p.x<.2||p.x>MAP.w-.2){ p.x=Math.max(.2,Math.min(MAP.w-.2,p.x)); b.vel.x*=-.4; } if(p.z<.2||p.z>MAP.h-.2){ p.z=Math.max(.2,Math.min(MAP.h-.2,p.z)); b.vel.z*=-.4; }
     b.led.visible=Math.sin(b.t*(b.t>1?40:10))>0;
-    if(b.kind==='grenade'||!b.kind){ if(b.t>=1.6){ b.dead=true; explode(p.clone(),5,SECONDARIES[0].dmg,0xff8a30,b.visual); } }
+    if(b.kind==='grenade'||!b.kind){ if(b.t>=1.6){ b.dead=true; explode(p.clone(),5,SECONDARIES.find(o=>o.id==='grenade').dmg,0xff8a30,b.visual); } }
     else { if(!b.landed&&p.y<=.16) b.landed=true; const trig=b.kind==='ice'?(b.landed&&b.t>.25)||b.t>1.4:(b.landed&&b.t>.45)||b.t>1.5;
       if(trig){ b.dead=true; const vis=b.visual&&!(NET.role==='host'&&b.hostLogic); if(b.kind==='ice') iceBlast(p.x,p.z,vis); else if(b.kind==='shield') activateZone('shield',p.x,p.z,vis); else activateZone('boost',p.x,p.z,false); } }
   }
@@ -3687,7 +3689,7 @@ function mpClientData(m){
     case 's': clientSnapshot(m); break;
     case 'dead': clientDead(m); break;
     case 'poison': if(!(S.shadowT>0||S.shieldT>0||S.riftIn>=0)){ if(S.poison){ S.poison.t=2; S.poison.n=0; S.poison.mm=m.mm||1; } else S.poison={t:2,acc:0,n:0,mm:m.mm||1}; sfx('poison'); } break;
-    case 'dmg': if(S.shadowT>0||S.shieldT>0||S.riftIn>=0) break; S.hp-=m.n; incoming.push(m.n); if(S.hp<=0) secondWind(); break;
+    case 'dmg': { if(S.shadowT>0||S.shieldT>0||S.riftIn>=0) break; const n=Math.max(1,Math.round(m.n*(1-armorPct()))); S.hp-=n; incoming.push(n); } if(S.hp<=0) secondWind(); break;
     case 'arrow': spawnVisualArrow(m.o,m.v); break;
     case 'vb': spawnVBall(m.o,m.v,true); break;
     case 'smash': smashFx(m.x,m.z); break;
@@ -3990,7 +3992,7 @@ function updateCash(){
   const set=n=>{ S.cashLv=Math.max(0,Math.min(CASH_MAX,S.cashLv+n)); if(n>0) sfx('buy'); saveGame(); updateCash(); };
   $('cb1').onclick=()=>set(1); $('cb10').onclick=()=>set(10); $('cbm').onclick=()=>set(-1);
 }
-const GEN=[{id:'pas2',ico:'🧬',name:'Equip 2 passives',desc:'Lets you equip two passives at the same time (pick both in the Passives shop).'},{id:'sec2',ico:'🎒',name:'Equip 2 secondaries',desc:'Lets you equip two secondaries at once. The first is used with X, the second with Y (each has its own cooldown).'}];
+const GEN=[{id:'armor2',ico:'🧿',name:'Shield upgrade',desc:'Your Shield secondary absorbs 25% of damage instead of 10%.'},{id:'pas2',ico:'🧬',name:'Equip 2 passives',desc:'Lets you equip two passives at the same time (pick both in the Passives shop).'},{id:'sec2',ico:'🎒',name:'Equip 2 secondaries',desc:'Lets you equip two secondaries at once. The first is used with X, the second with Y (each has its own cooldown).'}];
 function buildGen(){
   const g=$('genGrid'); g.innerHTML='';
   for(const u of GEN){ const c=document.createElement('div'); c.className='ucard'; c.id='g-'+u.id;
