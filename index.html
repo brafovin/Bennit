@@ -330,11 +330,12 @@ const WEAPONS = [
   {id:'dagger',name:'Shadow Dagger',cost:200000,dmg:10000,cd:0.25,tokens:1000,cat:'Melee',desc:'Fast void blade: 10000 dmg / 0.25s. Q: Shadow Step – 2x speed for 5 s and zombies cannot hit you. C: Void Rift – a healing portal that breaks if you stay too long'},
   {id:'ripper',name:'Void Ripper',cost:350000,dmg:25000,cd:2,tokens:2500,cat:'Guns',desc:'Void sniper: 25000 dmg, 1 shot / 2 s, pierces every enemy and leaves them Marked (visible through walls, slowly burned by purple flames)'},
   {id:'ovf',name:'Overflow',cost:250000,dmg:225,cd:1,tokens:1500,cat:'Guns',desc:'Starts at 1 shot/s and speeds up while you hold the trigger until it reaches 1 shot every 0.01 s after 10 s. 225 dmg per shot'},
+  {id:'omni',name:'Omnifire',cost:999999,dmg:50,cd:0.01,tokens:9999,cat:'Guns',desc:'4 floating miniguns (red, blue, green, yellow) each firing 6 spinning lasers: 50 dmg per laser every 0.01 s. Overheats after 3 s of fire, but you can stop any time'},
 ];
 const LAVA_R=4, ORB_PULL=10, ORB_R=6;
 const BLADE={blood:{cd:.66,dmg:4000,name:'Vampire Blade'},wing:{cd:.25,dmg:1500,name:'Wind Blade'},earth:{cd:2,dmg:6000,name:'Earth Blade'}};
 const WIND_R=5, WIND_PUSH=13, MELEE_R=3.3, MELEE_ARC=.95, EARTH_R=8, BLADE_ORDER=['blood','wing','earth'];
-const heated=w=>w.id==='minigun'||(w.id==='railgun'&&S.railMode==='laser');
+const heated=w=>w.id==='minigun'||w.id==='omni'||(w.id==='railgun'&&S.railMode==='laser');
 const WEAPONS_IDS=WEAPONS.map(w=>w.id);
 const SB_MODES=[{name:'Sonic Mode',cd:.5,spd:62,r:.28,life:2.2,col:0x7dd3fc},{name:'Pulse Mode',cd:1,spd:12,r:1.1,life:6.5,col:0xa78bfa},{name:'Hypersonic Mode',cd:.75,spd:42,r:1.4,life:4,col:0xfde68a}];
 const SB_AOE=4.2, SB_PULSE_R=4.8, SB_PULSE_T=.5;
@@ -430,7 +431,7 @@ const MAP = {w:40, h:40};
 const S = {
   mode:'lobby', cash:0, hp:100, maxHp:100, hpBuys:0,
   owned:{glock:true}, weapon:'glock',
-  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, ovT:0, ovIdle:0, ovHm:0, ovSnd:0, fog:[], fogAcc:0, fogSnd:0, rifts:[], riftIn:-1, riftLock:false, riftCd:0, ripFx:0, swUsed:false, shieldT:0, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
+  pulls:[], downed:false, mpOpen:false, mpArmed:true, upOpen:false, upArmed:true, wsArmed:true, psArmed:true, railMode:'laser', bladeMode:'blood', swing:0, shake:0, ls:0, projs:[], puddles:[], corpses:[], chests:[], chestT:30, omFired:false, omAcc:0, omSpin:0, omHm:0, omSnd:0, omNet:0, ovT:0, ovIdle:0, ovHm:0, ovSnd:0, fog:[], fogAcc:0, fogSnd:0, rifts:[], riftIn:-1, riftLock:false, riftCd:0, ripFx:0, swUsed:false, shieldT:0, shadowT:0, pas:{}, pasEq:null, okStacks:0, okT:9, kk:0, spT:0, inPass:false, passOpen:false, goals:{}, sec:{}, secEq:null, grCd:0, gr:[], sonicMode:0, sb:[], kills:{}, diaryOpen:false, souls:0, ghoul:0, spin:0, thrown:null, throwCd:0, reapDmg:false, chAcc:0, chSnd:0, chHm:0, dotT:0, blurT:0, grab:0, grabF:0, vb:[], os:{ph:'idle',t:0,acc:0,ft:0,nt:0,hm:0}, hc:false, vc:false, pauseOpen:false, wu:{}, wsOpen:false, tokens:0, runEarned:0, runTok:0, tokGain:0, lastRunTok:0, skipT:-1, skipCd:0, cashLv:0, up:{}, delayed:[], spikes:[], abCd:0, dash:null, rebirths:0, cleared:0, rebirthOpen:false,
   wave:0, toSpawn:0, spawnT:0, breakT:0, bossSpawned:false,
   zombies:[], shopOpen:false, fireCd:0, heat:0, lock:0, msgT:0,
 };
@@ -984,7 +985,7 @@ let edgeSolids=[]; function makeEdgeSolids(){ edgeSolids=[{x:-1,z:-1,w:MAP.w+2,d
 const gunRoot = new THREE.Group(); camera.add(gunRoot);
 const flash = new THREE.Mesh(new THREE.SphereGeometry(0.07,8,8), new THREE.MeshBasicMaterial({color:0xfde047}));
 flash.visible=false;
-let gunMuzzle=null, gunSpin=null, gunWisps=null;
+let gunMuzzle=null, gunSpin=null, gunWisps=null, gunSpins=null, gunMuz4=[];
 function bm(w,h,d,col,x=0,y=0,z=0){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({color:col})); m.position.set(x,y,z); return m; }
 function box(w,h,d,col,x=0,y=0,z=0){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:col})); m.position.set(x,y,z); return m; }
 const bladeLight=new THREE.PointLight(0xff2020,0,5); bladeLight.position.set(.3,-.1,-1.1); camera.add(bladeLight);
@@ -996,7 +997,7 @@ function cyv(r,len,col,x,y,z,kind){ const m=new THREE.Mesh(new THREE.CylinderGeo
 function ring(r,t,col,x,y,z,kind){ const m=new THREE.Mesh(new THREE.TorusGeometry(r,t,8,16),mat(col,kind)); m.position.set(x,y,z); return m; }
 function buildGun(id,forAvatar){
   if(!forAvatar){ while(gunRoot.children.length){ const c=gunRoot.children.pop(); c.traverse(o=>{ if(o.geometry&&o!==flash) o.geometry.dispose(); }); }
-  gunSpin=null; gunWisps=null; }
+  gunSpin=null; gunWisps=null; gunSpins=null; gunMuz4=[]; }
   const g=new THREE.Group(); g.scale.setScalar(.8); let tip=0.3; const A=(...p)=>p.forEach(o=>g.add(o));
   if(id==='glock'){
     A(bx(.05,.045,.27,0x2b2f36,0,.02,-.15), bx(.052,.008,.27,0x111111,0,.046,-.15), bx(.04,.035,.26,0x15171b,0,-.02,-.14,'matte'),
@@ -1050,6 +1051,19 @@ function buildGun(id,forAvatar){
     g.scale.setScalar(.62); g.position.set(.12,-.12,.05);
     const sc=scytheModel(); sc.rotation.set(-1.0,.18,.12); sc.position.set(.18,-.25,.35); A(sc);
     tip=1.3;
+  } else if(id==='omni'){
+    g.scale.setScalar(.5); g.position.set(-.3,.1,-.05); gunMuz4=[]; gunSpins=[];
+    const place=[[-1.45,.05],[1.45,.05],[-.85,.98],[.85,.98]];
+    for(let gi=0;gi<4;gi++){ const col=OM_COLS[gi], gg=new THREE.Group(); gg.position.set(place[gi][0],place[gi][1],0); g.add(gg);
+      const mk=(w,h,d,c,x,y,z,kind)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,kind||'metal')); m.position.set(x,y,z); gg.add(m); return m; };
+      mk(.13,.13,.34,0x1c2030,0,0,.08); mk(.15,.04,.3,col,0,.085,.06,'glow'); mk(.04,.1,.08,0x111111,0,-.1,.14); mk(.1,.09,.12,0x2a2f3d,0,-.08,.28);
+      const cyl=new THREE.Mesh(new THREE.CylinderGeometry(.095,.095,.26,12),mat(0x2b3040,'metal')); cyl.rotation.x=Math.PI/2; cyl.position.set(0,0,-.2); gg.add(cyl);
+      const bar=new THREE.Group(); bar.position.set(0,0,-.45); bar.userData.dir=gi%2?-1:1; gg.add(bar); gunSpins.push(bar);
+      for(let k=0;k<6;k++){ const a=k/6*Math.PI*2, b=new THREE.Mesh(new THREE.CylinderGeometry(.014,.014,.4,6),mat(0x3a4152,'metal')); b.rotation.x=Math.PI/2; b.position.set(Math.cos(a)*.055,Math.sin(a)*.055,0); bar.add(b); const tp=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.03,6),mat(col,'glow')); tp.rotation.x=Math.PI/2; tp.position.set(Math.cos(a)*.055,Math.sin(a)*.055,-.2); bar.add(tp); }
+      for(const z0 of [-.1,.1]){ const r=new THREE.Mesh(new THREE.TorusGeometry(.075,.012,6,16),mat(col,'glow')); r.position.z=z0; bar.add(r); }
+      const hl=glowSprite(col,.5,0,0,-.2); gg.add(hl);
+      const mz=new THREE.Object3D(); mz.position.set(0,0,-.68); gg.add(mz); gunMuz4.push(mz); }
+    tip=.7;
   } else if(id==='ovf'){
     g.scale.setScalar(.85); g.position.set(.02,-.03,.05);
     const pur=0x6d28d9, red=0xdc2626, org=0xf97316, blk=0x1a0a1f, dk=0x2b1030;
@@ -2166,6 +2180,28 @@ function spawnFog(o,v,visual){
   const m=new THREE.Mesh(sphGeo,new THREE.MeshBasicMaterial({color:Math.random()<.5?0x65a30d:0x84cc16,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending}));
   m.scale.setScalar(.4); m.position.set(o[0],o[1],o[2]); gameG.add(m); S.fog.push({m,vel:new THREE.Vector3(v[0],v[1],v[2]),t:0,life:1.0,visual:!!visual});
 }
+const OM_COLS=[0xef4444,0x3b82f6,0x22c55e,0xfacc15], OMB=[];
+function getOmBeam(i){ if(!OMB[i]){ const m=new THREE.Mesh(beamGeo,new THREE.MeshBasicMaterial({color:OM_COLS[Math.floor(i/6)],transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending})); m.visible=false; m.renderOrder=15; scene.add(m); OMB[i]=m; } return OMB[i]; }
+function setOmBeam(m,a,b,w){ const dir=_bx.copy(b).sub(a), len=dir.length(); if(len<.01){ m.visible=false; return; } dir.normalize(); m.position.copy(a).addScaledVector(dir,len/2); m.quaternion.setFromUnitVectors(_by.set(0,1,0),dir); m.scale.set(w,len,w); m.visible=true; }
+function hideOmni(){ for(const m of OMB) if(m) m.visible=false; }
+function fireOmni(){
+  S.fireCd=0; S.omFired=true; const dt=Math.min(.05,S.dt||.016);
+  S.omSpin+=dt*14; S.omAcc+=dt; let n=Math.floor(S.omAcc/.01); S.omAcc-=n*.01; n=Math.min(n,8); kick=Math.max(kick,.03);
+  S.omSnd-=dt; if(S.omSnd<=0){ S.omSnd=.1; sfx('omnifire'); }
+  camera.position.set(P.x,EYE,P.z); camera.rotation.set(P.pitch,P.yaw,0); camera.updateMatrixWorld(true);
+  _o.set(P.x,EYE,P.z); dirFrom(P.yaw,P.pitch,_d); const eye=_o.clone(), fwd=_d.clone(), rt=new THREE.Vector3().crossVectors(fwd,new THREE.Vector3(0,1,0)).normalize(), up=new THREE.Vector3().crossVectors(rt,fwd).normalize();
+  const target=eye.clone().addScaledVector(fwd,26); let anyHit=false; const sum=new Map();
+  for(let g=0;g<4;g++){ const mp=new THREE.Vector3(); (gunMuz4[g]||gunMuzzle).getWorldPosition(mp);
+    for(let k=0;k<6;k++){ const idx=g*6+k, a=S.omSpin*(g%2?-1:1)+k*Math.PI/3, off=.05; const aim=target.clone().addScaledVector(rt,Math.cos(a)*off*26).addScaledVector(up,Math.sin(a)*off*26);
+      const dir=aim.sub(mp).normalize(); let tb=70; const o4={x:mp.x,y:mp.y,z:mp.z};
+      for(const b of bricks){ const t=rayBox(o4,dir,b,tb); if(t<tb) tb=t; } for(const b of edgeSolids){ const t=rayBox(o4,dir,b,tb); if(t<tb) tb=t; }
+      let hit=null, tz=tb; for(const z of S.zombies){ if(z.hp<=0||z.dead) continue; const t=rayZombie(o4,dir,z,.1); if(t<tz){ tz=t; hit=z; } }
+      const end=mp.clone().addScaledVector(dir,hit?tz:tb); setOmBeam(getOmBeam(idx),mp,end,.03+.012*Math.sin(clock*60+idx)); 
+      if(hit&&n>0){ sum.set(hit,(sum.get(hit)||0)+50*n); hit.omPos=end; anyHit=true; } } }
+  for(const [z,d] of sum){ hurtZombie(z,d,z.omPos,null,true); z.dotSum=(z.dotSum||0)+Math.round(d*mult().dmg); z.dotPos=z.omPos; }
+  if(anyHit){ S.omHm-=dt; if(S.omHm<=0){ S.omHm=.12; hitMarker(); } }
+  S.omNet-=dt; if(S.omNet<=0){ S.omNet=.1; for(let g=0;g<4;g++){ const mp=new THREE.Vector3(); (gunMuz4[g]||gunMuzzle).getWorldPosition(mp); const e=eye.clone().addScaledVector(fwd,24); netShot({k:'b',big:1,c:OM_COLS[g],w:.05,a:[mp.x,mp.y,mp.z],b:[e.x,e.y,e.z]}); } }
+}
 function fireOverflow(){
   const iv=ovInterval(); S.fireCd=Math.max(-.05,S.fireCd)+iv; S.ovIdle=0;
   kick=Math.min(.25,kick+(iv<.05?.025:.12)); flashT=.05; flash.visible=true;
@@ -2680,7 +2716,7 @@ function shootRay(yaw,pitch,dmgNear,dmgFar,range){
     else { hurtZombie(hit,dmg,_e.clone().setY(Math.min((hit.y0||0)+hit.height,_e.y+.2)),head?'#ef4444':undefined); hitMarker(); }
   }
 }
-function heatTime(w){ return w.id==='minigun'?MINI_HEAT_TIME:RAIL_HEAT_TIME; }
+function heatTime(w){ return w.id==='minigun'?MINI_HEAT_TIME:(w.id==='omni'?3:RAIL_HEAT_TIME); }
 function ew(w){
   const e={...w};
   if(w.id==='glock'&&U('grip')) e.cd=.75;
@@ -2703,6 +2739,7 @@ function fire(){
   if(w.id==='ripper'){ fireRipper(); return; }
   if(w.id==='acid'){ fireAcid(); return; }
   if(w.id==='ovf'){ fireOverflow(); return; }
+  if(w.id==='omni'){ fireOmni(); return; }
   if(w.id==='reaper'){ if(!S.thrown) reaperSlash(); return; }
   if(w.id==='chainsaw') return;
   if(w.id==='ostrike'){ if(S.os.ph==='idle') startOS(); return; }
@@ -2724,6 +2761,7 @@ function moveInput(){
   return {mx,my,sprint:keys.shift||(joy&&joy.len>.95)};
 }
 function update(dt){
+  S.dt=dt;
   if(S.msgT>0){ S.msgT-=dt; if(S.msgT<=0) $('msg').style.opacity=0; }
   if(S.mode==='lobby'){ flameSound(false); return updateLobby(dt); }
   const ui=S.shopOpen||S.rebirthOpen||S.pauseOpen;
@@ -2753,6 +2791,7 @@ function update(dt){
     if(S.lock>0&&Math.random()<dt*45){ gunMuzzle.getWorldPosition(_m); _m.x+=(Math.random()-.5)*.05; smoke(_m); }
   } else S.heat=0;
 
+  if(!S.omFired) hideOmni(); S.omFired=false;
   updateOS(dt); updateGrab(dt); updateDots(dt); updateMarked(dt); updateFog(dt); updateRifts(dt); updateScythe(dt);
   if(S.ghoul>0){ S.ghoul=Math.max(0,S.ghoul-dt); if(S.ghoul===0) say('Ghoul state ended',1.5); } $('ghoulFx').style.opacity=S.ghoul>0?.9:0;
   if(S.spin>0){ P.yaw+=2*Math.PI/.55*dt; S.spin-=dt; }
@@ -2883,6 +2922,7 @@ function render(dt){
       else { gunRoot.rotation.z=-sn*1.3; gunRoot.rotation.y=sn*.5; gunRoot.rotation.x=-sn*.4; gunRoot.position.x-=sn*.4; gunRoot.position.y+=sn*.05; } }
     else slashFx.visible=false;
     if(gunWisps) for(const w of gunWisps){ const t=clock*w.sp+w.ph; if(w.pom){ w.m.rotation.y=t; w.m.rotation.x=t*.7; w.m.scale.setScalar(1+.15*Math.sin(t*3)); } else if(w.wave){ const k=((clock*1.6+w.ph*.2)%1); w.m.position.set(Math.cos(w.ph*2)*(.05+k*.12),Math.sin(w.ph*2)*(.05+k*.12),-1.2-k*.35); w.m.scale.setScalar(1-k*.8); } else { w.m.position.set(Math.sin(t)*.09,Math.cos(t*1.3)*.07,w.b+Math.sin(t*.7)*.06); w.m.rotation.y=t; w.m.rotation.x=t*.6; } }
+    if(gunSpins) for(const sp of gunSpins) sp.rotation.z+=(IN.down&&S.lock<=0?34:0)*dt*sp.userData.dir;
     if(gunSpin){ spinV+=((IN.down&&S.lock<=0?(S.weapon==='ovf'?3+34*Math.min(1,S.ovT/10):28):0)-spinV)*Math.min(1,dt*6); gunSpin.rotation.z+=spinV*dt; }
     for(const z of S.zombies){
       z.g.position.set(z.x,z.y0||0,z.z); z.g.rotation.y=z.face!==undefined?z.face:Math.atan2(P.x-z.x,P.z-z.z);
@@ -2957,6 +2997,7 @@ const WINFO={
   vampire:{ico:'🗡️',tags:['Melee','Lifesteal','E: 3 modes'],note:'Blood: 4000 dmg / 0.66 s, heals 1% of damage. Wind (E): 1500 / 0.25 s, +50% speed, SPACE = high jump + wind wave. Earth (E): 6000 / 2 s, 360° shockwave.'},
   chainsaw:{ico:'🪚',tags:['Melee','Bleed','Hold to rev'],note:'Rips through enemies: 10 dmg every 0.01 s and a 3 s bleed (10 dmg / 0.05 s).'},
   reaper:{ico:'💀',tags:['Melee','Souls','Q: 360° spin'],note:'5000 dmg slices. 25 kills = E: Ghoul state (7500 dmg / 0.25 s, +50% speed, 0.1% life steal, abilities +50% damage). Q: spin that sends red slices in all directions.'},
+  omni:{ico:'🌈',tags:['4 miniguns','24 lasers','Overheats'],note:'Four floating miniguns (red, blue, green, yellow), each firing 6 spinning lasers: 50 dmg per laser every 0.01 s. Overheats after 3 s of fire; release the trigger any time to stop.'},
   ovf:{ico:'🌋',tags:['Spools up','Bullets','Full-auto'],note:'Starts at 1 shot per second and spools up the longer you hold fire, reaching 1 shot every 0.01 s after 10 s. 225 dmg per shot. Release to wind down.'},
   acid:{ico:'☣️',tags:['Poison fog','No direct damage','Hold to spray'],note:'Sprays a toxic fog. Touched zombies are poisoned: 1250 dmg every 0.5 s for 3 s (touching it again refreshes the poison).'},
   ripper:{ico:'🔭',tags:['Sniper','Pierces all','Marks'],note:'25000 dmg per shot, 1 shot / 2 s. Headshots deal 2x (3x with Sharpshooter). Pierces everything and leaves enemies Marked: visible through walls and burned by purple flames.'},
@@ -2985,6 +3026,7 @@ const WTHEME={
   reaper:{a:'#b91c1c',a2:'#c084fc',bg:'#1c1020',bg2:'#251228',bd:'#3f1c3d',ib:'#100814'},
   ostrike:{a:'#7dd3fc',a2:'#ffffff',bt:'#0b1220',bg:'#141d2e',bg2:'#182540',bd:'#2a3f66',ib:'#0a1120'},
   sonic:{a:'#38bdf8',a2:'#818cf8',bg:'#0c1630',bg2:'#0f1c40',bd:'#1c3166',ib:'#060b1a'},
+  omni:{a:'#a855f7',a2:'#22d3ee',bg:'#12122a',bg2:'#181838',bd:'#2f2f6a',ib:'#0a0a1a'},
   ovf:{a:'#e11d48',a2:'#fb923c',bg:'#1f0d1e',bg2:'#2b1026',bd:'#4d1a3c',ib:'#12060f'},
   acid:{a:'#84cc16',a2:'#d9f99d',bg:'#121f0a',bg2:'#172a0c',bd:'#2b4a14',ib:'#0a1205'},
   ripper:{a:'#9333ea',a2:'#f0abfc',bg:'#150a26',bg2:'#1c0e33',bd:'#34196a',ib:'#0a0414'},
@@ -3498,6 +3540,7 @@ const SND={
   vsummon:{v:.9,range:80,f:o=>{ tone({f:80,f2:400,dur:1.0,type:'sawtooth',vol:.35,lp:1800,att:.1,out:o}); tone({f:1200,f2:300,dur:.9,type:'triangle',vol:.12,out:o}); noise({dur:.8,vol:.2,ft:'bandpass',f:600,f2:2000,out:o}); }},
   riftopen:{v:.8,range:60,f:o=>{ tone({f:120,f2:520,dur:.6,type:'sawtooth',vol:.3,lp:1500,att:.05,out:o}); tone({f:900,f2:200,dur:.5,type:'sine',vol:.15,out:o}); noise({dur:.5,vol:.2,ft:'bandpass',f:700,f2:2200,out:o}); }},
   riftbreak:{v:1,range:100,f:o=>{ tone({f:60,f2:25,dur:.9,type:'sawtooth',vol:.55,lp:700,out:o}); noise({dur:.8,vol:.5,ft:'lowpass',f:2000,f2:100,out:o}); tone({f:1500,f2:200,dur:.4,type:'square',vol:.15,out:o}); }},
+  omnifire:{v:.55,range:70,f:o=>{ tone({f:880,f2:700,dur:.12,type:'sawtooth',vol:.18,lp:3500,out:o}); tone({f:1320,f2:1000,dur:.12,type:'square',vol:.08,out:o}); tone({f:440,f2:360,dur:.12,type:'triangle',vol:.15,out:o}); noise({dur:.1,vol:.18,ft:'bandpass',f:3500,f2:2500,out:o}); }},
   overflow:{v:.4,range:60,f:o=>{ tone({f:520,f2:180,dur:.06,type:'sawtooth',vol:.25,lp:2500,out:o}); noise({dur:.05,vol:.25,ft:'bandpass',f:2200,f2:1200,out:o}); }},
   acid:{v:.35,range:40,f:o=>{ noise({dur:.16,vol:.5,ft:'highpass',f:2500,f2:1500,out:o}); tone({f:260,f2:140,dur:.14,type:'sawtooth',vol:.07,lp:900,out:o}); }},
   hiss:{v:.3,range:25,f:o=>{ noise({dur:.15,vol:.3,ft:'bandpass',f:3000,f2:2000,out:o}); }},
@@ -3570,7 +3613,7 @@ function audAmbience(){
   AUD.amb={lg,gg}; audAmbMode(S.mode);
 }
 function audAmbMode(m){ if(!AUD.amb) return; const t=AUD.ctx.currentTime; AUD.amb.lg.gain.setTargetAtTime(m==='lobby'?.6:0,t,.5); AUD.amb.gg.gain.setTargetAtTime(m==='game'?.12:0,t,.5); }
-const WSOUND={ovf:'overflow',acid:'acid',ripper:'ripper',sonic:'sonicshot',ostrike:'railgun',glock:'glock',rifle:'rifle',mg:'mg',shotgun:'shotgun',autoshot:'shotgun',minigun:'minigun',flame:'flame'};
+const WSOUND={omni:'omnifire',ovf:'overflow',acid:'acid',ripper:'ripper',sonic:'sonicshot',ostrike:'railgun',glock:'glock',rifle:'rifle',mg:'mg',shotgun:'shotgun',autoshot:'shotgun',minigun:'minigun',flame:'flame'};
 function zPitch(z){ const s=z.desc?z.desc.s:1; let p=1.25/Math.pow(Math.max(.6,s),.6); if(z.desc&&z.desc.n&&z.desc.n.indexOf('Fast')===0) p*=1.35; if(z.brute) p*=.72; return p; }
 
 
